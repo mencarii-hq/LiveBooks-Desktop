@@ -3,7 +3,9 @@
  */
 export default {
   '*.{ts,vue}': (filenames) => {
-    const eslintTargets = filenames.filter((f) => !f.endsWith('.spec.ts'));
+    const eslintTargets = filenames.filter(
+      (f) => !f.endsWith('.spec.ts') && !f.endsWith('vite.config.ts')
+    );
     const cmds = [];
     if (eslintTargets.length > 0) {
       cmds.push(
