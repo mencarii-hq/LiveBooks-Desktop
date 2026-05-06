@@ -69,6 +69,14 @@ export type QueryFilter = Record<
   boolean | string | null | (string | number | (string | number | null)[])[]
 >;
 
+export type BankReconcileCandidateRow = {
+  referenceType: string;
+  referenceName: string;
+  date: string;
+  debit: string;
+  credit: string;
+};
+
 /**
  * DatabaseDemuxBase is an abstract class that ensures that the function signatures
  * match between the DatabaseManager and the DatabaseDemux.

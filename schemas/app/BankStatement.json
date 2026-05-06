@@ -1,0 +1,116 @@
+{
+  "name": "BankStatement",
+  "label": "Bank Statement",
+  "naming": "autoincrement",
+  "isSubmittable": false,
+  "fields": [
+    {
+      "fieldname": "name",
+      "label": "No.",
+      "fieldtype": "Data",
+      "required": true,
+      "readOnly": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "bankAccount",
+      "label": "Bank account",
+      "fieldtype": "Link",
+      "target": "Account",
+      "required": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "fromDate",
+      "label": "From date",
+      "fieldtype": "Date",
+      "required": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "toDate",
+      "label": "To date",
+      "fieldtype": "Date",
+      "required": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "importedAt",
+      "label": "Imported at",
+      "fieldtype": "Datetime",
+      "required": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "source",
+      "label": "Source",
+      "fieldtype": "Select",
+      "required": true,
+      "default": "manual_csv",
+      "options": [
+        { "value": "manual_csv", "label": "Manual CSV" },
+        { "value": "plaid_statement_pdf", "label": "Plaid statement (PDF)" },
+        {
+          "value": "plaid_transactions_window",
+          "label": "Plaid transactions window"
+        }
+      ],
+      "section": "Default"
+    },
+    {
+      "fieldname": "sourceFilename",
+      "label": "Source filename",
+      "fieldtype": "Data",
+      "section": "Default"
+    },
+    {
+      "fieldname": "statementPdfUrl",
+      "label": "Statement PDF URL",
+      "fieldtype": "Text",
+      "section": "Default"
+    },
+    {
+      "fieldname": "cloudStatementId",
+      "label": "Cloud statement id",
+      "fieldtype": "Data",
+      "section": "Default"
+    },
+    {
+      "fieldname": "plaidItemId",
+      "label": "Plaid item id",
+      "fieldtype": "Data",
+      "section": "Default"
+    },
+    {
+      "fieldname": "status",
+      "label": "Status",
+      "fieldtype": "Select",
+      "default": "Open",
+      "options": [
+        { "value": "Open", "label": "Open" },
+        { "value": "Closed", "label": "Closed" }
+      ],
+      "section": "Default"
+    },
+    {
+      "fieldname": "kind",
+      "label": "Kind",
+      "fieldtype": "Select",
+      "default": "month_end",
+      "options": [
+        { "value": "month_end", "label": "Month-end" },
+        { "value": "feed_window", "label": "Feed window" }
+      ],
+      "section": "Default"
+    },
+    {
+      "fieldname": "lines",
+      "label": "Lines",
+      "fieldtype": "Table",
+      "target": "BankStatementLine",
+      "required": true,
+      "section": "Lines"
+    }
+  ],
+  "keywordFields": ["name", "bankAccount"]
+}

@@ -484,4 +484,40 @@ export class BespokeQueries {
 
     return transactedAmounts;
   }
+
+  static async getBankReconcileCandidates(
+    db: DatabaseCore,
+    bankAccount: string,
+    lineDate: string,
+    lineAmount: number,
+    windowDays = 3
+  ) {
+    const datePart = lineDate.slice(0, 10);
+    const center = new Date(`${datePart}T12:00:00`);
+    const from = new Date(center);
+    from.setDate(from.getDate() - windowDays);
+    const to = new Date(center);
+    to.setDate(to.getDate() + windowDays);
+    const fromIso = from.toISOString().slice(0, 10);
+    const toIso = to.toISOString().slice(0, 10);
+
+    const refTypes = [ModelNameEnum.Payment, ModelNameEnum.JournalEntry];
+
+    return (await db.knex!(ModelNameEnum.AccountingLedgerEntry)
+      .select('referenceType', 'referenceName', 'date', 'debit', 'credit')
+      .where({ account: bankAccount, reverted: false })
+      .whereIn('referenceType', refTypes)
+      .whereRaw('substr(date, 1, 10) between ? and ?', [fromIso, toIso])
+      .whereRaw('abs(cast(debit as real) - cast(credit as real) - ?) < 0.02', [
+        lineAmount,
+      ])
+      .orderBy('date', 'asc')
+      .limit(40)) as {
+      referenceType: string;
+      referenceName: string;
+      date: string;
+      debit: string;
+      credit: string;
+    }[];
+  }
 }

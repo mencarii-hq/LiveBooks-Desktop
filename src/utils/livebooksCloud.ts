@@ -49,6 +49,24 @@ export async function signOutLivebooksCloud(): Promise<void> {
   await ipc.clearLivebooksCloudSession();
 }
 
+export type LivebooksCloudApiResult = {
+  ok: boolean;
+  status: number;
+  data: unknown;
+  etag?: string;
+};
+
+/** Bearer-authenticated JSON call to LiveBooks Cloud (via main process). */
+export async function livebooksCloudRequest(options: {
+  method: string;
+  path: string;
+  body?: unknown;
+  skipAuth?: boolean;
+  headers?: Record<string, string>;
+}): Promise<LivebooksCloudApiResult> {
+  return (await ipc.livebooksCloudApi(options)) as LivebooksCloudApiResult;
+}
+
 export async function fetchLivebooksCloudSubscription(): Promise<{
   ok: boolean;
   status: number;
@@ -64,6 +82,7 @@ export async function openLivebooksCloudBillingPortal(): Promise<{
   ok: boolean;
   status: number;
   data: unknown;
+  etag?: string;
 }> {
   const res = await ipc.livebooksCloudApi({
     method: 'POST',

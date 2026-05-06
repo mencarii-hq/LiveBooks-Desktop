@@ -300,9 +300,10 @@ export default function registerIpcMainActionListeners(main: Main) {
         path: string;
         body?: unknown;
         skipAuth?: boolean;
+        headers?: Record<string, string>;
       }
     ) => {
-      const { method, path, body, skipAuth } = payload;
+      const { method, path, body, skipAuth, headers: extraHeaders } = payload;
       if (!path.startsWith('/api/')) {
         return { ok: false, status: 0, error: 'invalid_path' as const };
       }
@@ -319,6 +320,13 @@ export default function registerIpcMainActionListeners(main: Main) {
       if (!skipAuth && typeof access === 'string' && access.length > 0) {
         headers.Authorization = `Bearer ${access}`;
       }
+      if (extraHeaders) {
+        for (const [k, v] of Object.entries(extraHeaders)) {
+          if (v !== undefined && v !== '') {
+            headers[k] = v;
+          }
+        }
+      }
 
       const init: RequestInit = {
         method,
@@ -328,7 +336,10 @@ export default function registerIpcMainActionListeners(main: Main) {
         init.body = JSON.stringify(body);
       }
 
-      const res = await fetch(`${origin}${path}`, init);
+      const res = await fetch(
+        `${origin}${path}`,
+        init as import('node-fetch').RequestInit
+      );
       const text = await res.text();
       let data: unknown = null;
       try {
@@ -336,7 +347,8 @@ export default function registerIpcMainActionListeners(main: Main) {
       } catch {
         data = { raw: text };
       }
-      return { ok: res.ok, status: res.status, data };
+      const etag = res.headers.get('etag') ?? undefined;
+      return { ok: res.ok, status: res.status, data, etag };
     }
   );
 

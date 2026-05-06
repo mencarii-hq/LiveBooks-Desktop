@@ -14,6 +14,8 @@ export enum ModelNameEnum {
   AccountingLedgerEntry = 'AccountingLedgerEntry',
   AccountingSettings = 'AccountingSettings',
   Address = 'Address',
+  BankStatement = 'BankStatement',
+  BankStatementLine = 'BankStatementLine',
   Batch = 'Batch',
   BatchSeries = 'BatchSeries',
   Color = 'Color',

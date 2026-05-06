@@ -7,6 +7,7 @@ import { translateSchema } from 'fyo/utils/translation';
 import { Field, RawValue, SchemaMap } from 'schemas/types';
 import { getMapFromList } from 'utils';
 import {
+  BankReconcileCandidateRow,
   Cashflow,
   DatabaseBase,
   DatabaseDemuxBase,
@@ -354,6 +355,21 @@ export class DatabaseHandler extends DatabaseBase {
       toDate,
       lastShiftClosingDate
     )) as Promise<Record<string, Money> | undefined>;
+  }
+
+  async getBankReconcileCandidates(
+    bankAccount: string,
+    lineDate: string,
+    lineAmount: number,
+    windowDays?: number
+  ): Promise<BankReconcileCandidateRow[]> {
+    return (await this.#demux.callBespoke(
+      'getBankReconcileCandidates',
+      bankAccount,
+      lineDate,
+      lineAmount,
+      windowDays ?? 3
+    )) as BankReconcileCandidateRow[];
   }
 
   /**

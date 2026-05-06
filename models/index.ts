@@ -34,6 +34,8 @@ import { SetupWizard } from './baseModels/SetupWizard/SetupWizard';
 import { ItemGroup } from './baseModels/ItemGroup/ItemGroup';
 import { Tax } from './baseModels/Tax/Tax';
 import { TaxSummary } from './baseModels/TaxSummary/TaxSummary';
+import { BankStatement } from './baseModels/BankStatement/BankStatement';
+import { BankStatementLine } from './baseModels/BankStatementLine/BankStatementLine';
 import { Batch } from './inventory/Batch';
 import { InventorySettings } from './inventory/InventorySettings';
 import { Location } from './inventory/Location';
@@ -64,6 +66,8 @@ export const models = {
   AccountingLedgerEntry,
   AccountingSettings,
   Address,
+  BankStatement,
+  BankStatementLine,
   Batch,
   Defaults,
   Item,

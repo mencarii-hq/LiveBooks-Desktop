@@ -1,0 +1,75 @@
+{
+  "name": "BankStatementLine",
+  "label": "Bank Statement Line",
+  "isChild": true,
+  "fields": [
+    {
+      "fieldname": "date",
+      "label": "Date",
+      "fieldtype": "Date",
+      "required": true
+    },
+    {
+      "fieldname": "description",
+      "label": "Description",
+      "fieldtype": "Text"
+    },
+    {
+      "fieldname": "amount",
+      "label": "Amount (bank)",
+      "fieldtype": "Currency",
+      "description": "Signed to match General Ledger: inflow positive, outflow negative.",
+      "required": true
+    },
+    {
+      "fieldname": "bankReference",
+      "label": "Bank reference",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "externalId",
+      "label": "External id",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "matchStatus",
+      "label": "Match status",
+      "fieldtype": "Select",
+      "default": "unmatched",
+      "options": [
+        { "value": "unmatched", "label": "Unmatched" },
+        { "value": "matched", "label": "Matched" },
+        { "value": "ignored", "label": "Ignored" }
+      ]
+    },
+    {
+      "fieldname": "matchedReferenceType",
+      "label": "Matched ref. type",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "matchedReferenceName",
+      "label": "Matched ref. name",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "ignoreReason",
+      "label": "Ignore reason",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "contentHash",
+      "label": "Content hash",
+      "fieldtype": "Data"
+    }
+  ],
+  "tableFields": [
+    "date",
+    "description",
+    "amount",
+    "bankReference",
+    "matchStatus",
+    "matchedReferenceName"
+  ],
+  "keywordFields": ["description", "bankReference"]
+}

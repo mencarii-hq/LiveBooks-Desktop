@@ -229,11 +229,12 @@ const ipc = {
     path: string;
     body?: unknown;
     skipAuth?: boolean;
+    headers?: Record<string, string>;
   }) {
     return (await ipcRenderer.invoke(
       IPC_ACTIONS.LIVEBOOKS_CLOUD_API,
       payload
-    )) as { ok: boolean; status: number; data: unknown };
+    )) as { ok: boolean; status: number; data: unknown; etag?: string };
   },
 
   registerLivebooksCloudSessionListener(listener: IPCRendererListener) {

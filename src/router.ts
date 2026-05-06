@@ -2,6 +2,9 @@ import ChartOfAccounts from 'src/pages/ChartOfAccounts.vue';
 import CommonForm from 'src/pages/CommonForm/CommonForm.vue';
 import Dashboard from 'src/pages/Dashboard/Dashboard.vue';
 import GetStarted from 'src/pages/GetStarted.vue';
+import BankFeeds from 'src/pages/BankFeeds.vue';
+import BankReconcile from 'src/pages/BankReconcile.vue';
+import BankStatementImport from 'src/pages/BankStatementImport.vue';
 import ImportListsHub from 'src/pages/ImportListsHub.vue';
 import ImportWizard from 'src/pages/ImportWizard.vue';
 import ListView from 'src/pages/ListView/ListView.vue';
@@ -107,6 +110,22 @@ const routes: RouteRecordRaw[] = [
     path: '/import-wizard',
     name: 'Import Wizard',
     component: ImportWizard,
+  },
+  {
+    path: '/bank-feeds',
+    name: 'Bank feeds',
+    component: BankFeeds,
+  },
+  {
+    path: '/bank-statement-import',
+    name: 'Bank statement import',
+    component: BankStatementImport,
+  },
+  {
+    path: '/bank-reconcile/:name',
+    name: 'Bank reconcile',
+    component: BankReconcile,
+    props: true,
   },
   {
     path: '/template-builder/:name',

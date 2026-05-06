@@ -286,6 +286,22 @@ function getCompleteSidebar(): SidebarConfig {
           schemaName: 'JournalEntry',
         },
         {
+          label: t`Bank feeds`,
+          name: 'bank-feeds',
+          route: '/bank-feeds',
+        },
+        {
+          label: t`Bank statements`,
+          name: 'bank-statements',
+          route: '/list/BankStatement',
+          schemaName: 'BankStatement',
+        },
+        {
+          label: t`Import statement (CSV)`,
+          name: 'bank-statement-import',
+          route: '/bank-statement-import',
+        },
+        {
           label: t`Customers & Suppliers`,
           name: 'party',
           route: '/list/Party',

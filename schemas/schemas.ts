@@ -2,6 +2,8 @@ import Account from './app/Account.json';
 import AccountingLedgerEntry from './app/AccountingLedgerEntry.json';
 import AccountingSettings from './app/AccountingSettings.json';
 import Address from './app/Address.json';
+import BankStatement from './app/BankStatement.json';
+import BankStatementLine from './app/BankStatementLine.json';
 import Batch from './app/Batch.json';
 import BatchSeries from './app/BatchSeries.json';
 import Color from './app/Color.json';
@@ -135,6 +137,9 @@ export const appSchemas: Schema[] | SchemaStub[] = [
 
   JournalEntry as Schema,
   JournalEntryAccount as Schema,
+
+  BankStatement as Schema,
+  BankStatementLine as Schema,
 
   Invoice as Schema,
   ItemEnquiry as Schema,
