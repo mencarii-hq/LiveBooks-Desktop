@@ -34,6 +34,7 @@ export enum ModelNameEnum {
   SerialNumberSeries = 'SerialNumberSeries',
   Lead = 'Lead',
   Party = 'Party',
+  PlaidBankAccountMap = 'PlaidBankAccountMap',
   LoyaltyProgram = 'LoyaltyProgram',
   LoyaltyPointEntry = 'LoyaltyPointEntry',
   CollectionRulesItems = 'CollectionRulesItems',

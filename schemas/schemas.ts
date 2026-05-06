@@ -19,6 +19,7 @@ import Misc from './app/Misc.json';
 import NumberSeries from './app/NumberSeries.json';
 import SerialNumberSeries from './app/SerialNumberSeries.json';
 import Party from './app/Party.json';
+import PlaidBankAccountMap from './app/PlaidBankAccountMap.json';
 import Lead from './app/Lead.json';
 import LoyaltyProgram from './app/LoyaltyProgram.json';
 import LoyaltyPointEntry from './app/LoyaltyPointEntry.json';
@@ -120,6 +121,7 @@ export const appSchemas: Schema[] | SchemaStub[] = [
   AccountingLedgerEntry as Schema,
 
   Party as Schema,
+  PlaidBankAccountMap as Schema,
   Lead as Schema,
   Address as Schema,
   ItemGroup as Schema,

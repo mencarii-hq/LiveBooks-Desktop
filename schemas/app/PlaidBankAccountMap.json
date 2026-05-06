@@ -1,0 +1,45 @@
+{
+  "name": "PlaidBankAccountMap",
+  "label": "Plaid bank account map",
+  "naming": "autoincrement",
+  "isSubmittable": false,
+  "fields": [
+    {
+      "fieldname": "name",
+      "label": "No.",
+      "fieldtype": "Data",
+      "required": true,
+      "readOnly": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "plaidItemId",
+      "label": "Plaid item id",
+      "fieldtype": "Data",
+      "required": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "plaidAccountId",
+      "label": "Plaid account id",
+      "fieldtype": "Data",
+      "required": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "plaidDisplayLabel",
+      "label": "Plaid account label",
+      "fieldtype": "Data",
+      "section": "Default"
+    },
+    {
+      "fieldname": "chartAccount",
+      "label": "Chart of accounts (bank)",
+      "fieldtype": "Link",
+      "target": "Account",
+      "required": true,
+      "section": "Default"
+    }
+  ],
+  "keywordFields": ["plaidItemId", "plaidAccountId", "chartAccount"]
+}

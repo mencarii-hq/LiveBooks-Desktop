@@ -9,6 +9,7 @@ import { JournalEntry } from './baseModels/JournalEntry/JournalEntry';
 import { JournalEntryAccount } from './baseModels/JournalEntryAccount/JournalEntryAccount';
 import { Misc } from './baseModels/Misc';
 import { Party } from './baseModels/Party/Party';
+import { PlaidBankAccountMap } from './baseModels/PlaidBankAccountMap/PlaidBankAccountMap';
 import { LoyaltyProgram } from './baseModels/LoyaltyProgram/LoyaltyProgram';
 import { LoyaltyPointEntry } from './baseModels/LoyaltyPointEntry/LoyaltyPointEntry';
 import { CollectionRulesItems } from './baseModels/CollectionRulesItems/CollectionRulesItems';
@@ -78,6 +79,7 @@ export const models = {
   Misc,
   Lead,
   Party,
+  PlaidBankAccountMap,
   LoyaltyProgram,
   LoyaltyPointEntry,
   CollectionRulesItems,
