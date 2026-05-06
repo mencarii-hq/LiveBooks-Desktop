@@ -13,7 +13,7 @@ const appSourcePath = path.join(root, 'dist_electron', 'build', 'main.js');
   window.setDefaultTimeout(60_000);
 
   test('load app', async (t) => {
-    t.equal(await window.title(), 'Frappe Books', 'title matches');
+    t.equal(await window.title(), 'LiveBooks Desktop', 'title matches');
 
     await new Promise((r) => window.once('load', () => r()));
     t.ok(true, 'window has loaded');
@@ -21,21 +21,21 @@ const appSourcePath = path.join(root, 'dist_electron', 'build', 'main.js');
 
   test('navigate to database selector', async (t) => {
     /**
-     * When running on local, Frappe Books will open
+     * When running on local, LiveBooks Desktop will open
      * the last selected database.
      */
-    const changeDb = window.getByTestId('change-db');
+    const changeDb = window.getByTestId('switch-company');
     const createNew = window.getByTestId('create-new-file');
 
     const changeDbPromise = changeDb
       .waitFor({ state: 'visible' })
-      .then(() => 'change-db');
+      .then(() => 'switch-company');
     const createNewPromise = createNew
       .waitFor({ state: 'visible' })
       .then(() => 'create-new-file');
 
     const el = await Promise.race([changeDbPromise, createNewPromise]);
-    if (el === 'change-db') {
+    if (el === 'switch-company') {
       await changeDb.click();
       await createNewPromise;
     }

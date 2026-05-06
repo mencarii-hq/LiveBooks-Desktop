@@ -3,11 +3,27 @@ import { readFileSync } from 'fs';
 import { ModelNameEnum } from 'models/types';
 import { join } from 'path';
 import { Importer } from 'src/importer';
+import {
+  getImportableSchemaNames,
+  isImportableSchemaName,
+} from 'src/utils/importableSchemas';
 import test from 'tape';
 import { closeTestFyo, getTestFyo, setupTestFyo } from './helpers';
 
 const fyo = getTestFyo();
 setupTestFyo(fyo, __filename);
+
+test('importable schema allowlist', (t) => {
+  const names = getImportableSchemaNames(fyo);
+  t.ok(names.includes(ModelNameEnum.Account), 'includes Account');
+  t.ok(names.includes(ModelNameEnum.Party), 'includes Party');
+  t.ok(isImportableSchemaName(fyo, ModelNameEnum.Item), 'Item is importable');
+  t.notOk(
+    isImportableSchemaName(fyo, 'NotASchema'),
+    'invalid name is not importable'
+  );
+  t.end();
+});
 
 test('importer init', (t) => {
   const importer = new Importer(ModelNameEnum.SalesInvoice, fyo);
