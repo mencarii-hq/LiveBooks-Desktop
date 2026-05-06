@@ -108,7 +108,7 @@
       "options": [
         {
           "value": "Party",
-          "label": "Party"
+          "label": "Customer / vendor"
         },
         {
           "value": "Company",

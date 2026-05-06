@@ -39,7 +39,9 @@
       "fieldtype": "AutoComplete",
       "placeholder": "Select Country",
       "section": "Locale",
-      "required": true
+      "required": true,
+      "default": "United States",
+      "hidden": true
     },
     {
       "fieldname": "currency",
@@ -47,7 +49,9 @@
       "fieldtype": "AutoComplete",
       "placeholder": "Currency",
       "section": "Locale",
-      "required": true
+      "required": true,
+      "default": "USD",
+      "hidden": true
     },
     {
       "fieldname": "bankName",
@@ -92,8 +96,6 @@
   "quickEditFields": [
     "fullname",
     "bankName",
-    "country",
-    "currency",
     "chartOfAccounts",
     "fiscalYearStart",
     "fiscalYearEnd"

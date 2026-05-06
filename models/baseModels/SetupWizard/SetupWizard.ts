@@ -37,9 +37,9 @@ export function getCOAList() {
     { countryCode: 'nl', name: 'Netherlands - Grootboekschema' },
     { countryCode: 'sg', name: 'Singapore - Chart of Accounts' },
     { countryCode: 'fr', name: 'France - Plan Comptable General' },
+    { countryCode: 'us', name: 'United States - Chart of Accounts' },
     /*  
     { countryCode: 'th', name: 'Thailand - Chart of Accounts' },
-    { countryCode: 'us', name: 'United States - Chart of Accounts' },
     { countryCode: 've', name: 'Venezuela - Plan de Cuentas' },
     { countryCode: 'za', name: 'South Africa - Chart of Accounts' },
     { countryCode: 'de', name: 'Germany - Kontenplan' },
@@ -53,6 +53,12 @@ export function getCOAList() {
     { countryCode: 'ch', name: 'Switzerland - Kontenplan' },
     { countryCode: 'tr', name: 'Turkey - Chart of Accounts' },*/
   ];
+}
+
+function getLiveBooksSetupCoAList() {
+  return getCOAList().filter(
+    ({ countryCode }) => !countryCode || countryCode === 'us'
+  );
 }
 
 export class SetupWizard extends Doc {
@@ -146,7 +152,7 @@ export class SetupWizard extends Doc {
         if (!code) {
           return;
         }
-        const coaList = getCOAList();
+        const coaList = getLiveBooksSetupCoAList();
         const coa = coaList.find(({ countryCode }) => countryCode === code);
         return coa?.name ?? coaList[0].name;
       },
@@ -159,8 +165,8 @@ export class SetupWizard extends Doc {
   };
 
   static lists: ListsMap = {
-    country: () => Object.keys(getCountryInfo()),
-    currency: () => getCurrencyList().map(({ name }) => name),
-    chartOfAccounts: () => getCOAList().map(({ name }) => name),
+    country: () => ['United States'],
+    currency: () => ['USD'],
+    chartOfAccounts: () => getLiveBooksSetupCoAList().map(({ name }) => name),
   };
 }

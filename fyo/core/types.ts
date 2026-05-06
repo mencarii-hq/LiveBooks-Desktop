@@ -34,8 +34,11 @@ export type AuthDemuxConstructor = new (isElectron?: boolean) => AuthDemuxBase;
 export type ConfigMap = {
   files: ConfigFile[];
   lastSelectedFilePath: null | string;
-  language: string 
-  deviceId: string
+  language: string;
+  deviceId: string;
+  /** LiveBooks Cloud API (Bearer); set by main after desktop link exchange */
+  livebooksCloudAccessToken?: string;
+  livebooksCloudRefreshToken?: string;
 };
 
 export interface ConfigFile {

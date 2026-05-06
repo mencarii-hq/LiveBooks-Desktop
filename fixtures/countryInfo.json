@@ -2119,6 +2119,8 @@
   },
   "United States": {
     "code": "us",
+    "fiscal_year_start": "01-01",
+    "fiscal_year_end": "12-31",
     "currency": "USD",
     "currency_fraction": "Cent",
     "currency_fraction_units": 100,

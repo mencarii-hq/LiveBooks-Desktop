@@ -62,7 +62,8 @@
       "label": "Enable Point of Sale",
       "fieldtype": "Check",
       "default": false,
-      "section": "Features"
+      "section": "Features",
+      "hidden": true
     }
   ]
 }

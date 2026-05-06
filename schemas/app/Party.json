@@ -1,6 +1,6 @@
 {
   "name": "Party",
-  "label": "Party",
+  "label": "Customers & Suppliers",
   "naming": "manual",
   "fields": [
     {
@@ -86,7 +86,6 @@
       "readOnly": true,
       "section": "References"
     },
-
     {
       "fieldname": "loyaltyProgram",
       "label": "Loyalty Program",
