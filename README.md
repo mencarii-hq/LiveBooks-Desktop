@@ -25,6 +25,12 @@
 	<a href="https://docs.frappe.io/books">Documentation</a>
 </div>
 
+## LiveBooks Desktop
+
+This repository is **[LiveBooks Desktop](https://github.com/Mencarii/LiveBooks-Desktop)**, a fork of [Frappe Books](https://github.com/frappe/books). It is released under the **GNU Affero General Public License v3.0 only** (`AGPL-3.0-only`), consistent with upstream. See **`LICENSE`** and **`NOTICE`** for legal detail.
+
+---
+
 ## Frappe Books
 
 Frappe Books is an open-source accounting software aimed at simplifying financial management for businesses. With its clean and user-friendly interface, it streamlines accounting tasks for small and medium-sized enterprises, offering a seamless solution for modern businesses to manage their finances with ease.
