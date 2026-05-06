@@ -5,6 +5,7 @@
     :class="iconClasses"
     :active="active"
     :darkMode="darkMode"
+    :onPrimary="onPrimary"
   />
 </template>
 
@@ -28,6 +29,7 @@ export default {
     name: { type: String, required: true },
     active: { type: Boolean, default: false },
     darkMode: { type: Boolean, default: false },
+    onPrimary: { type: Boolean, default: false },
     size: {
       type: String,
       required: true,

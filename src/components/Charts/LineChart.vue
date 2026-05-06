@@ -52,7 +52,7 @@
           :key="j + '-ylabels'"
           :style="fontStyle"
           :y="yScalerLocation(i - 1)"
-          :x="axisPadding - xLabelOffset + left"
+          :x="axisPadding - xLabelOffset + plotLeft"
           text-anchor="end"
         >
           {{ yScalerValue(i - 1) }}
@@ -180,11 +180,34 @@ export default {
     showTooltip: { type: Boolean, default: true },
   },
   data() {
-    return { cx: -1, cy: -1, xi: -1, yi: -1 };
+    return {
+      cx: -1,
+      cy: -1,
+      xi: -1,
+      yi: -1,
+      zoomFactor: 1,
+      _zoomTimer: null,
+      _resizeObserver: null,
+      svgScale: 1,
+      svgClientHeight: 0,
+    };
   },
   computed: {
     fontStyle() {
-      return { fontSize: this.fontSize, fill: this.fontColor };
+      // Make font respond to *rendered* chart size, not viewBox scaling.
+      // Compute a target font in screen px, then convert back to SVG user units.
+      const h = this.svgClientHeight || 0;
+      const targetPx = Math.max(10, Math.min(Math.round(h * 0.03), 14)); // ~10–14px
+      const scale = this.svgScale || 1;
+      return { fontSize: targetPx / scale, fill: this.fontColor };
+    },
+    plotLeft() {
+      // Give y-axis labels more room as font size increases, so they don't clip
+      const extra = Math.max(
+        0,
+        Math.ceil((this.fontStyle.fontSize - 12) * 1.6)
+      );
+      return this.left + Math.min(extra, 40);
     },
     viewBoxWidth() {
       return this.aspectRatio * this.viewBoxHeight;
@@ -201,8 +224,8 @@ export default {
         .map(
           (_, i) =>
             this.padding +
-            this.left +
-            (i * (this.viewBoxWidth - this.left - 2 * this.padding)) /
+            this.plotLeft +
+            (i * (this.viewBoxWidth - this.plotLeft - 2 * this.padding)) /
               (this.count - 1 || 1) // The "or" one (1) prevents accidentally dividing by 0
         );
     },
@@ -228,7 +251,7 @@ export default {
       return Math.max(...this.points.flat());
     },
     axis() {
-      return `M ${this.axisPadding + this.left} ${this.axisPadding} V ${
+      return `M ${this.axisPadding + this.plotLeft} ${this.axisPadding} V ${
         this.viewBoxHeight - this.axisPadding - this.bottom
       } H ${this.viewBoxWidth - this.axisPadding}`;
     },
@@ -248,7 +271,7 @@ export default {
       return [];
     },
     xLims() {
-      const l = this.padding + this.left;
+      const l = this.padding + this.plotLeft;
       const r = this.viewBoxWidth - this.padding;
       return { l, r };
     },
@@ -263,7 +286,54 @@ export default {
       return hMax;
     },
   },
+  mounted() {
+    this._syncZoomFactor();
+    // Electron zoom changes don't reliably emit a dedicated DOM event.
+    // Poll lightly so chart labels stay normalized under app zoom.
+    this._zoomTimer = window.setInterval(this._syncZoomFactor, 500);
+    this._setupResizeObserver();
+  },
+  beforeUnmount() {
+    if (this._zoomTimer) {
+      window.clearInterval(this._zoomTimer);
+      this._zoomTimer = null;
+    }
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
+  },
   methods: {
+    _syncZoomFactor() {
+      const z =
+        // @ts-ignore - injected by Electron preload
+        typeof window !== 'undefined' && window.ipc?.getZoomFactor
+          ? // @ts-ignore - injected by Electron preload
+            Number(window.ipc.getZoomFactor())
+          : 1;
+      if (Number.isFinite(z) && z > 0 && z !== this.zoomFactor) {
+        this.zoomFactor = z;
+      }
+    },
+    _setupResizeObserver() {
+      const el = this.$refs.chartSvg;
+      if (!el || typeof ResizeObserver === 'undefined') {
+        return;
+      }
+      const update = () => {
+        const rect = el.getBoundingClientRect();
+        const h = rect.height || 0;
+        const w = rect.width || 0;
+        this.svgClientHeight = h;
+        const vw = this.viewBoxWidth || 1;
+        const vh = this.viewBoxHeight || 1;
+        const scale = Math.min(w / vw, h / vh) || 1;
+        this.svgScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
+      };
+      update();
+      this._resizeObserver = new ResizeObserver(() => update());
+      this._resizeObserver.observe(el);
+    },
     gradY(i) {
       return Math.min(...this.ys[i]).toFixed();
     },
@@ -290,7 +360,7 @@ export default {
     },
     getGradLine(i) {
       let bo = this.viewBoxHeight - this.padding - this.bottom;
-      let d = `M ${this.padding + this.left} ${bo}`;
+      let d = `M ${this.padding + this.plotLeft} ${bo}`;
       this.xy.forEach(([x, y]) => {
         d += `L ${x} ${y[i]} `;
       });

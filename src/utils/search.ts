@@ -306,11 +306,6 @@ function getSetupList(): SearchItem[] {
       group: 'Page',
     },
     {
-      label: t`Import Wizard`,
-      route: '/import-wizard',
-      group: 'Page',
-    },
-    {
       label: t`Settings`,
       route: '/settings',
       group: 'Page',

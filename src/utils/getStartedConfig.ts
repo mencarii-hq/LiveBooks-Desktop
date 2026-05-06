@@ -18,6 +18,13 @@ export function getGetStartedConfig(): GetStartedConfigItem[] {
           action: () => openSettings(ModelNameEnum.AccountingSettings),
         },
         {
+          key: 'Import Lists',
+          label: t`Import Lists (CSV)`,
+          icon: 'common-entries',
+          description: t`Import accounts, customers, vendors, items, and other lists from a CSV file`,
+          action: () => routeTo('/import-lists'),
+        },
+        {
           key: 'Print',
           label: t`Print`,
           icon: 'invoice',

@@ -1,6 +1,6 @@
 import { CUSTOM_EVENTS } from 'utils/messages';
 import { UnexpectedLogObject } from 'utils/types';
-import { App as VueApp, createApp } from 'vue';
+import { App as VueApp, createApp, nextTick } from 'vue';
 import App from './App.vue';
 import Badge from './components/Badge.vue';
 import FeatherIcon from './components/FeatherIcon.vue';
@@ -57,7 +57,9 @@ import { setLanguageMap } from './utils/language';
   });
 
   await fyo.telemetry.logOpened();
-  app.mount('body');
+  app.mount('#app-mount');
+  await nextTick();
+  document.getElementById('boot-splash')?.remove();
 })();
 
 function setErrorHandlers(app: VueApp) {

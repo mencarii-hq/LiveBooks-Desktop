@@ -1,57 +1,45 @@
 <template>
   <div
-    class="
-      py-2
-      h-full
-      flex
-      justify-between
-      flex-col
-      bg-gray-25
-      dark:bg-gray-900
-      relative
-    "
+    class="py-2 h-full flex justify-between flex-col bg-green-700 relative"
     :class="{
       'window-drag': platform !== 'Windows',
     }"
   >
     <div>
-      <!-- Company name -->
+      <!-- Brand + company -->
       <div
-        class="px-4 flex flex-row items-center justify-between mb-4"
+        class=""
         :class="
-          platform === 'Mac' && languageDirection === 'ltr' ? 'mt-10' : 'mt-2'
+          platform === 'Mac' && languageDirection === 'ltr' ? 'mt-8' : 'mt-3'
         "
       >
-        <h6
-          data-testid="company-name"
+        <div
+          data-testid="switch-company"
           class="
-            font-semibold
-            dark:text-gray-200
-            whitespace-nowrap
-            overflow-auto
-            no-scrollbar
-            select-none
+            text-xl
+            tracking-tight
+            text-white
+            flex
+            items-center
+            justify-center
+            cursor-pointer
+            hover:bg-green-800
+            h-10
           "
+          @click="$emit('change-db-file')"
         >
           {{ companyName }}
-        </h6>
+        </div>
+        <hr class="dark:border-gray-800 mx-4" />
       </div>
 
       <!-- Sidebar Items -->
       <div v-for="group in groups" :key="group.label">
         <div
-          class="
-            px-4
-            flex
-            items-center
-            cursor-pointer
-            hover:bg-gray-100
-            dark:hover:bg-gray-875
-            h-10
-          "
+          class="px-4 flex items-center cursor-pointer hover:bg-green-800 h-10"
           :class="
             isGroupActive(group) && !group.items
-              ? 'bg-gray-100 dark:bg-gray-875 border-s-4 border-gray-800 dark:border-gray-100'
+              ? 'bg-green-700 border-s-4 border-white'
               : ''
           "
           @click="routeToSidebarItem(group)"
@@ -63,14 +51,15 @@
             :height="group.iconHeight ?? 0"
             :active="!!isGroupActive(group)"
             :darkMode="darkMode"
+            :onPrimary="true"
             :class="isGroupActive(group) && !group.items ? '-ms-1' : ''"
           />
           <div
-            class="ms-2 text-lg text-gray-700"
+            class="ms-2 text-lg"
             :class="
               isGroupActive(group) && !group.items
-                ? 'text-gray-900 dark:text-gray-25'
-                : 'dark:text-gray-300'
+                ? 'text-white font-medium'
+                : 'text-white'
             "
           >
             {{ group.label }}
@@ -89,13 +78,12 @@
               cursor-pointer
               flex
               items-center
-              hover:bg-gray-100
-              dark:hover:bg-gray-875
+              hover:bg-green-800
             "
             :class="
               isItemActive(item)
-                ? 'bg-gray-100 dark:bg-gray-875 text-gray-900 dark:text-gray-100 border-s-4 border-gray-800 dark:border-gray-100'
-                : 'text-gray-700 dark:text-gray-400'
+                ? 'bg-green-700 text-white border-s-4 border-white'
+                : 'text-white'
             "
             @click="routeToSidebarItem(item)"
           >
@@ -109,15 +97,19 @@
 
     <!-- Report Issue and DB Switcher -->
     <div class="window-no-drag flex flex-col gap-2 py-2 px-4">
-      <button
+      <hr class="dark:border-gray-800" />
+      <!-- <button
         class="
           flex
-          text-sm text-gray-600
-          dark:text-gray-500
-          hover:text-gray-800
-          dark:hover:text-gray-400
+          text-sm text-white
+          hover:text-white
+          hover:bg-green-800
+          rounded
           gap-1
           items-center
+          py-0.5
+          -mx-1
+          px-1
         "
         @click="openDocumentation"
       >
@@ -125,50 +117,68 @@
         <p>
           {{ t`Help` }}
         </p>
-      </button>
+      </button> -->
 
       <button
         class="
           flex
-          text-sm text-gray-600
-          dark:text-gray-500
-          hover:text-gray-800
-          dark:hover:text-gray-400
+          text-sm text-white
+          hover:text-white hover:bg-green-800
+          rounded
           gap-1
           items-center
+          py-0.5
+          -mx-1
+          px-1
+        "
+        type="button"
+        :title="
+          livebooksCloudSignedIn
+            ? t`LiveBooks Cloud — connected`
+            : t`LiveBooks Cloud — sign in or manage`
+        "
+        @click="showLivebooksCloudModal = true"
+      >
+        <feather-icon
+          :name="livebooksCloudSignedIn ? 'check-circle' : 'cloud'"
+          class="h-4 w-4 flex-shrink-0"
+        />
+        <p>
+          {{ t`Manage Account` }}
+        </p>
+      </button>
+
+      <!-- <button
+        class="
+          flex
+          text-sm text-white
+          hover:text-white
+          hover:bg-green-800
+          rounded
+          gap-1
+          items-center
+          py-0.5
+          -mx-1
+          px-1
         "
         @click="viewShortcuts = true"
       >
         <feather-icon name="command" class="h-4 w-4 flex-shrink-0" />
         <p>{{ t`Shortcuts` }}</p>
       </button>
-
-      <button
-        data-testid="change-db"
+       -->
+      <!-- <button
         class="
           flex
-          text-sm text-gray-600
-          dark:text-gray-500
-          hover:text-gray-800
-          dark:hover:text-gray-400
+          text-sm text-white
+          hover:text-white
+          hover:bg-green-800
+          rounded
           gap-1
           items-center
-        "
-        @click="$emit('change-db-file')"
-      >
-        <feather-icon name="database" class="h-4 w-4 flex-shrink-0" />
-        <p>{{ t`Change DB` }}</p>
-      </button>
-
-      <button
-        class="
-          flex
-          text-sm text-gray-600
-          dark:text-gray-500
-          hover:text-gray-800
-          dark:hover:text-gray-400
-          gap-1
-          items-center
+          py-0.5
+          -mx-1
+          px-1
         "
         @click="() => reportIssue()"
       >
@@ -176,28 +186,36 @@
         <p>
           {{ t`Report Issue` }}
         </p>
-      </button>
+      </button> -->
 
+      <hr class="dark:border-gray-800" />
       <p
-        v-if="showDevMode"
-        class="text-xs text-gray-500 select-none cursor-pointer"
-        @click="showDevMode = false"
-        title="Open dev tools with Ctrl+Shift+I"
+        class="
+          text-white text-xl
+          tracking-tight
+          whitespace-nowrap
+          overflow-auto
+          no-scrollbar
+          select-none
+        "
       >
-        dev mode
+        {{
+          livebooksCloudSignedIn
+            ? t`LiveBooks Desktop Pro`
+            : t`LiveBooks Desktop`
+        }}
       </p>
     </div>
 
     <!-- Hide Sidebar Button -->
-    <button
+    <!-- <button
       class="
         absolute
         bottom-0
         end-0
-        text-gray-600
-        dark:text-gray-500
-        hover:bg-gray-100
-        dark:hover:bg-gray-875
+        text-white
+        hover:bg-green-800
+        hover:text-white
         rounded
         p-1
         m-4
@@ -206,16 +224,118 @@
       @click="() => toggleSidebar()"
     >
       <feather-icon name="chevrons-left" class="w-4 h-4" />
-    </button>
+    </button> -->
 
     <Modal :open-modal="viewShortcuts" @closemodal="viewShortcuts = false">
       <ShortcutsHelper class="w-form" />
     </Modal>
+
+    <Modal
+      :open-modal="showLivebooksCloudModal"
+      @closemodal="showLivebooksCloudModal = false"
+    >
+      <div
+        class="
+          w-full
+          max-w-[var(--w-form)]
+          min-w-0
+          p-6
+          pt-5
+          pe-4
+          flex flex-col
+          gap-4
+          text-gray-900
+          dark:text-gray-100
+        "
+      >
+        <div class="min-w-0 flex flex-col gap-2">
+          <div class="flex items-start justify-between gap-3 min-w-0">
+            <h2 class="text-lg font-semibold flex-1 min-w-0 pe-2">
+              {{ t`LiveBooks Cloud` }}
+            </h2>
+            <button
+              type="button"
+              class="
+                flex-shrink-0
+                -mt-1
+                -me-1
+                p-1.5
+                rounded-md
+                text-gray-600
+                dark:text-gray-400
+                hover:bg-gray-200
+                dark:hover:bg-gray-700
+                hover:text-gray-900
+                dark:hover:text-gray-100
+              "
+              :aria-label="t`Close`"
+              @click="showLivebooksCloudModal = false"
+            >
+              <feather-icon name="x" class="w-5 h-5" />
+            </button>
+          </div>
+          <p
+            v-if="livebooksCloudSignedIn"
+            class="
+              text-sm text-gray-600
+              dark:text-gray-400
+              whitespace-normal
+              break-words
+            "
+          >
+            {{
+              t`This computer is linked to your account. Open the website to manage billing and subscription, or disconnect this app below.`
+            }}
+          </p>
+          <p
+            v-else
+            class="
+              text-sm text-gray-600
+              dark:text-gray-400
+              whitespace-normal
+              break-words
+            "
+          >
+            {{
+              t`Sign in on the web to link this computer to LiveBooks Cloud (Pro). Keep this app open while you connect.`
+            }}
+          </p>
+        </div>
+        <div class="flex flex-col gap-2 min-w-0">
+          <Button
+            type="primary"
+            class="w-full"
+            @click="handleLivebooksCloudModalPrimary"
+          >
+            {{
+              livebooksCloudSignedIn
+                ? t`Open LiveBooks Cloud`
+                : t`Sign in on the web`
+            }}
+          </Button>
+          <Button
+            v-if="livebooksCloudSignedIn"
+            type="secondary"
+            class="w-full !text-red-600 dark:!text-red-400"
+            @click="handleDisconnectLivebooksCloud"
+          >
+            {{ t`Disconnect this computer` }}
+          </Button>
+        </div>
+      </div>
+    </Modal>
   </div>
 </template>
 <script lang="ts">
+import { t } from 'fyo';
 import { reportIssue } from 'src/errorHandling';
 import { fyo } from 'src/initFyo';
+import { showDialog, showToast } from 'src/utils/interactive';
+import {
+  getLivebooksCloudSessionSummary,
+  openLivebooksCloudSignIn,
+  signOutLivebooksCloud,
+} from 'src/utils/livebooksCloud';
 import { languageDirectionKey, shortcutsKey } from 'src/utils/injectionKeys';
 import { docsPathRef } from 'src/utils/refs';
 import { getSidebarConfig } from 'src/utils/sidebarConfig';
@@ -223,6 +343,7 @@ import { SidebarConfig, SidebarItem, SidebarRoot } from 'src/utils/types';
 import { routeTo, toggleSidebar } from 'src/utils/ui';
 import { defineComponent, inject } from 'vue';
 import router from '../router';
+import Button from './Button.vue';
 import Icon from './Icon.vue';
 import Modal from './Modal.vue';
 import ShortcutsHelper from './ShortcutsHelper.vue';
@@ -231,6 +352,7 @@ const COMPONENT_NAME = 'Sidebar';
 
 export default defineComponent({
   components: {
+    Button,
     Icon,
     Modal,
     ShortcutsHelper,
@@ -252,12 +374,16 @@ export default defineComponent({
       viewShortcuts: false,
       activeGroup: null,
       showDevMode: false,
+      livebooksCloudSignedIn: false,
+      showLivebooksCloudModal: false,
     } as {
       companyName: string;
       groups: SidebarConfig;
       viewShortcuts: boolean;
       activeGroup: null | SidebarRoot;
       showDevMode: boolean;
+      livebooksCloudSignedIn: boolean;
+      showLivebooksCloudModal: boolean;
     };
   },
   computed: {
@@ -283,6 +409,11 @@ export default defineComponent({
     this.shortcuts?.set(COMPONENT_NAME, ['F1'], () => this.openDocumentation());
 
     this.showDevMode = this.fyo.store.isDevelopment;
+
+    await this.refreshLivebooksCloudSignedIn();
+    ipc.registerLivebooksCloudSessionListener(() => {
+      void this.refreshLivebooksCloudSignedIn();
+    });
   },
   unmounted() {
     this.shortcuts?.delete(COMPONENT_NAME);
@@ -293,6 +424,41 @@ export default defineComponent({
     toggleSidebar,
     openDocumentation() {
       ipc.openLink('https://docs.frappe.io/' + docsPathRef.value);
+    },
+    async refreshLivebooksCloudSignedIn() {
+      const { signedIn } = await getLivebooksCloudSessionSummary();
+      this.livebooksCloudSignedIn = signedIn;
+    },
+    async handleLivebooksCloudModalPrimary() {
+      await openLivebooksCloudSignIn();
+      this.showLivebooksCloudModal = false;
+    },
+    async handleDisconnectLivebooksCloud() {
+      await showDialog({
+        title: t`Disconnect LiveBooks Cloud?`,
+        detail: t`This computer will no longer be linked to your account until you connect again. Your company file and cloud data are not deleted.`,
+        type: 'warning',
+        buttons: [
+          {
+            label: t`Cancel`,
+            action: () => null,
+            isEscape: true,
+          },
+          {
+            label: t`Disconnect`,
+            isPrimary: true,
+            action: async () => {
+              await signOutLivebooksCloud();
+              this.showLivebooksCloudModal = false;
+              showToast({
+                type: 'success',
+                message: t`Disconnected from LiveBooks Cloud`,
+                duration: 'short',
+              });
+            },
+          },
+        ],
+      });
     },
     setActiveGroup() {
       const { fullPath } = this.$router.currentRoute.value;

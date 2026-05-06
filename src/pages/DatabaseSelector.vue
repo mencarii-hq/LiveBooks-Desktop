@@ -19,10 +19,10 @@
       "
       style="height: 700px"
     >
-      <!-- Welcome to Frappe Books -->
+      <!-- Welcome -->
       <div class="px-4 py-4">
         <h1 class="text-2xl font-semibold select-none dark:text-gray-25">
-          {{ t`Welcome to Frappe Books` }}
+          {{ t`Welcome to LiveBooks Desktop` }}
         </h1>
         <p class="text-gray-600 dark:text-gray-400 text-base select-none">
           {{
@@ -44,7 +44,7 @@
         "
         @click="newDatabase"
       >
-        <div class="w-8 h-8 rounded-full bg-blue-500 relative flex-center">
+        <div class="w-8 h-8 rounded-full bg-green-600 relative flex-center">
           <feather-icon
             name="plus"
             class="text-white dark:text-gray-900 w-5 h-5"
@@ -76,8 +76,8 @@
             w-8
             h-8
             rounded-full
-            bg-green-500
-            dark:bg-green-600
+            bg-gray-600
+            dark:bg-gray-500
             relative
             flex-center
           "
@@ -99,7 +99,7 @@
 
       <!-- Create Demo (Pink Icon) -->
       <div
-        v-if="!files?.length"
+        v-if="showDemoCompany && !files?.length"
         class="px-4 h-row-largest flex flex-row items-center gap-4 p-2"
         :class="
           creatingDemo
@@ -126,7 +126,7 @@
             {{ t`Create Demo` }}
           </p>
           <p class="text-sm text-gray-600 dark:text-gray-400">
-            {{ t`Create a demo company to try out Frappe Books` }}
+            {{ t`Create a demo company to try out LiveBooks Desktop` }}
           </p>
         </div>
       </div>
@@ -214,7 +214,7 @@
       <hr v-if="files?.length" class="dark:border-gray-800" />
 
       <!-- Language Selector -->
-      <div
+      <!-- <div
         class="
           w-full
           flex
@@ -229,7 +229,7 @@
       >
         <LanguageSelector v-show="!creatingDemo" class="text-sm w-28" />
         <button
-          v-if="files?.length"
+          v-if="showDemoCompany && files?.length"
           class="
             text-sm
             bg-gray-100
@@ -250,7 +250,7 @@
         >
           {{ creatingDemo ? t`Please Wait` : t`Create Demo` }}
         </button>
-      </div>
+      </div> -->
     </div>
     <Loading
       v-if="creatingDemo"
@@ -312,7 +312,6 @@ import { t } from 'fyo';
 import { Verb } from 'fyo/telemetry/types';
 import { DateTime } from 'luxon';
 import Button from 'src/components/Button.vue';
-import LanguageSelector from 'src/components/Controls/LanguageSelector.vue';
 import FeatherIcon from 'src/components/FeatherIcon.vue';
 import Loading from 'src/components/Loading.vue';
 import Modal from 'src/components/Modal.vue';
@@ -326,7 +325,6 @@ import { defineComponent } from 'vue';
 export default defineComponent({
   name: 'DatabaseSelector',
   components: {
-    LanguageSelector,
     Loading,
     FeatherIcon,
     Modal,
@@ -335,6 +333,8 @@ export default defineComponent({
   emits: ['file-selected', 'new-database'],
   data() {
     return {
+      /** Set true to show India-based demo company (hidden for US MVP). */
+      showDemoCompany: false,
       openModal: false,
       baseCount: 100,
       creationMessage: '',
@@ -343,6 +343,7 @@ export default defineComponent({
       loadingDatabase: false,
       files: [],
     } as {
+      showDemoCompany: boolean;
       openModal: boolean;
       baseCount: number;
       creationMessage: string;

@@ -126,7 +126,7 @@ export type GetStartedConfigItem = {
     label: string;
     icon: string;
     description: string;
-    fieldname: string;
+    fieldname?: string;
     documentation?: string;
     action?: () => void;
   }[];

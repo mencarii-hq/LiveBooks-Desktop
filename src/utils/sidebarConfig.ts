@@ -107,7 +107,7 @@ function getPOSSidebar() {
     name: 'pos',
     route: '/pos',
     icon: 'pos',
-    hidden: () => !fyo.singles.InventorySettings?.enablePointOfSale,
+    hidden: () => true,
   };
 }
 
@@ -137,6 +137,16 @@ function getReportSidebar() {
         label: t`Trial Balance`,
         name: 'trial-balance',
         route: '/report/TrialBalance',
+      },
+      {
+        label: t`Accounts Receivable Aging`,
+        name: 'accounts-receivable-aging',
+        route: '/report/AccountsReceivableAging',
+      },
+      {
+        label: t`Accounts Payable Aging`,
+        name: 'accounts-payable-aging',
+        route: '/report/AccountsPayableAging',
       },
     ],
   };
@@ -276,7 +286,7 @@ function getCompleteSidebar(): SidebarConfig {
           schemaName: 'JournalEntry',
         },
         {
-          label: t`Party`,
+          label: t`Customers & Suppliers`,
           name: 'party',
           route: '/list/Party',
           schemaName: 'Party',
@@ -323,6 +333,7 @@ function getCompleteSidebar(): SidebarConfig {
           label: t`Import Wizard`,
           name: 'import-wizard',
           route: '/import-wizard',
+          hidden: () => true,
         },
         {
           label: t`Print Templates`,

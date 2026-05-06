@@ -10,8 +10,7 @@ import { toggleSidebar } from 'src/utils/ui';
         v-show="showSidebar"
         class="
           flex-shrink-0
-          border-e
-          dark:border-gray-800
+          border-e border-green-800
           whitespace-nowrap
           w-sidebar
         "

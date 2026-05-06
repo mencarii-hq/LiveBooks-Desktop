@@ -58,7 +58,7 @@
         :y="cy"
         text-anchor="middle"
         :style="{
-          fontSize: '6px',
+          fontSize: `${valueFontSize}px`,
           fontWeight: 'bold',
           fill: darkMode ? '#FFFFFF' : '#415668',
         }"
@@ -76,7 +76,7 @@
         :x="cx"
         :y="cy + 8"
         text-anchor="middle"
-        style="font-size: 5px; fill: #a1abb4"
+        :style="{ fontSize: `${labelFontSize}px`, fill: '#a1abb4' }"
       >
         {{
           active !== null && sectors.length !== 0
@@ -108,6 +108,9 @@ export default {
     darkMode: { type: Boolean, default: false },
   },
   emits: ['change'],
+  data() {
+    return { zoomFactor: 1, _zoomTimer: null };
+  },
   computed: {
     cx() {
       return 50 + this.offsetX;
@@ -140,8 +143,37 @@ export default {
     hasNonZeroValues() {
       return this.thetasAndStarts.some((t) => this.sectors[t[0]].value !== 0);
     },
+    valueFontSize() {
+      const z = this.zoomFactor || 1;
+      return Math.max(4, Math.min(6 * z, 12));
+    },
+    labelFontSize() {
+      const z = this.zoomFactor || 1;
+      return Math.max(3.5, Math.min(5 * z, 9));
+    },
+  },
+  mounted() {
+    this._syncZoomFactor();
+    this._zoomTimer = window.setInterval(this._syncZoomFactor, 500);
+  },
+  beforeUnmount() {
+    if (this._zoomTimer) {
+      window.clearInterval(this._zoomTimer);
+      this._zoomTimer = null;
+    }
   },
   methods: {
+    _syncZoomFactor() {
+      const z =
+        // @ts-ignore - injected by Electron preload
+        typeof window !== 'undefined' && window.ipc?.getZoomFactor
+          ? // @ts-ignore - injected by Electron preload
+            Number(window.ipc.getZoomFactor())
+          : 1;
+      if (Number.isFinite(z) && z > 0 && z !== this.zoomFactor) {
+        this.zoomFactor = z;
+      }
+    },
     getArcPath(...args) {
       let [cx, cy, r, start, theta] = args.map(parseFloat);
 

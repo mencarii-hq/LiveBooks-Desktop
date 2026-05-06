@@ -109,6 +109,8 @@ export const docsPathMap: Record<string, string | undefined> = {
   ProfitAndLoss: 'books/profit-and-loss',
   BalanceSheet: 'books/balance-sheet',
   TrialBalance: 'books/trial-balance',
+  AccountsReceivableAging: 'books/reports',
+  AccountsPayableAging: 'books/reports',
 
   // Transactions
   [ModelNameEnum.SalesInvoice]: 'books/sales-invoices',

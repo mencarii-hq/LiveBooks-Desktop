@@ -429,6 +429,10 @@ import PageHeader from 'src/components/PageHeader.vue';
 import { Importer, TemplateField, getColumnLabel } from 'src/importer';
 import { fyo } from 'src/initFyo';
 import { showDialog } from 'src/utils/interactive';
+import {
+  getImportableSchemaNames,
+  isImportableSchemaName,
+} from 'src/utils/importableSchemas';
 import { docsPathMap } from 'src/utils/misc';
 import { docsPathRef } from 'src/utils/refs';
 import { getSavePath, selectTextFile } from 'src/utils/ui';
@@ -605,30 +609,7 @@ export default defineComponent({
       return this.nullOrImporter as Importer;
     },
     importableSchemaNames(): ModelNameEnum[] {
-      const importables = [
-        ModelNameEnum.SalesInvoice,
-        ModelNameEnum.PurchaseInvoice,
-        ModelNameEnum.Payment,
-        ModelNameEnum.Party,
-        ModelNameEnum.Item,
-        ModelNameEnum.JournalEntry,
-        ModelNameEnum.Tax,
-        ModelNameEnum.Account,
-        ModelNameEnum.Address,
-        ModelNameEnum.NumberSeries,
-      ];
-
-      const hasInventory = fyo.doc.singles.AccountingSettings?.enableInventory;
-      if (hasInventory) {
-        importables.push(
-          ModelNameEnum.StockMovement,
-          ModelNameEnum.Shipment,
-          ModelNameEnum.PurchaseReceipt,
-          ModelNameEnum.Location
-        );
-      }
-
-      return importables;
+      return getImportableSchemaNames(fyo);
     },
     actions(): Action[] {
       const actions: Action[] = [];
@@ -714,6 +695,11 @@ export default defineComponent({
     },
   },
   watch: {
+    '$route.query.type': {
+      handler() {
+        this.applyImportTypeFromRoute();
+      },
+    },
     columnCount(val) {
       if (!this.hasImporter) {
         return;
@@ -734,9 +720,11 @@ export default defineComponent({
       // @ts-ignore
       window.iw = this;
     }
+    this.applyImportTypeFromRoute();
   },
   activated(): void {
     docsPathRef.value = docsPathMap.ImportWizard ?? '';
+    this.applyImportTypeFromRoute();
   },
   deactivated(): void {
     docsPathRef.value = '';
@@ -747,6 +735,25 @@ export default defineComponent({
     this.clear();
   },
   methods: {
+    applyImportTypeFromRoute(): void {
+      const raw = this.$route.query.type;
+      const type =
+        typeof raw === 'string'
+          ? raw
+          : Array.isArray(raw) && typeof raw[0] === 'string'
+          ? raw[0]
+          : '';
+
+      if (!type || !isImportableSchemaName(fyo, type)) {
+        return;
+      }
+
+      if (this.importType === type && this.nullOrImporter) {
+        return;
+      }
+
+      this.setImportType(type);
+    },
     getFieldTitle(vmi: {
       value?: DocValue;
       rawValue?: RawValue;

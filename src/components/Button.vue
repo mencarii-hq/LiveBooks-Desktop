@@ -39,8 +39,8 @@ export default defineComponent({
     _class() {
       return {
         'opacity-50 cursor-not-allowed pointer-events-none': this.disabled,
-        'text-white dark:text-black': this.type === 'primary',
-        'bg-black dark:bg-gray-300 dark:font-semibold':
+        'text-white': this.type === 'primary',
+        'bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700':
           this.type === 'primary' && this.background,
         'text-gray-700 dark:text-gray-200': this.type !== 'primary',
         'bg-gray-200 dark:bg-gray-900':

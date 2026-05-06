@@ -2,6 +2,7 @@ import ChartOfAccounts from 'src/pages/ChartOfAccounts.vue';
 import CommonForm from 'src/pages/CommonForm/CommonForm.vue';
 import Dashboard from 'src/pages/Dashboard/Dashboard.vue';
 import GetStarted from 'src/pages/GetStarted.vue';
+import ImportListsHub from 'src/pages/ImportListsHub.vue';
 import ImportWizard from 'src/pages/ImportWizard.vue';
 import ListView from 'src/pages/ListView/ListView.vue';
 import PrintView from 'src/pages/PrintView/PrintView.vue';
@@ -96,6 +97,11 @@ const routes: RouteRecordRaw[] = [
       default: true,
       edit: (route) => route.query,
     },
+  },
+  {
+    path: '/import-lists',
+    name: 'Import Lists',
+    component: ImportListsHub,
   },
   {
     path: '/import-wizard',

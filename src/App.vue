@@ -8,10 +8,63 @@
       font-sans
       overflow-hidden
       antialiased
+      relative
     "
     :dir="languageDirection"
     :language="language"
   >
+    <div
+      v-if="showSplash"
+      class="
+        fixed
+        inset-0
+        z-[99999]
+        flex flex-col
+        items-center
+        justify-center
+        bg-gray-50
+        dark:bg-gray-900
+        px-6
+        text-center
+      "
+      aria-hidden="true"
+    >
+      <h1 class="text-3xl font-semibold text-green-700 dark:text-green-600">
+        LiveBooks Desktop
+      </h1>
+      <p
+        class="
+          mt-3
+          max-w-md
+          text-sm
+          leading-relaxed
+          text-gray-600
+          dark:text-gray-300
+        "
+      >
+        Open source, offline-first accounting software powered by Frappe Books.
+      </p>
+      <svg
+        class="mt-6 h-8 w-8 animate-spin text-green-700 dark:text-green-700"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <circle
+          class="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          stroke-width="4"
+          fill="none"
+        />
+        <path
+          class="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+        />
+      </svg>
+    </div>
     <WindowsTitleBar
       v-if="platform === 'Windows'"
       :db-path="dbPath"
@@ -118,11 +171,13 @@ export default defineComponent({
   },
   data() {
     return {
+      showSplash: true,
       activeScreen: null,
       dbPath: '',
       companyName: '',
       darkMode: false,
     } as {
+      showSplash: boolean;
       activeScreen: null | Screen;
       dbPath: string;
       companyName: string;
@@ -140,7 +195,24 @@ export default defineComponent({
     },
   },
   async mounted() {
-    await this.setInitialScreen();
+    const splashStarted = Date.now();
+    const minSplashMs = 900;
+    try {
+      await this.setInitialScreen();
+    } catch {
+      if (this.activeScreen === null) {
+        this.activeScreen = Screen.DatabaseSelector;
+      }
+    } finally {
+      const elapsed = Date.now() - splashStarted;
+      if (elapsed < minSplashMs) {
+        await new Promise((r) => setTimeout(r, minSplashMs - elapsed));
+      }
+      this.showSplash = false;
+      if (this.activeScreen === null) {
+        this.activeScreen = Screen.DatabaseSelector;
+      }
+    }
     const darkMode = !!fyo.singles.SystemSettings?.darkMode;
     setDarkMode(darkMode);
     this.darkMode = darkMode;
@@ -187,10 +259,11 @@ export default defineComponent({
           title: this.t`Cannot open file`,
           type: 'error',
           detail: this
-            .t`Frappe Books does not have access to the selected file: ${filePath}`,
+            .t`LiveBooks Desktop does not have access to the selected file: ${filePath}`,
         });
 
         fyo.config.set('lastSelectedFilePath', null);
+        this.activeScreen = Screen.DatabaseSelector;
         return;
       }
 

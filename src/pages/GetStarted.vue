@@ -62,14 +62,14 @@
                 >
                   {{ t`Set Up` }}
                 </Button>
-                <Button
+                <!-- <Button
                   v-if="item.documentation"
                   class="leading-tight text-base"
                   :class="{ 'ms-4': item.action }"
                   @click="handleDocumentation(item)"
                 >
                   {{ t`Documentation` }}
-                </Button>
+                </Button> -->
               </div>
             </div>
           </div>
@@ -215,10 +215,16 @@ export default defineComponent({
       await fyo.doc.getDoc('GetStarted');
     },
     isCompleted(item: ListItem) {
+      if (!item.fieldname) {
+        return false;
+      }
+
       return fyo.singles.GetStarted?.get(item.fieldname) || false;
     },
     getIconComponent(item: ListItem) {
-      let completed = fyo.singles.GetStarted?.[item.fieldname] || false;
+      const completed = item.fieldname
+        ? fyo.singles.GetStarted?.[item.fieldname] || false
+        : false;
       let name = completed ? 'green-check' : item.icon;
       let size = completed ? '24' : '18';
       return {
