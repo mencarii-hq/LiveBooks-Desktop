@@ -1,11 +1,20 @@
 // App is tagged with a .mjs extension to allow
 import path from 'path';
 import { fileURLToPath } from 'url';
+import {
+  FROZEN_BUNDLE_ID,
+  FROZEN_PRODUCT_NAME,
+} from './build/signingIdentity.mjs';
 
 /**
  * electron-builder doesn't look for the APPLE_TEAM_ID environment variable for some reason.
  * This workaround allows an environment variable to be added to the electron-builder.yml config
  * collection. See: https://github.com/electron-userland/electron-builder/issues/7812
+ *
+ * Day-1 Phase 1.6: `productName` and `appId` are sourced from
+ * `build/signingIdentity.mjs` so the values that the main process
+ * runtime-asserts against can never drift from the values
+ * electron-builder bakes into the .app bundle / installer.
  */
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -15,11 +24,17 @@ const buildDirPath = path.join(root, 'dist_electron', 'build');
 const packageDirPath = path.join(root, 'dist_electron', 'bundled');
 
 const liveBooksConfig = {
-  productName: 'LiveBooks Desktop',
-  appId: 'io.livebooks.desktop',
+  productName: FROZEN_PRODUCT_NAME,
+  appId: FROZEN_BUNDLE_ID,
   protocols: [{ name: 'LiveBooks Cloud handoff', schemes: ['livebooks'] }],
   artifactName: '${productName}-v${version}-${os}-${arch}.${ext}',
   asarUnpack: '**/*.node',
+  // ASAR Integrity — enable when ready for release hardening.
+  // Requires Electron >=22 + electron-builder >=24. Validates the ASAR archive
+  // checksum at app startup to detect tampering.
+  // See: https://www.electronjs.org/docs/latest/tutorial/asar-integrity
+  // asar: true,  (already the default)
+  // afterPack: './build/scripts/afterPackHook.mjs',  (compute & embed integrity hash)
   extraFiles: [
     {
       from: 'build/Credits.html',
@@ -45,9 +60,12 @@ const liveBooksConfig = {
     notarize: {
       teamId: process.env.APPLE_TEAM_ID || '',
     },
-    hardenedRuntime: true,
+    hardenedRuntime: true, // Required for macOS notarization + Gatekeeper
     gatekeeperAssess: false,
     darkModeSupport: false,
+    // Mac entitlements for Hardened Runtime (code-signing + notarization).
+    // Review build/entitlements.mac.plist when adding new capabilities
+    // (e.g. com.apple.security.cs.allow-jit for JIT, camera, microphone).
     entitlements: 'build/entitlements.mac.plist',
     entitlementsInherit: 'build/entitlements.mac.plist',
     publish: ['github'],
