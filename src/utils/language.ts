@@ -1,6 +1,7 @@
 import { DEFAULT_LANGUAGE } from 'fyo/utils/consts';
 import { setLanguageMapOnTranslationString } from 'fyo/utils/translation';
 import { fyo } from 'src/initFyo';
+import { getBundledLanguageMap } from './bundledI18n';
 import { systemLanguageRef } from './refs';
 
 // Language: Language Code in books/translations
@@ -42,7 +43,7 @@ export async function setLanguageMap(
   if (code === 'en') {
     setLanguageMapOnTranslationString(undefined);
   } else {
-    success = await fetchAndSetLanguageMap(code);
+    success = await loadAndSetLanguageMap(code);
   }
 
   if (success && !usingDefault) {
@@ -68,7 +69,16 @@ function getLanguageCode(initLanguage: string, oldLanguage: string) {
   return { code, language, usingDefault };
 }
 
-async function fetchAndSetLanguageMap(code: string) {
+async function loadAndSetLanguageMap(code: string) {
+  const bundled = await getBundledLanguageMap(code);
+  if (bundled) {
+    setLanguageMapOnTranslationString(bundled);
+    if (fyo.db.isConnected) {
+      await fyo.db.translateSchemaMap(bundled);
+    }
+    return true;
+  }
+
   const { success, message, languageMap } = await ipc.getLanguageMap(code);
 
   if (!success) {
@@ -76,7 +86,9 @@ async function fetchAndSetLanguageMap(code: string) {
     showToast({ type: 'error', message });
   } else {
     setLanguageMapOnTranslationString(languageMap);
-    await fyo.db.translateSchemaMap(languageMap);
+    if (fyo.db.isConnected) {
+      await fyo.db.translateSchemaMap(languageMap);
+    }
   }
 
   return success;

@@ -4,6 +4,7 @@ import { $ } from 'execa';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { spawnSync } from 'child_process';
 import { getMainProcessCommonConfig } from './helpers.mjs';
 
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
@@ -33,6 +34,15 @@ let isReload = false;
 let electronProcess = null;
 
 console.log(`running LiveBooks Desktop in dev mode\nroot: ${root}`);
+
+const gen = spawnSync(
+  'npx',
+  ['tsx', 'build/scripts/generateBundledTranslations.mjs'],
+  { cwd: root, stdio: 'inherit' }
+);
+if (gen.status !== 0) {
+  process.exit(gen.status ?? 1);
+}
 /**
  * @type {import('execa').ExecaChildProcess<string>}
  */

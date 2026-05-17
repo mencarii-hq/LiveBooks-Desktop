@@ -8,6 +8,7 @@ import * as vite from 'vite';
 import { getMainProcessCommonConfig } from './helpers.mjs';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
+import { spawnSync } from 'child_process';
 import liveBooksConfig from '../../electron-builder-config.mjs';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -33,6 +34,7 @@ if (argv.nosign) {
 }
 
 updatePaths();
+generateBundledTranslations();
 await buildMainProcessSource();
 copyPackagedWindowIcon();
 await buildRendererProcessSource();
@@ -40,6 +42,18 @@ copyPackageJson();
 
 if (!argv.nopackage) {
   await packageApp();
+}
+
+function generateBundledTranslations() {
+  const result = spawnSync(
+    'npx',
+    ['tsx', 'build/scripts/generateBundledTranslations.mjs'],
+    { cwd: root, stdio: 'inherit', shell: false }
+  );
+  if (result.status !== 0) {
+    console.error('generateBundledTranslations failed');
+    process.exit(result.status ?? 1);
+  }
 }
 
 function updatePaths() {
