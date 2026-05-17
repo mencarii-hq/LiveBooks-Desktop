@@ -48,6 +48,9 @@ if (!app.requestSingleInstanceLock()) {
 // invalidate every user's safeStorage-wrapped SQLCipher key.
 assertFrozenSigningIdentityForPackagedBuild();
 
+/** Matches index.html boot splash / body background. */
+const BOOT_WINDOW_BACKGROUND = '#f9fafb';
+
 export class Main {
   readonly appEnv: LivebooksAppEnv;
   title = LIVEBOOKS_DESKTOP_PRODUCT_NAME;
@@ -78,6 +81,11 @@ export class Main {
 
     // https://github.com/electron-userland/electron-builder/issues/4987
     app.commandLine.appendSwitch('disable-http2');
+    app.commandLine.appendSwitch(
+      'disable-features',
+      'HardwareMediaKeyHandling'
+    );
+    app.commandLine.appendSwitch('disable-smooth-scrolling');
     autoUpdater.requestHeaders = {
       'Cache-Control':
         'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
@@ -226,8 +234,8 @@ export class Main {
       title: this.title,
       titleBarStyle: 'hidden',
       trafficLightPosition: { x: 16, y: 16 },
-      /** Avoid a visible window (and taskbar/dock tile) before icon + first paint. */
-      show: false,
+      show: true,
+      backgroundColor: BOOT_WINDOW_BACKGROUND,
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,
@@ -245,12 +253,16 @@ export class Main {
     return options;
   }
 
-  async createWindow() {
-    if (this.isMac) {
-      this.setMacDockIcon();
+  disableRendererSpellcheck() {
+    const ses = session.defaultSession;
+    if (ses) {
+      ses.setSpellCheckerEnabled(false);
     }
+  }
 
+  async createWindow() {
     this.installRendererCsp();
+    this.disableRendererSpellcheck();
 
     const options = this.getOptions();
     this.mainWindow = new BrowserWindow(options);
@@ -263,11 +275,11 @@ export class Main {
 
     this.setMainWindowListeners();
 
-    this.mainWindow.once('ready-to-show', () => {
-      this.mainWindow?.show();
-    });
-
-    await this.mainWindow.loadURL(this.winURL);
+    const loadPromise = this.mainWindow.loadURL(this.winURL);
+    if (this.isMac) {
+      setImmediate(() => this.setMacDockIcon());
+    }
+    await loadPromise;
     if (this.isDevelopment && !this.isTest) {
       this.mainWindow.webContents.openDevTools();
     }

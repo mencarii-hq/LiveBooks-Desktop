@@ -60,7 +60,7 @@
 import { RTL_LANGUAGES } from 'fyo/utils/consts';
 import { ModelNameEnum } from 'models/types';
 import { systemLanguageRef } from 'src/utils/refs';
-import { defineComponent, provide, ref, Ref } from 'vue';
+import { defineComponent, nextTick, provide, ref, Ref } from 'vue';
 import WindowsTitleBar from './components/WindowsTitleBar.vue';
 import { handleErrorWithDialog } from './errorHandling';
 import { fyo } from './initFyo';
@@ -98,7 +98,8 @@ import {
 } from './utils/erpnextSync';
 import { ERPNextSyncSettings } from 'models/baseModels/ERPNextSyncSettings/ERPNextSyncSettings';
 import { ErrorLogEnum } from 'fyo/telemetry/types';
-import { dismissBootSplash } from './bootSplash';
+import { dismissBootSplash, waitForNextPaint } from './bootSplash';
+import { runWhenIdle } from './utils/runWhenIdle';
 
 enum Screen {
   Desk = 'Desk',
@@ -169,7 +170,6 @@ export default defineComponent({
   },
   async mounted() {
     const splashStarted = Date.now();
-    const minSplashMs = 900;
     try {
       await this.setInitialScreen();
     } catch {
@@ -177,12 +177,16 @@ export default defineComponent({
         this.activeScreen = Screen.DatabaseSelector;
       }
     } finally {
-      await dismissBootSplash(minSplashMs, splashStarted);
+      await nextTick();
+      await waitForNextPaint();
+      await dismissBootSplash(0, splashStarted);
       if (this.activeScreen === null) {
         this.activeScreen = Screen.DatabaseSelector;
       }
     }
-    void startLivebooksSubscriptionPolling();
+    runWhenIdle(() => {
+      void startLivebooksSubscriptionPolling();
+    });
     const darkMode = !!fyo.singles.SystemSettings?.darkMode;
     setDarkMode(darkMode);
     this.darkMode = darkMode;
@@ -218,14 +222,18 @@ export default defineComponent({
       this.activeScreen = Screen.Desk;
       await this.setDeskRoute();
       await fyo.telemetry.start(true);
-      await ipc.checkForUpdates();
       this.dbPath = filePath;
       this.companyName = (await fyo.getValue(
         ModelNameEnum.AccountingSettings,
         'companyName'
       )) as string;
-      await this.setSearcher();
       updateConfigFiles(fyo);
+      runWhenIdle(() => {
+        void ipc.checkForUpdates();
+      });
+      runWhenIdle(() => {
+        void this.setSearcher();
+      });
     },
     newDatabase() {
       this.activeScreen = Screen.SetupWizard;

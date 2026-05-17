@@ -39,16 +39,15 @@ export default function registerAppLifecycleListeners(main: Main) {
       configureMacDevelopmentShell(main.appEnv);
     }
 
-    if (main.isDevelopment) {
-      installDevTools(main).catch((err) => emitMainProcessError(err));
-    }
-
     main
       .createWindow()
       .then(() => {
         consumeArgvLivebooksDeepLink();
         flushPendingLivebooksDeepLink();
         flushPendingCloudSessionBroadcast();
+        if (main.isDevelopment) {
+          installDevTools(main).catch((err) => emitMainProcessError(err));
+        }
       })
       .catch((err) => emitMainProcessError(err));
   });

@@ -11,6 +11,7 @@ import registerIpcRendererListeners from './renderer/registerIpcRendererListener
 import router from './router';
 import { stringifyCircular } from './utils';
 import { setLanguageMap } from './utils/language';
+import { runWhenIdle } from './utils/runWhenIdle';
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 (async () => {
@@ -57,9 +58,11 @@ import { setLanguageMap } from './utils/language';
     },
   });
 
-  await fyo.telemetry.logOpened();
   app.mount('#app-mount');
   await nextTick();
+  runWhenIdle(() => {
+    void fyo.telemetry.logOpened();
+  });
 })();
 
 function setErrorHandlers(app: VueApp) {

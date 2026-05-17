@@ -1,5 +1,12 @@
 const BOOT_SPLASH_ID = 'boot-splash';
 
+/** Wait for the next composited frame so route DOM is painted before splash removal. */
+export async function waitForNextPaint(): Promise<void> {
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
 /** Hide the static boot splash after optional minimum visible time. */
 export async function dismissBootSplash(
   minVisibleMs = 0,
