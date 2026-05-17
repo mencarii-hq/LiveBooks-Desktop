@@ -1,0 +1,82 @@
+{
+  "name": "PlaidBatchApplyJournal",
+  "label": "Plaid batch apply journal",
+  "naming": "manual",
+  "fields": [
+    {
+      "fieldname": "name",
+      "label": "Batch public id",
+      "fieldtype": "Data",
+      "required": true,
+      "readOnly": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "bookId",
+      "label": "Book id",
+      "fieldtype": "Data",
+      "required": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "itemId",
+      "label": "Plaid item id",
+      "fieldtype": "Data",
+      "required": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "phase",
+      "label": "Phase",
+      "fieldtype": "Select",
+      "required": true,
+      "default": "applying",
+      "options": [
+        { "value": "applying", "label": "Applying" },
+        { "value": "ack_pending", "label": "Ack pending" }
+      ],
+      "section": "Default"
+    },
+    {
+      "fieldname": "appliedCount",
+      "label": "Applied count",
+      "fieldtype": "Int",
+      "default": 0,
+      "section": "Default"
+    },
+    {
+      "fieldname": "excludedCount",
+      "label": "Excluded count",
+      "fieldtype": "Int",
+      "default": 0,
+      "section": "Default"
+    },
+    {
+      "fieldname": "removedCount",
+      "label": "Removed count",
+      "fieldtype": "Int",
+      "default": 0,
+      "section": "Default"
+    },
+    {
+      "fieldname": "attemptCount",
+      "label": "Attempt count",
+      "fieldtype": "Int",
+      "default": 0,
+      "section": "Default"
+    },
+    {
+      "fieldname": "startedAt",
+      "label": "Started at",
+      "fieldtype": "Datetime",
+      "section": "Default"
+    },
+    {
+      "fieldname": "updatedAt",
+      "label": "Updated at",
+      "fieldtype": "Datetime",
+      "section": "Default"
+    }
+  ],
+  "keywordFields": ["name", "bookId", "itemId"]
+}

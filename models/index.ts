@@ -10,6 +10,7 @@ import { JournalEntryAccount } from './baseModels/JournalEntryAccount/JournalEnt
 import { Misc } from './baseModels/Misc';
 import { Party } from './baseModels/Party/Party';
 import { PlaidBankAccountMap } from './baseModels/PlaidBankAccountMap/PlaidBankAccountMap';
+import { PlaidBatchApplyJournal } from './baseModels/PlaidBatchApplyJournal/PlaidBatchApplyJournal';
 import { LoyaltyProgram } from './baseModels/LoyaltyProgram/LoyaltyProgram';
 import { LoyaltyPointEntry } from './baseModels/LoyaltyPointEntry/LoyaltyPointEntry';
 import { CollectionRulesItems } from './baseModels/CollectionRulesItems/CollectionRulesItems';
@@ -56,6 +57,8 @@ import { POSSettings } from './inventory/Point of Sale/POSSettings';
 import { POSProfile } from './baseModels/POSProfile/PosProfile';
 import { POSOpeningShift } from './inventory/Point of Sale/POSOpeningShift';
 import { POSClosingShift } from './inventory/Point of Sale/POSClosingShift';
+import { LocalMutation } from './baseModels/LocalMutation/LocalMutation';
+import { SyncConflictLog } from './baseModels/SyncConflictLog/SyncConflictLog';
 import { ERPNextSyncSettings } from './baseModels/ERPNextSyncSettings/ERPNextSyncSettings';
 import { ERPNextSyncQueue } from './baseModels/ERPNextSyncQueue/ERPNextSyncQueue';
 import { FetchFromERPNextQueue } from './baseModels/FetchFromERPNextQueue/FetchFromERPNextQueue';
@@ -80,6 +83,7 @@ export const models = {
   Lead,
   Party,
   PlaidBankAccountMap,
+  PlaidBatchApplyJournal,
   LoyaltyProgram,
   LoyaltyPointEntry,
   CollectionRulesItems,
@@ -127,6 +131,8 @@ export const models = {
   ERPNextSyncSettings,
   ERPNextSyncQueue,
   FetchFromERPNextQueue,
+  LocalMutation,
+  SyncConflictLog,
   // Error Log
   IntegrationErrorLog,
 } as ModelMap;

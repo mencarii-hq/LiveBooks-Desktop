@@ -225,6 +225,7 @@ export class Fyo {
 
   store = {
     isDevelopment: false,
+    appEnv: 'production' as 'development' | 'staging' | 'production',
     skipTelemetryLogging: false,
     appVersion: '',
     platform: '',
@@ -234,6 +235,8 @@ export class Fyo {
     openCount: -1,
     appFlags: {} as Record<string, boolean>,
     reports: {} as Record<keyof typeof reports, Report | undefined>,
+    /** Phase 4 — device reconciliation snapshot after DB connect. */
+    syncDevice: null as import('utils/sync/types').SyncDeviceSnapshot | null,
   };
 }
 

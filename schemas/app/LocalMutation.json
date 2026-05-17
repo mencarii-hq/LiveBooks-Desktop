@@ -1,0 +1,74 @@
+{
+  "name": "LocalMutation",
+  "label": "Local Mutation",
+  "naming": "random",
+  "fields": [
+    {
+      "fieldname": "schemaName",
+      "label": "Schema",
+      "fieldtype": "Data",
+      "required": true
+    },
+    {
+      "fieldname": "docName",
+      "label": "Document",
+      "fieldtype": "Data",
+      "required": true
+    },
+    {
+      "fieldname": "operation",
+      "label": "Operation",
+      "fieldtype": "Select",
+      "options": ["insert", "update", "delete", "submit", "cancel"],
+      "required": true
+    },
+    {
+      "fieldname": "payload",
+      "label": "Payload",
+      "fieldtype": "Text"
+    },
+    {
+      "fieldname": "deviceId",
+      "label": "Device Id",
+      "fieldtype": "Data",
+      "required": true
+    },
+    {
+      "fieldname": "bookId",
+      "label": "Book Id",
+      "fieldtype": "Data",
+      "required": true
+    },
+    {
+      "fieldname": "clientSeq",
+      "label": "Client Seq",
+      "fieldtype": "Int",
+      "required": true
+    },
+    {
+      "fieldname": "mutationId",
+      "label": "Mutation Id",
+      "fieldtype": "Data",
+      "required": true
+    },
+    {
+      "fieldname": "syncStatus",
+      "label": "Sync Status",
+      "fieldtype": "Select",
+      "options": ["pending", "synced", "failed", "pending_reconciliation"],
+      "default": "pending",
+      "required": true
+    },
+    {
+      "fieldname": "syncError",
+      "label": "Sync Error",
+      "fieldtype": "Text"
+    },
+    {
+      "fieldname": "createdAt",
+      "label": "Created At",
+      "fieldtype": "Datetime",
+      "readOnly": true
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "name": "SyncConflictLog",
+  "label": "Sync Conflict Log",
+  "naming": "random",
+  "fields": [
+    {
+      "fieldname": "schemaName",
+      "label": "Schema",
+      "fieldtype": "Data",
+      "required": true
+    },
+    {
+      "fieldname": "docName",
+      "label": "Document",
+      "fieldtype": "Data",
+      "required": true
+    },
+    {
+      "fieldname": "winnerDeviceId",
+      "label": "Winner Device",
+      "fieldtype": "Data",
+      "required": true
+    },
+    {
+      "fieldname": "loserDeviceId",
+      "label": "Loser Device",
+      "fieldtype": "Data",
+      "required": true
+    },
+    {
+      "fieldname": "winnerUpdatedAt",
+      "label": "Winner Updated At",
+      "fieldtype": "Datetime",
+      "required": true
+    },
+    {
+      "fieldname": "loserUpdatedAt",
+      "label": "Loser Updated At",
+      "fieldtype": "Datetime",
+      "required": true
+    },
+    {
+      "fieldname": "resolution",
+      "label": "Resolution",
+      "fieldtype": "Select",
+      "options": ["lww"],
+      "default": "lww",
+      "required": true
+    },
+    {
+      "fieldname": "loserPayload",
+      "label": "Loser Payload",
+      "fieldtype": "Text"
+    }
+  ]
+}

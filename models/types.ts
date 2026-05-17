@@ -35,6 +35,7 @@ export enum ModelNameEnum {
   Lead = 'Lead',
   Party = 'Party',
   PlaidBankAccountMap = 'PlaidBankAccountMap',
+  PlaidBatchApplyJournal = 'PlaidBatchApplyJournal',
   LoyaltyProgram = 'LoyaltyProgram',
   LoyaltyPointEntry = 'LoyaltyPointEntry',
   CollectionRulesItems = 'CollectionRulesItems',
@@ -84,6 +85,8 @@ export enum ModelNameEnum {
   ERPNextSyncSettings = 'ERPNextSyncSettings',
   ERPNextSyncQueue = 'ERPNextSyncQueue',
   FetchFromERPNextQueue = 'FetchFromERPNextQueue',
+  LocalMutation = 'LocalMutation',
+  SyncConflictLog = 'SyncConflictLog',
 }
 
 export type ModelName = keyof typeof ModelNameEnum;
