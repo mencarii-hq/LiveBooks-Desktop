@@ -9,6 +9,15 @@ import { SalesInvoice } from 'models/baseModels/SalesInvoice/SalesInvoice';
 import { ModelNameEnum } from 'models/types';
 import setupInstance from 'src/setup/setupInstance';
 import { getMapFromList, safeParseInt } from 'utils';
+import {
+  cashAccountId,
+  creditorsAccountId,
+  debtorsAccountId,
+  resolveAccountIdByLabel,
+  resolveDemoCoaAccountId,
+  resolveStandardCoaAccountLabel,
+  securedLoansAccountId,
+} from 'utils/ids/coaAccountLookup';
 import { getFiscalYear } from 'utils/misc';
 import {
   flow,
@@ -34,14 +43,14 @@ export async function setupDummyInstance(
   const options = {
     logo: null,
     companyName: "Flo's Clothes",
-    country: 'India',
+    country: 'United States',
     fullname: 'Lin Florentine',
     email: 'lin@flosclothes.com',
     bankName: 'Supreme Bank',
-    currency: 'INR',
-    fiscalYearStart: getFiscalYear('04-01', true)!.toISOString(),
-    fiscalYearEnd: getFiscalYear('04-01', false)!.toISOString(),
-    chartOfAccounts: 'India - Chart of Accounts',
+    currency: 'USD',
+    fiscalYearStart: getFiscalYear('01-01', true)!.toISOString(),
+    fiscalYearEnd: getFiscalYear('12-31', false)!.toISOString(),
+    chartOfAccounts: 'United States - Chart of Accounts',
   };
   await setupInstance(dbPath, options, fyo);
   fyo.store.skipTelemetryLogging = true;
@@ -66,26 +75,21 @@ async function setOtherSettings(fyo: Fyo) {
   const doc = await fyo.doc.getDoc(ModelNameEnum.PrintSettings);
   const address = fyo.doc.getNewDoc(ModelNameEnum.Address);
   await address.setAndSync({
-    addressLine1: '1st Column, Fitzgerald Bridge',
-    city: 'Pune',
-    state: 'Maharashtra',
-    pos: 'Maharashtra',
-    postalCode: '411001',
-    country: 'India',
+    addressLine1: '400 Congress Avenue',
+    city: 'Austin',
+    state: 'TX',
+    pos: 'TX',
+    postalCode: '78701',
+    country: 'United States',
   });
 
   await doc.setAndSync({
     color: '#F687B3',
     template: 'Business',
     displayLogo: true,
-    phone: '+91 8983-000418',
+    phone: '+1 512-555-0148',
     logo,
     address: address.name,
-  });
-
-  const acc = await fyo.doc.getDoc(ModelNameEnum.AccountingSettings);
-  await acc.setAndSync({
-    gstin: '27LIN180000A1Z5',
   });
 }
 
@@ -128,6 +132,7 @@ async function getJournalEntries(fyo: Fyo, salesInvoices: SalesInvoice[]) {
   const lastInv = salesInvoices.sort((a, b) => +a.date! - +b.date!).at(-1)!
     .date!;
   const date = DateTime.fromJSDate(lastInv).minus({ months: 6 }).toJSDate();
+  const bankAccountId = await resolveAccountIdByLabel(fyo, 'Supreme Bank');
 
   // Bank Entry
   let doc = fyo.doc.getNewDoc(
@@ -139,13 +144,13 @@ async function getJournalEntries(fyo: Fyo, salesInvoices: SalesInvoice[]) {
     false
   );
   await doc.append('accounts', {
-    account: 'Supreme Bank',
+    account: bankAccountId,
     debit: amount,
     credit: fyo.pesa(0),
   });
 
   await doc.append('accounts', {
-    account: 'Secured Loans',
+    account: securedLoansAccountId(fyo),
     credit: amount,
     debit: fyo.pesa(0),
   });
@@ -161,13 +166,13 @@ async function getJournalEntries(fyo: Fyo, salesInvoices: SalesInvoice[]) {
     false
   );
   await doc.append('accounts', {
-    account: 'Cash',
+    account: cashAccountId(fyo),
     debit: amount.percent(30),
     credit: fyo.pesa(0),
   });
 
   await doc.append('accounts', {
-    account: 'Supreme Bank',
+    account: bankAccountId,
     credit: amount.percent(30),
     debit: fyo.pesa(0),
   });
@@ -192,11 +197,11 @@ async function getPayments(fyo: Fyo, invoices: Invoice[]) {
       .plus({ hours: 1 })
       .toJSDate();
     if (doc.paymentType === 'Receive') {
-      doc.account = 'Debtors';
-      doc.paymentAccount = 'Cash';
+      doc.account = debtorsAccountId(fyo);
+      doc.paymentAccount = cashAccountId(fyo);
     } else {
-      doc.account = 'Cash';
-      doc.paymentAccount = 'Creditors';
+      doc.account = cashAccountId(fyo);
+      doc.paymentAccount = creditorsAccountId(fyo);
     }
     doc.amount = invoice.outstandingAmount;
 
@@ -271,7 +276,7 @@ async function getSalesInvoices(
 
     await doc.set('party', customer!.name);
     if (!doc.account) {
-      doc.account = 'Debtors';
+      doc.account = debtorsAccountId(fyo);
     }
     /**
      * Add `numItems` number of items to the invoice.
@@ -306,9 +311,7 @@ async function getSalesInvoices(
         item: item!.name,
         rate,
         quantity,
-        account: item!.incomeAccount,
         amount: rate.mul(quantity),
-        tax: item!.tax,
         description: item!.description,
         hsnCode: item!.hsnCode,
       });
@@ -416,7 +419,7 @@ async function getSalesPurchaseInvoices(
 
       await doc.set('party', supplier);
       if (!doc.account) {
-        doc.account = 'Creditors';
+        doc.account = creditorsAccountId(fyo);
       }
 
       /**
@@ -473,7 +476,7 @@ async function getNonSalesPurchaseInvoices(
       const party = purchaseItemPartyMap[name];
       await doc.set('party', party);
       if (!doc.account) {
-        doc.account = 'Creditors';
+        doc.account = creditorsAccountId(fyo);
       }
       await doc.append('items', {});
       const row = doc.items!.at(-1)!;
@@ -507,14 +510,31 @@ async function generateStaticEntries(fyo: Fyo) {
 
 async function generateItems(fyo: Fyo) {
   for (const item of items) {
-    const doc = fyo.doc.getNewDoc('Item', item, false);
+    const doc = fyo.doc.getNewDoc(
+      'Item',
+      {
+        ...item,
+        incomeAccount: resolveDemoCoaAccountId(fyo, item.incomeAccount),
+        expenseAccount: resolveDemoCoaAccountId(fyo, item.expenseAccount),
+      },
+      false
+    );
     await doc.sync();
   }
 }
 
 async function generateParties(fyo: Fyo) {
   for (const party of parties) {
-    const doc = fyo.doc.getNewDoc('Party', party, false);
+    const doc = fyo.doc.getNewDoc(
+      'Party',
+      {
+        ...party,
+        defaultAccount: party.defaultAccount
+          ? resolveStandardCoaAccountLabel(fyo, party.defaultAccount)
+          : party.defaultAccount,
+      },
+      false
+    );
     await doc.sync();
   }
 }

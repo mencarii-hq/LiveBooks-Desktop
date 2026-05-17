@@ -126,7 +126,15 @@ export function addMetaFields(schemaMap: SchemaMap): SchemaMap {
 
 function addTitleField(schemaMap: SchemaMap) {
   for (const schemaName in schemaMap) {
-    schemaMap[schemaName]!.titleField ??= 'name';
+    const schema = schemaMap[schemaName]!;
+    const hasDocumentNumber = schema.fields.some(
+      (f) => f.fieldname === 'documentNumber'
+    );
+    if (hasDocumentNumber) {
+      schema.titleField = 'documentNumber';
+    } else {
+      schema.titleField ??= 'name';
+    }
   }
 }
 

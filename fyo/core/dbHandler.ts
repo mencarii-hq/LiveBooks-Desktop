@@ -20,6 +20,7 @@ import {
 } from 'utils/db/types';
 import { schemaTranslateables } from 'utils/translationHelpers';
 import { LanguageMap } from 'utils/types';
+import { recordLocalMutation } from './localMutationLogger';
 import { Converter } from './converter';
 import {
   DatabaseDemuxConstructor,
@@ -115,8 +116,21 @@ export class DatabaseHandler extends DatabaseBase {
       schemaName,
       rawValueMap
     )) as RawValueMap;
+    const inserted = this.converter.toDocValueMap(
+      schemaName,
+      rawValueMap
+    ) as DocValueMap;
+    const docName = String(inserted.name ?? rawValueMap.name ?? '');
+    if (docName) {
+      await recordLocalMutation(this.#fyo, {
+        schemaName,
+        docName,
+        operation: 'insert',
+        payload: inserted as Record<string, unknown>,
+      });
+    }
     this.observer.trigger(`insert:${schemaName}`, docValueMap);
-    return this.converter.toDocValueMap(schemaName, rawValueMap) as DocValueMap;
+    return inserted;
   }
 
   // Read
@@ -207,6 +221,15 @@ export class DatabaseHandler extends DatabaseBase {
   async update(schemaName: string, docValueMap: DocValueMap): Promise<void> {
     const rawValueMap = this.converter.toRawValueMap(schemaName, docValueMap);
     await this.#demux.call('update', schemaName, rawValueMap);
+    const docName = String(docValueMap.name ?? rawValueMap.name ?? '');
+    if (docName) {
+      await recordLocalMutation(this.#fyo, {
+        schemaName,
+        docName,
+        operation: 'update',
+        payload: docValueMap as Record<string, unknown>,
+      });
+    }
 
     this.observer.trigger(`update:${schemaName}`, docValueMap);
   }
@@ -214,6 +237,11 @@ export class DatabaseHandler extends DatabaseBase {
   // Delete
   async delete(schemaName: string, name: string): Promise<void> {
     await this.#demux.call('delete', schemaName, name);
+    await recordLocalMutation(this.#fyo, {
+      schemaName,
+      docName: name,
+      operation: 'delete',
+    });
 
     this.observer.trigger(`delete:${schemaName}`, name);
   }

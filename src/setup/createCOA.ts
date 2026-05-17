@@ -6,6 +6,11 @@ import {
   COATree,
 } from 'models/baseModels/Account/types';
 import { getCOAList } from 'models/baseModels/SetupWizard/SetupWizard';
+import {
+  buildCoaSeedPath,
+  coaSeedSegment,
+  systemAccountId,
+} from 'utils/ids/systemAccountId';
 import { getStandardCOA } from './standardCOA';
 
 const accountFields = ['accountType', 'accountNumber', 'rootType', 'isGroup'];
@@ -21,13 +26,14 @@ export class CreateCOA {
 
   async run() {
     const chart = await getCOA(this.chartOfAccounts);
-    await this.createCOAAccounts(chart, null, '', true);
+    await this.createCOAAccounts(chart, null, '', [], true);
   }
 
   async createCOAAccounts(
     children: COATree | COARootAccount | COAChildAccount,
     parentAccount: string | null,
     rootType: AccountRootType | '',
+    pathSegments: string[],
     rootAccount: boolean
   ) {
     for (const rootName in children) {
@@ -42,15 +48,20 @@ export class CreateCOA {
       }
 
       const accountType = (child as COAChildAccount).accountType ?? '';
-      const accountNumber = (child as COAChildAccount).accountNumber;
-      const accountName = getAccountName(rootName, accountNumber);
+      const segments = [...pathSegments, rootName];
+      const seed = buildCoaSeedPath([
+        coaSeedSegment(rootType || 'account'),
+        ...segments.map(coaSeedSegment),
+      ]);
+      const accountId = systemAccountId(seed);
 
       const isGroup = identifyIsGroup(
         child as COAChildAccount | COARootAccount
       );
 
       const doc = this.fyo.doc.getNewDoc('Account', {
-        name: accountName,
+        name: accountId,
+        accountName: rootName,
         parentAccount,
         isGroup,
         rootType,
@@ -60,8 +71,9 @@ export class CreateCOA {
       await doc.sync();
       await this.createCOAAccounts(
         child as COAChildAccount,
-        accountName,
+        accountId,
         rootType,
+        segments,
         false
       );
     }
@@ -100,12 +112,4 @@ async function getCOA(chartOfAccounts: string): Promise<COATree> {
   } catch (e) {
     return getStandardCOA();
   }
-}
-
-function getAccountName(accountName: string, accountNumber?: string) {
-  if (accountNumber) {
-    return `${accountName} - ${accountNumber}`;
-  }
-
-  return accountName;
 }

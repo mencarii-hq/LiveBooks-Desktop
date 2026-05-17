@@ -135,6 +135,21 @@
       "hidden": true
     },
     {
+      "fieldname": "schema_migration_version",
+      "label": "Schema migration version",
+      "fieldtype": "Data",
+      "readOnly": true,
+      "hidden": true,
+      "default": "none"
+    },
+    {
+      "fieldname": "ledgerDeviceId",
+      "label": "Ledger device id",
+      "fieldtype": "Data",
+      "readOnly": true,
+      "hidden": true
+    },
+    {
       "fieldname": "darkMode",
       "label": "Dark mode",
       "fieldtype": "Check",

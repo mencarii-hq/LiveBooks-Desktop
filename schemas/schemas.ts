@@ -20,6 +20,7 @@ import NumberSeries from './app/NumberSeries.json';
 import SerialNumberSeries from './app/SerialNumberSeries.json';
 import Party from './app/Party.json';
 import PlaidBankAccountMap from './app/PlaidBankAccountMap.json';
+import PlaidBatchApplyJournal from './app/PlaidBatchApplyJournal.json';
 import Lead from './app/Lead.json';
 import LoyaltyProgram from './app/LoyaltyProgram.json';
 import LoyaltyPointEntry from './app/LoyaltyPointEntry.json';
@@ -83,6 +84,8 @@ import POSShiftAmounts from './app/inventory/Point of Sale/POSShiftAmounts.json'
 import ERPNextSyncSettings from './app/ERPNextSyncSettings.json';
 import ERPNextSyncQueue from './app/ERPNextSyncQueue.json';
 import FetchFromERPNextQueue from './app/FetchFromERPNextQueue.json';
+import LocalMutation from './app/LocalMutation.json';
+import SyncConflictLog from './app/SyncConflictLog.json';
 import IntegrationErrorLog from './app/IntegrationErrorLog.json';
 import ItemGroup from './app/ItemGroup.json';
 import { Schema, SchemaStub } from './types';
@@ -122,6 +125,7 @@ export const appSchemas: Schema[] | SchemaStub[] = [
 
   Party as Schema,
   PlaidBankAccountMap as Schema,
+  PlaidBatchApplyJournal as Schema,
   Lead as Schema,
   Address as Schema,
   ItemGroup as Schema,
@@ -201,6 +205,8 @@ export const appSchemas: Schema[] | SchemaStub[] = [
   ERPNextSyncSettings as Schema,
   ERPNextSyncQueue as Schema,
   FetchFromERPNextQueue as Schema,
+  LocalMutation as Schema,
+  SyncConflictLog as Schema,
 
   IntegrationErrorLog as Schema,
 ];

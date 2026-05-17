@@ -18,7 +18,7 @@
       "
     >
       <!-- Chart of Accounts Indented List -->
-      <template v-for="account in allAccounts" :key="account.name">
+      <template v-for="account in allAccounts" :key="account.id">
         <!-- Account List Item -->
         <div
           class="
@@ -41,13 +41,15 @@
           :style="getItemStyle(account.level)"
           @click="onClick(account)"
         >
-          <component :is="getIconComponent(!!account.isGroup, account.name)" />
+          <component
+            :is="getIconComponent(!!account.isGroup, accountDisplay(account))"
+          />
           <div class="flex items-baseline">
             <div
               class="ms-4"
               :class="[!account.parentAccount && 'font-semibold']"
             >
-              {{ account.name }}
+              {{ accountDisplay(account) }}
             </div>
 
             <!-- Add Account Buttons on Group Hover -->
@@ -198,9 +200,11 @@ import { Doc } from 'fyo/model/doc';
 import { Component } from 'vue';
 import { uicolors } from 'src/utils/colors';
 import { showDialog } from 'src/utils/interactive';
+import { accountDisplayName } from 'utils/accountDisplay';
 
 type AccountItem = {
   name: string;
+  accountName?: string;
   parentAccount: string;
   rootType: AccountRootType;
   accountType: AccountType;
@@ -291,6 +295,9 @@ export default defineComponent({
     docsPathRef.value = '';
   },
   methods: {
+    accountDisplay(account: AccountItem) {
+      return accountDisplayName(account);
+    },
     async expand() {
       await this.toggleAll(this.accounts, true);
       this.isAllCollapsed = false;
@@ -412,7 +419,7 @@ export default defineComponent({
       await showDialog({
         type: 'error',
         title: t`Cannot Delete Account`,
-        detail: t`${account.name} has linked child accounts.`,
+        detail: t`${accountDisplay(account)} has linked child accounts.`,
       });
 
       return false;
@@ -481,8 +488,15 @@ export default defineComponent({
         filters: {
           parentAccount: parent,
         },
-        fields: ['name', 'parentAccount', 'isGroup', 'rootType', 'accountType'],
-        orderBy: 'name',
+        fields: [
+          'name',
+          'accountName',
+          'parentAccount',
+          'isGroup',
+          'rootType',
+          'accountType',
+        ],
+        orderBy: 'accountName',
         order: 'asc',
       });
 
@@ -523,7 +537,7 @@ export default defineComponent({
       try {
         let { name, rootType, accountType } = parentAccount;
         await doc.set({
-          name: accountName,
+          accountName,
           parentAccount: name,
           rootType,
           accountType,

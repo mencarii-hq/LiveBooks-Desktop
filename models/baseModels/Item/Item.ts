@@ -13,6 +13,10 @@ import {
 import { ValidationError } from 'fyo/utils/errors';
 import { Money } from 'pesa';
 import { AccountRootTypeEnum, AccountTypeEnum } from '../Account/types';
+import {
+  salesIncomeAccountId,
+  serviceIncomeAccountId,
+} from 'utils/ids/coaAccountLookup';
 
 interface UOMConversionItem {
   name: string;
@@ -37,13 +41,13 @@ export class Item extends Doc {
   formulas: FormulaMap = {
     incomeAccount: {
       formula: async () => {
-        let accountName = 'Service';
-        if (this.itemType === 'Product') {
-          accountName = 'Sales';
-        }
+        const accountId =
+          this.itemType === 'Product'
+            ? salesIncomeAccountId(this.fyo)
+            : serviceIncomeAccountId(this.fyo);
 
-        const accountExists = await this.fyo.db.exists('Account', accountName);
-        return accountExists ? accountName : '';
+        const accountExists = await this.fyo.db.exists('Account', accountId);
+        return accountExists ? accountId : '';
       },
       dependsOn: ['itemType'],
     },

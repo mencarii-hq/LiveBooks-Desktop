@@ -14,9 +14,15 @@ export class DatabaseDemux extends DatabaseDemuxBase {
     const response = await func();
 
     if (response.error?.name) {
-      const { name, message, stack } = response.error;
+      const { name, message, stack, code } = response.error;
       const dberror = new DatabaseError(`${name}\n${message}`);
       dberror.stack = stack;
+      // Preserve main-process error.code (e.g. KEYCHAIN_CORRUPTED) so the
+      // renderer can route to /recovery instead of treating every failure as
+      // a generic DatabaseError. See Day-1 Phase 0.3.
+      if (typeof code === 'string' && code.length > 0) {
+        (dberror as DatabaseError & { code?: string }).code = code;
+      }
 
       throw dberror;
     }

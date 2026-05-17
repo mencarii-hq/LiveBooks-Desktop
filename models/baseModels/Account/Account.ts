@@ -1,5 +1,6 @@
 import { Fyo } from 'fyo';
 import { Doc } from 'fyo/model/doc';
+import { generateDocId, isUuidDocId } from 'utils/ids';
 import {
   DefaultMap,
   FiltersMap,
@@ -14,9 +15,12 @@ import { QueryFilter } from 'utils/db/types';
 import { AccountRootType, AccountRootTypeEnum, AccountType } from './types';
 
 export class Account extends Doc {
+  accountName?: string;
   rootType?: AccountRootType;
   accountType?: AccountType;
   parentAccount?: string;
+  /** When true, account is treated as archived (hidden from feeds and active pickers). */
+  disabled?: boolean;
 
   get isDebit() {
     if (this.rootType === AccountRootTypeEnum.Asset) {
@@ -55,6 +59,13 @@ export class Account extends Doc {
   };
 
   async beforeSync() {
+    if (this.name && !isUuidDocId(this.name)) {
+      this.accountName ??= this.name;
+      this.name = generateDocId();
+    } else if (!this.name) {
+      this.name = generateDocId();
+    }
+
     if (this.accountType || !this.parentAccount) {
       return;
     }
@@ -65,7 +76,7 @@ export class Account extends Doc {
 
   static getListViewSettings(): ListViewSettings {
     return {
-      columns: ['name', 'rootType', 'isGroup', 'parentAccount'],
+      columns: ['accountName', 'rootType', 'isGroup', 'parentAccount'],
     };
   }
 

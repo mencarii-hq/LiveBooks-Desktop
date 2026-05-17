@@ -2,12 +2,21 @@
   "name": "Account",
   "label": "Account",
   "naming": "manual",
+  "titleField": "accountName",
+  "linkDisplayField": "accountName",
   "create": false,
   "isSingle": false,
   "isTree": true,
   "fields": [
     {
       "fieldname": "name",
+      "label": "ID",
+      "fieldtype": "Data",
+      "hidden": true,
+      "readOnly": true
+    },
+    {
+      "fieldname": "accountName",
       "label": "Account Name",
       "fieldtype": "Data",
       "required": true
@@ -136,7 +145,21 @@
       "label": "Is Group",
       "fieldtype": "Check",
       "default": false
+    },
+    {
+      "fieldname": "disabled",
+      "label": "Disabled (archived)",
+      "fieldtype": "Check",
+      "default": false,
+      "description": "Archived bank accounts stay in the ledger for history but are hidden from bank feeds and most pickers."
     }
   ],
-  "quickEditFields": ["rootType", "parentAccount", "accountType", "isGroup"]
+  "quickEditFields": [
+    "accountName",
+    "rootType",
+    "parentAccount",
+    "accountType",
+    "isGroup",
+    "disabled"
+  ]
 }

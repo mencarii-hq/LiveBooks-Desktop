@@ -1,7 +1,7 @@
 {
   "name": "BankStatement",
   "label": "Bank Statement",
-  "naming": "autoincrement",
+  "naming": "uuid",
   "isSubmittable": false,
   "fields": [
     {
@@ -49,6 +49,7 @@
       "default": "manual_csv",
       "options": [
         { "value": "manual_csv", "label": "Manual CSV" },
+        { "value": "manual_ofx", "label": "Manual OFX/QBO/QFX" },
         { "value": "plaid_statement_pdf", "label": "Plaid statement (PDF)" },
         {
           "value": "plaid_transactions_window",

@@ -15,6 +15,13 @@
       "hidden": true
     },
     {
+      "fieldname": "documentNumber",
+      "label": "Document No.",
+      "fieldtype": "Data",
+      "readOnly": true,
+      "section": "Default"
+    },
+    {
       "abstract": true,
       "fieldname": "numberSeries",
       "section": "Default"

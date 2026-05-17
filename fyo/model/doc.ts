@@ -1,4 +1,5 @@
 import { Fyo } from 'fyo';
+import { recordLocalMutation } from 'fyo/core/localMutationLogger';
 import { Converter } from 'fyo/core/converter';
 import { DocValue, DocValueMap, RawValueMap } from 'fyo/core/types';
 import { Verb } from 'fyo/telemetry/types';
@@ -1018,6 +1019,14 @@ export class Doc extends Observable<DocValue | Doc[]> {
     await this.setAndSync('submitted', true);
     await this.trigger('afterSubmit');
 
+    if (this.name) {
+      await recordLocalMutation(this.fyo, {
+        schemaName: this.schemaName,
+        docName: this.name,
+        operation: 'submit',
+      });
+    }
+
     this.fyo.telemetry.log(Verb.Submitted, this.schemaName);
     this.fyo.doc.observer.trigger(`submit:${this.schemaName}`, this.name);
   }
@@ -1030,6 +1039,14 @@ export class Doc extends Observable<DocValue | Doc[]> {
     await this.trigger('beforeCancel');
     await this.setAndSync('cancelled', true);
     await this.trigger('afterCancel');
+
+    if (this.name) {
+      await recordLocalMutation(this.fyo, {
+        schemaName: this.schemaName,
+        docName: this.name,
+        operation: 'cancel',
+      });
+    }
 
     this.fyo.telemetry.log(Verb.Cancelled, this.schemaName);
     this.fyo.doc.observer.trigger(`cancel:${this.schemaName}`, this.name);

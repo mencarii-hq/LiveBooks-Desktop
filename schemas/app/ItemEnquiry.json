@@ -4,7 +4,7 @@
   "create": false,
   "isSingle": false,
   "isChild": false,
-  "naming": "autoincrement",
+  "naming": "uuid",
   "fields": [
     {
       "fieldname": "item",

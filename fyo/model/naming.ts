@@ -2,6 +2,8 @@ import { Fyo } from 'fyo';
 import NumberSeries from 'fyo/models/NumberSeries';
 import { DEFAULT_SERIES_START } from 'fyo/utils/consts';
 import { BaseError } from 'fyo/utils/errors';
+import { generateDocId } from 'utils/ids';
+import { isUuidIdentityComplete } from 'utils/ids/uuidIdentityState';
 import { getRandomString } from 'utils';
 import { Doc } from './doc';
 
@@ -11,11 +13,11 @@ export function isNameAutoSet(schemaName: string, fyo: Fyo): boolean {
     return false;
   }
 
-  if (schema.naming === 'autoincrement') {
-    return true;
-  }
-
-  if (schema.naming === 'random') {
+  if (
+    schema.naming === 'autoincrement' ||
+    schema.naming === 'uuid' ||
+    schema.naming === 'random'
+  ) {
     return true;
   }
 
@@ -27,31 +29,50 @@ export function isNameAutoSet(schemaName: string, fyo: Fyo): boolean {
   return false;
 }
 
+async function uuidIdentityActive(fyo: Fyo): Promise<boolean> {
+  const knex = fyo.db.knex as import('knex').Knex | undefined;
+  return await isUuidIdentityComplete(knex);
+}
+
 export async function setName(doc: Doc, fyo: Fyo) {
   if (doc.schema.naming === 'manual') {
     return;
   }
 
-  if (doc.schema.naming === 'autoincrement') {
+  const useUuid = await uuidIdentityActive(fyo);
+
+  if (doc.schema.naming === 'autoincrement' && !useUuid) {
     return (doc.name = await getNextId(doc.schemaName, fyo));
   }
 
+  if (
+    doc.schema.naming === 'uuid' ||
+    (doc.schema.naming === 'autoincrement' && useUuid)
+  ) {
+    doc.name = generateDocId();
+    return doc.name;
+  }
+
   if (doc.numberSeries !== undefined) {
-    return (doc.name = await getSeriesNext(
+    const seriesName = await getSeriesNext(
       doc.numberSeries as string,
       doc.schemaName,
       fyo
-    ));
+    );
+    if (useUuid) {
+      (doc as Doc & { documentNumber?: string }).documentNumber = seriesName;
+      doc.name = generateDocId();
+      return doc.name;
+    }
+    return (doc.name = seriesName);
   }
 
-  // name === schemaName for Single
   if (doc.schema.isSingle) {
     return (doc.name = doc.schemaName);
   }
 
-  // Assign a random name by default
   if (!doc.name) {
-    doc.name = getRandomString();
+    doc.name = useUuid ? generateDocId() : getRandomString();
   }
 
   return doc.name;

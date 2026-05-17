@@ -61,6 +61,32 @@
       "fieldname": "contentHash",
       "label": "Content hash",
       "fieldtype": "Data"
+    },
+    {
+      "fieldname": "possibleDuplicate",
+      "label": "Possible duplicate",
+      "fieldtype": "Check",
+      "default": false,
+      "description": "Same date and amount as an existing feed line or another row in this import."
+    },
+    {
+      "fieldname": "isPending",
+      "label": "Plaid pending",
+      "fieldtype": "Check",
+      "default": false,
+      "description": "True while this line reflects a pending Plaid transaction (read-only until posted or removed)."
+    },
+    {
+      "fieldname": "pendingPlaidTransactionId",
+      "label": "Pending Plaid transaction id",
+      "fieldtype": "Data",
+      "description": "Plaid transaction_id while pending; cleared when posted."
+    },
+    {
+      "fieldname": "plaidDeltaKind",
+      "label": "Plaid delta kind",
+      "fieldtype": "Data",
+      "description": "added or modified from Plaid /transactions/sync (optional)."
     }
   ],
   "tableFields": [

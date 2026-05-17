@@ -15,6 +15,10 @@ import { Money } from 'pesa';
 import { PartyRole } from './types';
 import { ModelNameEnum } from 'models/types';
 import { isLoyaltyProgramExpiredAndMaxed } from 'models/helpers';
+import {
+  creditorsAccountId,
+  debtorsAccountId,
+} from 'utils/ids/coaAccountLookup';
 
 export class Party extends Doc {
   role?: PartyRole;
@@ -128,13 +132,13 @@ export class Party extends Doc {
           return '';
         }
 
-        let accountName = 'Debtors';
-        if (role === 'Supplier') {
-          accountName = 'Creditors';
-        }
+        const accountId =
+          role === 'Supplier'
+            ? creditorsAccountId(this.fyo)
+            : debtorsAccountId(this.fyo);
 
-        const accountExists = await this.fyo.db.exists('Account', accountName);
-        return accountExists ? accountName : '';
+        const accountExists = await this.fyo.db.exists('Account', accountId);
+        return accountExists ? accountId : '';
       },
       dependsOn: ['role'],
     },
