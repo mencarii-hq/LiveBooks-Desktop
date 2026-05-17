@@ -21,6 +21,11 @@ import {
   initializeInstance,
   setCurrencySymbols,
 } from 'src/utils/initialization';
+import {
+  buildCoaSeedPath,
+  coaSeedSegment,
+  systemAccountId,
+} from 'utils/ids/systemAccountId';
 import { getRandomString } from 'utils';
 import { getDefaultLocations, getDefaultUOMs } from 'utils/defaults';
 import { getCountryCodeFromCountry, getCountryInfo } from 'utils/misc';
@@ -138,6 +143,7 @@ async function updateSystemSettings(
     currency,
     instanceId,
     countryCode,
+    version: fyo.store.appVersion,
   });
 }
 
@@ -184,7 +190,7 @@ async function createAccountRecords(
   await createCOA.run();
   const parentAccount = await getBankAccountParentName(country, fyo);
   const bankAccountDoc = {
-    name: bankName,
+    accountName: bankName,
     rootType: AccountRootTypeEnum.Asset,
     parentAccount,
     accountType: 'Bank',
@@ -196,54 +202,78 @@ async function createAccountRecords(
   await setDefaultAccounts(fyo);
 }
 
-export async function createDiscountAccount(fyo: Fyo) {
-  const incomeAccountName = fyo.t`Indirect Income`;
-  const accountExists = await fyo.db.exists(
-    ModelNameEnum.Account,
-    incomeAccountName
+function coaSystemAccountId(rootType: string, pathLabels: string[]): string {
+  return systemAccountId(
+    buildCoaSeedPath([
+      coaSeedSegment(rootType),
+      ...pathLabels.map(coaSeedSegment),
+    ])
   );
+}
 
-  if (!accountExists) {
+export async function createDiscountAccount(fyo: Fyo) {
+  const parentAccount = coaSystemAccountId(AccountRootTypeEnum.Income, [
+    fyo.t`Income`,
+    fyo.t`Indirect Income`,
+  ]);
+  const parentExists = await fyo.db.exists(
+    ModelNameEnum.Account,
+    parentAccount
+  );
+  if (!parentExists) {
     return;
   }
 
   const discountAccountName = fyo.t`Discounts`;
   const discountAccountDoc = {
-    name: discountAccountName,
+    accountName: discountAccountName,
     rootType: AccountRootTypeEnum.Income,
-    parentAccount: incomeAccountName,
+    parentAccount,
     accountType: 'Income Account',
     isGroup: false,
   };
 
-  await checkAndCreateDoc(ModelNameEnum.Account, discountAccountDoc, fyo);
-  await fyo.singles.AccountingSettings!.setAndSync(
-    'discountAccount',
-    discountAccountName
+  const discountDoc = await checkAndCreateDoc(
+    ModelNameEnum.Account,
+    discountAccountDoc,
+    fyo
   );
+  if (discountDoc?.name) {
+    await fyo.singles.AccountingSettings!.setAndSync(
+      'discountAccount',
+      discountDoc.name
+    );
+  }
 }
 
 async function setDefaultAccounts(fyo: Fyo) {
-  await setDefaultAccount('writeOffAccount', fyo.t`Write Off`, fyo);
-  const isSet = await setDefaultAccount(
-    'roundOffAccount',
-    fyo.t`Rounded Off`,
-    fyo
-  );
-
-  if (!isSet) {
-    await setDefaultAccount('roundOffAccount', fyo.t`Round Off`, fyo);
-  }
-}
-
-async function setDefaultAccount(key: string, accountName: string, fyo: Fyo) {
-  const accountExists = await fyo.db.exists(ModelNameEnum.Account, accountName);
-  if (!accountExists) {
-    return false;
+  const writeOff = coaSystemAccountId(AccountRootTypeEnum.Expense, [
+    fyo.t`Expenses`,
+    fyo.t`Indirect Expenses`,
+    fyo.t`Write Off`,
+  ]);
+  if (await fyo.db.exists(ModelNameEnum.Account, writeOff)) {
+    await fyo.singles.AccountingSettings!.setAndSync(
+      'writeOffAccount',
+      writeOff
+    );
   }
 
-  await fyo.singles.AccountingSettings!.setAndSync(key, accountName);
-  return true;
+  const roundOffLabels = [fyo.t`Rounded Off`, fyo.t`Round Off`];
+  for (const label of roundOffLabels) {
+    const roundOff = coaSystemAccountId(AccountRootTypeEnum.Expense, [
+      fyo.t`Expenses`,
+      fyo.t`Indirect Expenses`,
+      label,
+    ]);
+    if (await fyo.db.exists(ModelNameEnum.Account, roundOff)) {
+      await fyo.singles.AccountingSettings!.setAndSync(
+        'roundOffAccount',
+        roundOff
+      );
+      break;
+    }
+  }
 }
 
 async function completeSetup(companyName: string, fyo: Fyo) {
@@ -269,12 +299,15 @@ async function checkIfExactRecordAbsent(
   docMap: DocValueMap,
   fyo: Fyo
 ) {
-  const name = docMap.name as string;
   const newDocObject = Object.assign({}, docMap);
+  const filters: Record<string, string> =
+    schemaName === ModelNameEnum.Account && docMap.accountName && !docMap.name
+      ? { accountName: docMap.accountName as string }
+      : { name: docMap.name as string };
 
   const rows = await fyo.db.getAllRaw(schemaName, {
     fields: ['*'],
-    filters: { name },
+    filters,
   });
 
   if (rows.length === 0) {
@@ -289,7 +322,7 @@ async function checkIfExactRecordAbsent(
   });
 
   if (!matchList.every(Boolean)) {
-    await fyo.db.delete(schemaName, name);
+    await fyo.db.delete(schemaName, storedDocObject.name as string);
     return true;
   }
 

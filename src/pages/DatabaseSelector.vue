@@ -316,6 +316,7 @@ import FeatherIcon from 'src/components/FeatherIcon.vue';
 import Loading from 'src/components/Loading.vue';
 import Modal from 'src/components/Modal.vue';
 import { fyo } from 'src/initFyo';
+import { handleErrorWithDialog } from 'src/errorHandling';
 import { showDialog } from 'src/utils/interactive';
 import { updateConfigFiles } from 'src/utils/misc';
 import { deleteDb, getSavePath, getSelectedFilePath } from 'src/utils/ui';
@@ -333,8 +334,8 @@ export default defineComponent({
   emits: ['file-selected', 'new-database'],
   data() {
     return {
-      /** Set true to show India-based demo company (hidden for US MVP). */
-      showDemoCompany: false,
+      /** Set true to show demo company (USD, United States). */
+      showDemoCompany: true,
       openModal: false,
       baseCount: 100,
       creationMessage: '',
@@ -413,23 +414,28 @@ export default defineComponent({
       }
 
       this.creatingDemo = true;
-      await setupDummyInstance(
-        filePath,
-        fyo,
-        1,
-        this.baseCount,
-        (message, percent) => {
-          this.creationMessage = message;
-          this.creationPercent = percent;
-        }
-      );
+      try {
+        await setupDummyInstance(
+          filePath,
+          fyo,
+          1,
+          this.baseCount,
+          (message, percent) => {
+            this.creationMessage = message;
+            this.creationPercent = percent;
+          }
+        );
 
-      updateConfigFiles(fyo);
-      await fyo.purgeCache();
-      await this.setFiles();
-      this.fyo.telemetry.log(Verb.Created, 'dummy-instance');
-      this.creatingDemo = false;
-      this.$emit('file-selected', filePath);
+        updateConfigFiles(fyo);
+        await fyo.purgeCache();
+        await this.setFiles();
+        this.fyo.telemetry.log(Verb.Created, 'dummy-instance');
+        this.$emit('file-selected', filePath);
+      } catch (error) {
+        await handleErrorWithDialog(error, undefined, true, true);
+      } finally {
+        this.creatingDemo = false;
+      }
     },
     async setFiles() {
       const dbList = await ipc.getDbList();

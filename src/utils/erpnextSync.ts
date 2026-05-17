@@ -7,7 +7,7 @@ import { Doc } from 'fyo/model/doc';
 import { ERPNextSyncQueue } from 'models/baseModels/ERPNextSyncQueue/ERPNextSyncQueue';
 import { SalesInvoice } from 'models/baseModels/SalesInvoice/SalesInvoice';
 import { StockMovementItem } from 'models/inventory/StockMovementItem';
-import { getRandomString } from '../../utils';
+import { generateDeviceId } from 'utils/ids';
 import { ValidationError } from 'fyo/utils/errors';
 import { PricingRule } from 'models/baseModels/PricingRule/PricingRule';
 import { PricingRuleItem } from 'models/baseModels/PricingRuleItem/PricingRuleItem';
@@ -33,7 +33,7 @@ export async function registerInstanceToERPNext(fyo: Fyo) {
   }
 
   if (!deviceID) {
-    await syncSettingsDoc.setAndSync('deviceID', getRandomString());
+    await syncSettingsDoc.setAndSync('deviceID', generateDeviceId());
   }
 
   deviceID = syncSettingsDoc.deviceID;
