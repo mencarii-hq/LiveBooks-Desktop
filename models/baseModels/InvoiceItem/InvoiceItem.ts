@@ -20,11 +20,7 @@ import { Item } from '../Item/Item';
 import { StockTransfer } from 'models/inventory/StockTransfer';
 import { isPesa } from 'fyo/utils';
 import { PricingRule } from '../PricingRule/PricingRule';
-import {
-  getItemRateFromPriceList,
-  getPricingRule,
-  getItemVisibility,
-} from 'models/helpers';
+import { getItemRateFromPriceList, getPricingRule } from 'models/helpers';
 import { SalesInvoice } from '../SalesInvoice/SalesInvoice';
 import { getSuggestedBatchName } from 'models/inventory/helpers';
 import { ValuationMethod } from 'models/inventory/types';
@@ -780,7 +776,7 @@ export abstract class InvoiceItem extends Doc {
   };
 
   static filters: FiltersMap = {
-    item: async (doc: Doc): Promise<QueryFilter> => {
+    item: (doc: Doc): QueryFilter => {
       let itemNotFor = 'Sales';
       if (doc.isSales) {
         itemNotFor = 'Purchases';
@@ -789,22 +785,6 @@ export abstract class InvoiceItem extends Doc {
       const filters: QueryFilter = {
         for: ['not in', [itemNotFor]],
       };
-
-      const enableERPNextSync =
-        doc.fyo.singles.AccountingSettings?.enableERPNextSync;
-
-      if (enableERPNextSync) {
-        const itemVisibility = await getItemVisibility(doc.fyo);
-
-        if (itemVisibility === 'Inventory Items') {
-          filters.trackItem = true;
-        } else if (itemVisibility === 'ERP Sync Items') {
-          filters.datafromErp = true;
-        } else if (itemVisibility === 'Non-Inventory Items') {
-          filters.trackItem = false;
-          filters.datafromErp = false;
-        }
-      }
 
       return filters;
     },

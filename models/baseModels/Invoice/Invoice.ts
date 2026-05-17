@@ -412,6 +412,7 @@ export abstract class Invoice extends Transactional {
     const exchangeRate = await getExchangeRate({
       fromCurrency: this.currency,
       toCurrency: currency as string,
+      fyo: this.fyo,
     });
 
     return safeParseFloat(exchangeRate.toFixed(2));

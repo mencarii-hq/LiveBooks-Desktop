@@ -33,10 +33,17 @@ import { SalesInvoice } from './baseModels/SalesInvoice/SalesInvoice';
 import { SalesQuote } from './baseModels/SalesQuote/SalesQuote';
 import { StockMovement } from './inventory/StockMovement';
 import { StockTransfer } from './inventory/StockTransfer';
-import { ValidationError } from 'fyo/utils/errors';
+import {
+  ExchangeRateUnavailableError,
+  ValidationError,
+} from 'fyo/utils/errors';
+import {
+  getCachedExchangeRates,
+  persistExchangeRateCache,
+  resolveCachedExchangeRate,
+} from './exchangeRateCache';
 import { isPesa } from 'fyo/utils';
 import { numberSeriesDefaultsMap } from './baseModels/Defaults/Defaults';
-import { safeParseFloat } from 'utils/index';
 import { PriceList } from './baseModels/PriceList/PriceList';
 import { InvoiceItem } from './baseModels/InvoiceItem/InvoiceItem';
 import { SalesInvoiceItem } from './baseModels/SalesInvoiceItem/SalesInvoiceItem';
@@ -119,21 +126,27 @@ export async function getItemQtyMap(doc: SalesInvoice): Promise<ItemQtyMap> {
 
 export async function getItemVisibility(fyo: Fyo): Promise<ItemVisibility> {
   const posProfileName = fyo.singles.POSSettings?.posProfile as string;
-  const enableERPNextSync = fyo.singles.AccountingSettings?.enableERPNextSync;
-
-  if (enableERPNextSync) {
-    return fyo.singles.POSSettings?.itemVisibilityERP as ItemVisibility;
-  }
+  let visibility: ItemVisibility;
 
   if (posProfileName) {
     const posProfile = await fyo.doc.getDoc(
       ModelNameEnum.POSProfile,
       posProfileName
     );
-    return posProfile?.itemVisibility as ItemVisibility;
+    visibility =
+      (posProfile?.itemVisibility as ItemVisibility) ?? 'Inventory Items';
+  } else {
+    visibility =
+      (fyo.singles.POSSettings?.itemVisibility as ItemVisibility) ??
+      'Inventory Items';
   }
 
-  return fyo.singles.POSSettings?.itemVisibility as ItemVisibility;
+  // Legacy dev books may still store ERP Sync Items; ERP integration was removed.
+  if (visibility === 'ERP Sync Items') {
+    return 'Inventory Items';
+  }
+
+  return visibility;
 }
 
 export function getStockTransferActions(
@@ -650,12 +663,18 @@ export async function getExchangeRate({
   fromCurrency,
   toCurrency,
   date,
+  fyo,
 }: {
   fromCurrency: string;
   toCurrency: string;
   date?: string;
+  fyo?: Fyo;
 }) {
   if (!fetch) {
+    return 1;
+  }
+
+  if (fromCurrency === toCurrency) {
     return 1;
   }
 
@@ -663,16 +682,8 @@ export async function getExchangeRate({
     date = DateTime.local().toISODate();
   }
 
-  const cacheKey = `currencyExchangeRate:${date}:${fromCurrency}:${toCurrency}`;
-
-  let exchangeRate = 0;
-  if (localStorage) {
-    exchangeRate = safeParseFloat(localStorage.getItem(cacheKey) as string);
-  }
-
-  if (exchangeRate && exchangeRate !== 1) {
-    return exchangeRate;
-  }
+  let fetchedRate: number | undefined;
+  let fetchFailed = false;
 
   try {
     const res = await fetch(
@@ -680,19 +691,59 @@ export async function getExchangeRate({
     );
     const data = (await res.json()) as {
       base: string;
-      data: string;
+      date: string;
       rates: Record<string, number>;
     };
-    exchangeRate = data.rates[toCurrency];
-  } catch (error) {
-    exchangeRate ??= 1;
+    if (!res.ok || !data.rates?.[toCurrency]) {
+      fetchFailed = true;
+    } else {
+      fetchedRate = data.rates[toCurrency];
+    }
+  } catch {
+    fetchFailed = true;
   }
 
-  if (localStorage) {
-    localStorage.setItem(cacheKey, String(exchangeRate));
+  if (fetchedRate !== undefined) {
+    if (fyo?.db.isConnected) {
+      await persistExchangeRateCache(fyo, fromCurrency, toCurrency, {
+        rate: fetchedRate,
+        rateDate: date,
+        fetchedAt: new Date().toISOString(),
+      });
+    }
+    return fetchedRate;
   }
 
-  return exchangeRate;
+  if (fyo?.db.isConnected) {
+    const cached = resolveCachedExchangeRate(
+      getCachedExchangeRates(fyo, fromCurrency, toCurrency),
+      date
+    );
+
+    if (cached) {
+      if (fetchFailed) {
+        const { showToast } = await import('src/utils/interactive');
+        const label = cached.entry.rateDate;
+        showToast({
+          type: 'warning',
+          message: cached.usedStaleDate
+            ? fyo.t`Offline: Using exchange rate from ${label}`
+            : fyo.t`Offline: Using exchange rate from ${label}`,
+        });
+      }
+
+      return cached.entry.rate;
+    }
+  }
+
+  if (fetchFailed || fetchedRate === undefined) {
+    const message = fyo
+      ? fyo.t`Exchange rate is unavailable offline. Connect to the internet or set the rate manually.`
+      : 'Exchange rate is unavailable offline. Connect to the internet or set the rate manually.';
+    throw new ExchangeRateUnavailableError(message);
+  }
+
+  return fetchedRate;
 }
 
 export function isCredit(rootType: AccountRootType) {

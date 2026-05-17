@@ -163,6 +163,13 @@
       "fieldtype": "Check",
       "default": false,
       "section": "Customizations"
+    },
+    {
+      "fieldname": "exchangeRateCacheJson",
+      "label": "Exchange Rate Cache",
+      "fieldtype": "Text",
+      "hidden": true,
+      "description": "Per-company cached FX rates (JSON) for offline use."
     }
   ],
   "quickEditFields": [

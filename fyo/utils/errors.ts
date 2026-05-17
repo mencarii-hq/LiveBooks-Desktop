@@ -20,6 +20,13 @@ export class ValidationError extends BaseError {
   }
 }
 
+export class ExchangeRateUnavailableError extends ValidationError {
+  constructor(message: string) {
+    super(message, false);
+    this.name = 'ExchangeRateUnavailableError';
+  }
+}
+
 export class NotFoundError extends BaseError {
   constructor(message: string, shouldStore = true) {
     super(404, message, shouldStore);
