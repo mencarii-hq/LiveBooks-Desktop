@@ -11,7 +11,7 @@ import {
   registerLivebooksDefaultProtocol,
   startLivebooksDevHandoffServer,
 } from './livebooksCloudBridge';
-import { configureMacDevelopmentShell } from './setupMacDevelopmentShell';
+import { configureDevelopmentShell } from './setupDevelopmentShell';
 
 export default function registerAppLifecycleListeners(main: Main) {
   app.on('window-all-closed', () => {
@@ -36,7 +36,12 @@ export default function registerAppLifecycleListeners(main: Main) {
 
     if (process.platform === 'darwin') {
       configureMacAboutPanel(main.icon, main.appEnv);
-      configureMacDevelopmentShell(main.appEnv);
+    }
+
+    if (main.isDevelopment) {
+      configureDevelopmentShell(main.appEnv, () =>
+        main.toggleRendererDevTools()
+      );
     }
 
     main

@@ -1,8 +1,10 @@
 import { Doc } from 'fyo/model/doc';
-import { ChangeArg, HiddenMap } from 'fyo/model/types';
-import { initERPNSync, syncDocumentsToERPNext } from 'src/utils/erpnextSync';
-import { ErrorLogEnum } from 'fyo/telemetry/types';
+import { HiddenMap } from 'fyo/model/types';
 
+/**
+ * Dormant single — schema/tables kept for existing .books files and Frappe Books
+ * handoff. ERPNext sync was removed from LiveBooks; this doc is not wired to UI.
+ */
 export class ERPNextSyncSettings extends Doc {
   deviceID?: string;
   instanceName?: string;
@@ -41,67 +43,7 @@ export class ERPNextSyncSettings extends Doc {
     batchSyncType: () => {
       return !this.fyo.singles.InventorySettings?.enableBatches;
     },
-    syncDataFromServer: () => {
-      return !this.deviceID;
-    },
-    syncDataToServer: () => {
-      return !this.deviceID;
-    },
+    syncDataFromServer: () => true,
+    syncDataToServer: () => true,
   };
-
-  async change(ch: ChangeArg) {
-    if (ch.changed === 'syncDataFromServer') {
-      try {
-        const { showToast } = await import('src/utils/interactive');
-        showToast({
-          type: 'warning',
-          message: 'Fetching data from server.',
-          duration: 'very_long',
-        });
-        await initERPNSync(this.fyo);
-        ipc.reloadWindow();
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-
-        try {
-          await this.fyo.doc
-            .getNewDoc(ErrorLogEnum.IntegrationErrorLog, {
-              error: errorMessage,
-              data: JSON.stringify({
-                instance: this.deviceID,
-                operation: 'sync_data_from_server',
-                trigger: 'change_event',
-              }),
-            })
-            .sync();
-        } catch (logError) {
-          throw logError;
-        }
-      }
-    } else if (ch.changed === 'syncDataToServer') {
-      try {
-        await syncDocumentsToERPNext(this.fyo);
-        ipc.reloadWindow();
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-
-        try {
-          await this.fyo.doc
-            .getNewDoc(ErrorLogEnum.IntegrationErrorLog, {
-              error: errorMessage,
-              data: JSON.stringify({
-                instance: this.deviceID,
-                operation: 'sync_data_to_server',
-                trigger: 'change_event',
-              }),
-            })
-            .sync();
-        } catch (logError) {
-          throw logError;
-        }
-      }
-    }
-  }
 }

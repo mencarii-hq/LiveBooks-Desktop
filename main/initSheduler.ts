@@ -1,10 +1,10 @@
 import Bree from 'bree';
 import path from 'path';
-import main from 'main';
 
 let bree: Bree;
 
-export async function initScheduler(interval: string) {
+/** POS loyalty program expiry — independent of legacy ERPNext sync (removed). */
+export async function initLoyaltyExpiryJob() {
   const jobsRoot = path.join(__dirname, '..', '..', 'jobs');
 
   if (bree) {
@@ -15,15 +15,6 @@ export async function initScheduler(interval: string) {
     root: jobsRoot,
     defaultExtension: 'ts',
     jobs: [
-      {
-        name: 'triggerErpNextSync',
-        interval: interval,
-        worker: {
-          workerData: {
-            useTsNode: true,
-          },
-        },
-      },
       {
         name: 'checkLoyaltyProgramExpiry',
         interval: '24 hours',
@@ -37,10 +28,6 @@ export async function initScheduler(interval: string) {
     worker: {
       argv: ['--require', 'ts-node/register'],
     },
-  });
-
-  bree.on('worker created', () => {
-    main.mainWindow?.webContents.send('trigger-erpnext-sync');
   });
 
   await bree.start();
