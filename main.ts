@@ -30,8 +30,13 @@ import {
   resolveLivebooksAppEnvMain,
 } from './main/livebooksAppEnvMain';
 import registerProcessListeners from './main/registerProcessListeners';
+import { registerDevelopmentContextMenu } from './main/setupDevelopmentShell';
 import type { LivebooksAppEnv } from 'utils/livebooksAppEnv';
 import { LIVEBOOKS_DESKTOP_PRODUCT_NAME } from 'utils/livebooksAppEnv';
+import {
+  isTelemetryEnabledFromEnv,
+  isUpdaterEnabledFromEnv,
+} from 'utils/livebooksFeatureFlags';
 import {
   attachLivebooksCloudMain,
   registerLivebooksDeepLinkListeners,
@@ -58,6 +63,8 @@ export class Main {
 
   winURL = '';
   checkedForUpdate = false;
+  readonly updaterEnabled = isUpdaterEnabledFromEnv();
+  readonly telemetryEnabled = isTelemetryEnabledFromEnv();
   mainWindow: BrowserWindow | null = null;
 
   WIDTH = 1200;
@@ -205,6 +212,10 @@ export class Main {
 
   get isLinux() {
     return process.platform === 'linux';
+  }
+
+  toggleRendererDevTools() {
+    this.mainWindow?.webContents.toggleDevTools();
   }
 
   registerListeners() {
@@ -366,6 +377,12 @@ export class Main {
         emitMainProcessError(err)
       );
     });
+
+    if (this.isDevelopment && !this.isTest) {
+      registerDevelopmentContextMenu(this.mainWindow.webContents, () =>
+        this.toggleRendererDevTools()
+      );
+    }
   }
 }
 

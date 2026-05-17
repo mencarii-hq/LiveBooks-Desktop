@@ -227,6 +227,8 @@ export class Fyo {
     isDevelopment: false,
     appEnv: 'production' as 'development' | 'staging' | 'production',
     skipTelemetryLogging: false,
+    telemetryEnabled: true,
+    updaterEnabled: true,
     appVersion: '',
     platform: '',
     language: '',

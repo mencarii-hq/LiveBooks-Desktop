@@ -88,6 +88,7 @@ export class TelemetryManager {
   #sendBeacon(verb: Verb, noun: Noun, more?: Record<string, unknown>) {
     if (
       !this.hasCreds ||
+      !this.fyo.store.telemetryEnabled ||
       this.fyo.store.skipTelemetryLogging ||
       ignoreList.includes(noun)
     ) {

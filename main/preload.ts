@@ -86,8 +86,8 @@ const ipc = {
     )) as TemplateFile[];
   },
 
-  async initScheduler(time: string) {
-    await ipcRenderer.invoke(IPC_ACTIONS.INIT_SHEDULER, time);
+  async initLoyaltyExpiryJob() {
+    await ipcRenderer.invoke(IPC_ACTIONS.INIT_LOYALTY_SCHEDULER);
   },
 
   async selectFile(options: SelectFileOptions): Promise<SelectFileReturn> {
@@ -184,6 +184,8 @@ const ipc = {
 
   async getEnv() {
     return (await ipcRenderer.invoke(IPC_ACTIONS.GET_ENV)) as {
+      telemetryEnabled: boolean;
+      updaterEnabled: boolean;
       isDevelopment: boolean;
       appEnv: 'development' | 'staging' | 'production';
       platform: string;
@@ -201,18 +203,6 @@ const ipc = {
 
   async sendError(body: string) {
     await ipcRenderer.invoke(IPC_ACTIONS.SEND_ERROR, body);
-  },
-
-  async sendAPIRequest(endpoint: string, options: RequestInit | undefined) {
-    return (await ipcRenderer.invoke(
-      IPC_ACTIONS.SEND_API_REQUEST,
-      endpoint,
-      options
-    )) as Promise<
-      {
-        [key: string]: string | number | boolean | Date | object | object[];
-      }[]
-    >;
   },
 
   async getLivebooksCloudSession() {
@@ -271,10 +261,6 @@ const ipc = {
 
   registerMainProcessErrorListener(listener: IPCRendererListener) {
     ipcRenderer.on(IPC_CHANNELS.LOG_MAIN_PROCESS_ERROR, listener);
-  },
-
-  registerTriggerFrontendActionListener(listener: IPCRendererListener) {
-    ipcRenderer.on(IPC_CHANNELS.TRIGGER_ERPNEXT_SYNC, listener);
   },
 
   registerConsoleLogListener(listener: IPCRendererListener) {

@@ -62,8 +62,7 @@ import {
   setAndGetCleanedConfigFiles,
 } from './helpers';
 import { saveHtmlAsPdf } from './saveHtmlAsPdf';
-import { sendAPIRequest } from './api';
-import { initScheduler } from './initSheduler';
+import { initLoyaltyExpiryJob } from './initSheduler';
 
 type LivebooksCloudApiResult = {
   ok: boolean;
@@ -315,7 +314,7 @@ export default function registerIpcMainActionListeners(main: Main) {
   });
 
   ipcMain.handle(IPC_ACTIONS.CHECK_FOR_UPDATES, async () => {
-    if (main.isDevelopment || main.checkedForUpdate) {
+    if (main.isDevelopment || main.checkedForUpdate || !main.updaterEnabled) {
       return;
     }
 
@@ -401,6 +400,8 @@ export default function registerIpcMainActionListeners(main: Main) {
       appEnv: main.appEnv,
       platform: process.platform,
       version,
+      telemetryEnabled: main.telemetryEnabled,
+      updaterEnabled: main.updaterEnabled,
     };
   });
 
@@ -411,16 +412,9 @@ export default function registerIpcMainActionListeners(main: Main) {
     }
   );
 
-  ipcMain.handle(IPC_ACTIONS.INIT_SHEDULER, async (_, interval: string) => {
-    return initScheduler(interval);
+  ipcMain.handle(IPC_ACTIONS.INIT_LOYALTY_SCHEDULER, async () => {
+    return initLoyaltyExpiryJob();
   });
-
-  ipcMain.handle(
-    IPC_ACTIONS.SEND_API_REQUEST,
-    async (e, endpoint: string, options: RequestInit | undefined) => {
-      return sendAPIRequest(endpoint, options, app.isPackaged);
-    }
-  );
 
   ipcMain.handle(IPC_ACTIONS.GET_LIVEBOOKS_CLOUD_SESSION, () => {
     return { signedIn: isLivebooksCloudSignedIn() };
