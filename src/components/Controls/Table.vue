@@ -93,7 +93,7 @@
               maxRowsBeforeOverflow &&
               value.length > maxRowsBeforeOverflow
             "
-            class="text-end px-2"
+            class="text-start px-2"
           >
             {{ t`${value.length} rows` }}
           </p>

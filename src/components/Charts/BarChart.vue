@@ -190,6 +190,7 @@ export default {
       zoomFactor: 1,
       _zoomTimer: null,
       _resizeObserver: null,
+      _resizeRaf: null,
       svgScale: 1,
       svgClientHeight: 0,
     };
@@ -310,6 +311,10 @@ export default {
       this._resizeObserver.disconnect();
       this._resizeObserver = null;
     }
+    if (this._resizeRaf) {
+      window.cancelAnimationFrame(this._resizeRaf);
+      this._resizeRaf = null;
+    }
   },
   methods: {
     _syncZoomFactor() {
@@ -332,14 +337,30 @@ export default {
         const rect = el.getBoundingClientRect();
         const h = rect.height || 0;
         const w = rect.width || 0;
-        this.svgClientHeight = h;
         const vw = this.viewBoxWidth || 1;
         const vh = this.viewBoxHeight || 1;
         const scale = Math.min(w / vw, h / vh) || 1;
-        this.svgScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
+        const nextScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
+        if (this.svgClientHeight !== h) {
+          this.svgClientHeight = h;
+        }
+        if (this.svgScale !== nextScale) {
+          this.svgScale = nextScale;
+        }
       };
       update();
-      this._resizeObserver = new ResizeObserver(() => update());
+      // Defer writes out of the ResizeObserver callback to avoid the
+      // benign-but-noisy "ResizeObserver loop completed with undelivered
+      // notifications" warning that Chromium surfaces via window.onerror.
+      this._resizeObserver = new ResizeObserver(() => {
+        if (this._resizeRaf) {
+          return;
+        }
+        this._resizeRaf = window.requestAnimationFrame(() => {
+          this._resizeRaf = null;
+          update();
+        });
+      });
       this._resizeObserver.observe(el);
     },
     gradY(i) {

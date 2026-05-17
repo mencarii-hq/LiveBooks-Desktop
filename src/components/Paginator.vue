@@ -34,7 +34,7 @@
           type="number"
           class="
             w-7
-            text-end
+            text-start
             outline-none
             bg-transparent
             focus:text-gray-900

@@ -4,6 +4,7 @@
     class="text-xs"
     :items="items"
     :doc="doc"
+    fit-reference
     right
   >
     <template #default="{ toggleDropdown }">

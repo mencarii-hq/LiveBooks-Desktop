@@ -109,6 +109,8 @@ export interface DialogOptions {
   title: string;
   type?: ToastType;
   detail?: string | string[];
+  /** Optional warning line (e.g. balance note), shown in red below `detail`. */
+  detailEmphasis?: string;
   buttons?: DialogButton[];
 }
 

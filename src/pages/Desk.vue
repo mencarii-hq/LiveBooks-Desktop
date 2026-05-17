@@ -1,22 +1,187 @@
 <script setup lang="ts">
 import { showSidebar } from 'src/utils/refs';
 import { toggleSidebar } from 'src/utils/ui';
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { runApplyJournalRecovery } from 'src/utils/plaidApplyRecovery';
+
+const emit = defineEmits(['change-db-file']);
+
+const SIDEBAR_WIDTH_STORAGE_KEY = 'livebooks-sidebar-width-pct';
+const SIDEBAR_MIN_PCT = 10;
+const SIDEBAR_MAX_PCT = 20;
+const SIDEBAR_DEFAULT_PCT = 15;
+
+function loadSidebarWidthPct(): number {
+  try {
+    const raw = localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY);
+    if (raw == null) return SIDEBAR_DEFAULT_PCT;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return SIDEBAR_DEFAULT_PCT;
+    return Math.min(SIDEBAR_MAX_PCT, Math.max(SIDEBAR_MIN_PCT, n));
+  } catch {
+    return SIDEBAR_DEFAULT_PCT;
+  }
+}
+
+const deskRootRef = ref<HTMLElement | null>(null);
+const sidebarWidthPct = ref(loadSidebarWidthPct());
+
+function clampSidebarPct(n: number): number {
+  return Math.min(SIDEBAR_MAX_PCT, Math.max(SIDEBAR_MIN_PCT, n));
+}
+
+function syncSidebarCssVar() {
+  const el = deskRootRef.value;
+  if (!el) return;
+  const total = el.getBoundingClientRect().width;
+  if (!showSidebar.value || total <= 0) {
+    document.documentElement.style.setProperty('--w-sidebar', '0px');
+    return;
+  }
+  const px = (total * sidebarWidthPct.value) / 100;
+  document.documentElement.style.setProperty('--w-sidebar', `${px}px`);
+}
+
+function percentFromClientX(clientX: number): number {
+  const el = deskRootRef.value;
+  if (!el) return sidebarWidthPct.value;
+  const rect = el.getBoundingClientRect();
+  const rtl = document.documentElement.dir === 'rtl';
+  const raw = rtl
+    ? ((rect.right - clientX) / rect.width) * 100
+    : ((clientX - rect.left) / rect.width) * 100;
+  return clampSidebarPct(raw);
+}
+
+let resizeActive = false;
+
+/** Applied while dragging so nested links/text don’t override the resize cursor. */
+const RESIZING_HTML_CLASS = 'desk-sidebar-resizing';
+
+function onResizePointerDown(e: PointerEvent) {
+  if (e.button !== 0) return;
+  e.preventDefault();
+  const grip = e.currentTarget as HTMLElement;
+  grip.setPointerCapture(e.pointerId);
+
+  resizeActive = true;
+  document.documentElement.classList.add(RESIZING_HTML_CLASS);
+  document.body.style.userSelect = 'none';
+
+  sidebarWidthPct.value = percentFromClientX(e.clientX);
+  syncSidebarCssVar();
+
+  const onMove = (ev: PointerEvent) => {
+    if (!resizeActive) return;
+    sidebarWidthPct.value = percentFromClientX(ev.clientX);
+    syncSidebarCssVar();
+  };
+
+  const onEnd = (ev: PointerEvent) => {
+    if (!resizeActive) return;
+    resizeActive = false;
+    document.documentElement.classList.remove(RESIZING_HTML_CLASS);
+    document.body.style.userSelect = '';
+    grip.removeEventListener('pointermove', onMove);
+    grip.removeEventListener('pointerup', onEnd);
+    grip.removeEventListener('pointercancel', onEnd);
+    try {
+      grip.releasePointerCapture(ev.pointerId);
+    } catch {
+      /* already released */
+    }
+    try {
+      localStorage.setItem(
+        SIDEBAR_WIDTH_STORAGE_KEY,
+        String(sidebarWidthPct.value)
+      );
+    } catch {
+      /* ignore */
+    }
+  };
+
+  grip.addEventListener('pointermove', onMove);
+  grip.addEventListener('pointerup', onEnd);
+  grip.addEventListener('pointercancel', onEnd);
+}
+
+function onWindowResize() {
+  syncSidebarCssVar();
+}
+
+let applyRecoveryTimer: ReturnType<typeof setTimeout> | null = null;
+
+onMounted(() => {
+  void nextTick(() => syncSidebarCssVar());
+  window.addEventListener('resize', onWindowResize);
+
+  // Background sweep over PlaidBatchApplyJournal orphans. Delayed so it never
+  // contends with the first paint of the desk shell; intentionally not awaited.
+  applyRecoveryTimer = setTimeout(() => {
+    void runApplyJournalRecovery();
+  }, 2000);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', onWindowResize);
+  document.documentElement.classList.remove(RESIZING_HTML_CLASS);
+  document.body.style.userSelect = '';
+  if (applyRecoveryTimer) {
+    clearTimeout(applyRecoveryTimer);
+    applyRecoveryTimer = null;
+  }
+});
+
+watch([showSidebar, sidebarWidthPct], () => {
+  void nextTick(() => syncSidebarCssVar());
+});
 </script>
 <template>
-  <div class="flex overflow-hidden">
+  <div
+    ref="deskRootRef"
+    class="flex overflow-hidden flex-1 min-h-0 min-w-0 relative"
+  >
     <Transition name="sidebar">
-      <!-- eslint-disable vue/require-explicit-emits -->
-      <Sidebar
+      <div
         v-show="showSidebar"
         class="
-          flex-shrink-0
+          sidebar-shell
+          flex flex-shrink-0
+          h-full
+          min-h-0
           border-e border-green-800
-          whitespace-nowrap
-          w-sidebar
+          overflow-hidden
         "
-        :dark-mode="darkMode"
-        @change-db-file="$emit('change-db-file')"
-      />
+        :style="{ width: sidebarWidthPct + '%' }"
+      >
+        <Sidebar
+          class="flex-1 min-w-0 h-full whitespace-nowrap"
+          :dark-mode="darkMode"
+          @change-db-file="emit('change-db-file')"
+        />
+        <div
+          class="
+            window-no-drag
+            w-1
+            shrink-0
+            self-stretch
+            bg-gray-400
+            dark:bg-gray-600
+            hover:bg-gray-500
+            dark:hover:bg-gray-500
+            cursor-default
+            hover:cursor-ew-resize
+            touch-none
+            z-10
+          "
+          role="separator"
+          aria-orientation="vertical"
+          :aria-valuenow="sidebarWidthPct"
+          :aria-valuemin="SIDEBAR_MIN_PCT"
+          :aria-valuemax="SIDEBAR_MAX_PCT"
+          @pointerdown="onResizePointerDown"
+        />
+      </div>
     </Transition>
 
     <div
@@ -87,7 +252,6 @@ export default defineComponent({
   props: {
     darkMode: { type: Boolean, default: false },
   },
-  emits: ['change-db-file'],
 });
 </script>
 
@@ -95,24 +259,25 @@ export default defineComponent({
 .sidebar-enter-from,
 .sidebar-leave-to {
   opacity: 0;
-  transform: translateX(calc(-1 * var(--w-sidebar)));
-  width: 0px;
-}
-[dir='rtl'] .sidebar-leave-to {
-  opacity: 0;
-  transform: translateX(calc(1 * var(--w-sidebar)));
-  width: 0px;
+  width: 0 !important;
+  overflow: hidden;
 }
 
 .sidebar-enter-to,
 .sidebar-leave-from {
   opacity: 1;
-  transform: translateX(0px);
-  width: var(--w-sidebar);
 }
 
 .sidebar-enter-active,
 .sidebar-leave-active {
-  transition: all 150ms ease-out;
+  transition: opacity 150ms ease-out, width 150ms ease-out;
+}
+</style>
+
+<!-- While dragging, force resize cursor above any nested cursor (links, inputs, etc.). -->
+<style>
+html.desk-sidebar-resizing,
+html.desk-sidebar-resizing * {
+  cursor: ew-resize !important;
 }
 </style>

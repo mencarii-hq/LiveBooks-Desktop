@@ -1,5 +1,5 @@
 <template>
-  <div class="text-base flex flex-col overflow-hidden">
+  <div class="text-base flex flex-col overflow-hidden px-4">
     <!-- Title Row -->
     <div
       class="flex items-center"
@@ -9,7 +9,7 @@
     >
       <div
         v-if="!isSelectionMode"
-        class="w-8 text-end me-2 text-gray-700 dark:text-gray-400"
+        class="w-8 text-start me-2 text-gray-700 dark:text-gray-400"
       >
         #
       </div>
@@ -66,7 +66,7 @@
         <div class="flex hover:bg-gray-50 dark:hover:bg-gray-850 items-center">
           <div
             v-if="!isSelectionMode"
-            class="w-8 text-end me-2 text-gray-700 dark:text-gray-400"
+            class="w-8 text-start me-2 text-gray-700 dark:text-gray-400"
           >
             {{ i + pageStart + 1 }}
           </div>
@@ -99,7 +99,7 @@
               v-for="(column, c) in columns"
               :key="column.label"
               :class="{
-                'text-end': isNumeric(column.fieldtype),
+                'text-start': isNumeric(column.fieldtype),
                 'pe-4': c === columns.length - 1,
               }"
               :row="(row as RenderData)"
@@ -118,11 +118,7 @@
     <!-- Pagination Footer -->
     <div v-if="data?.length" class="mt-auto">
       <hr class="dark:border-gray-800" />
-      <Paginator
-        :item-count="data.length"
-        class="px-4"
-        @index-change="setPageIndices"
-      />
+      <Paginator :item-count="data.length" @index-change="setPageIndices" />
     </div>
 
     <!-- Empty State -->

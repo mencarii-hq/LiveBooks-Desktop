@@ -6,7 +6,7 @@
     <input
       v-show="showInput"
       ref="input"
-      class="text-end"
+      class="text-start"
       :class="[inputClasses, containerClasses]"
       :type="inputType"
       :value="round(value)"

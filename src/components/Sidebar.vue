@@ -16,7 +16,7 @@
         <div
           data-testid="switch-company"
           class="
-            text-xl
+            text-lg
             tracking-tight
             text-white
             flex
@@ -132,18 +132,14 @@
           px-1
         "
         type="button"
-        :title="
-          livebooksCloudSignedIn
-            ? t`LiveBooks Cloud — connected`
-            : t`LiveBooks Cloud — sign in or manage`
-        "
+        :title="livebooksCloudManageButtonTitle"
         @click="showLivebooksCloudModal = true"
       >
         <feather-icon
-          :name="livebooksCloudSignedIn ? 'check-circle' : 'cloud'"
+          :name="livebooksCloudManageButtonIcon"
           class="h-4 w-4 flex-shrink-0"
         />
-        <p>
+        <p class="break-words">
           {{ t`Manage Account` }}
         </p>
       </button>
@@ -189,22 +185,81 @@
       </button> -->
 
       <hr class="dark:border-gray-800" />
-      <p
-        class="
-          text-white text-xl
-          tracking-tight
-          whitespace-nowrap
-          overflow-auto
-          no-scrollbar
-          select-none
-        "
-      >
-        {{
-          livebooksCloudSignedIn
-            ? t`LiveBooks Desktop Pro`
-            : t`LiveBooks Desktop`
-        }}
-      </p>
+      <div class="select-none">
+        <p
+          class="
+            text-white text-lg
+            tracking-tight
+            whitespace-normal
+            break-words
+          "
+        >
+          {{ livebooksDesktopBrandName }}
+        </p>
+        <p
+          v-if="livebooksCloudSignedIn && livebooksCloudReachable === false"
+          class="
+            text-white/85 text-xs
+            mt-1
+            leading-snug
+            whitespace-normal
+            break-words
+          "
+        >
+          {{ t`Cannot reach LiveBooks Cloud` }}
+        </p>
+        <p
+          v-else-if="livebooksCloudPaymentFailed"
+          class="
+            text-amber-200 text-xs
+            mt-1
+            leading-snug
+            whitespace-normal
+            break-words
+          "
+        >
+          {{ t`Payment failed.` }}
+          <button
+            type="button"
+            class="underline hover:text-white"
+            @click="handleManageBilling"
+          >
+            {{ t`Update billing info` }}
+          </button>
+          {{ t`to avoid losing access.` }}
+        </p>
+        <p
+          v-else-if="livebooksCloudSubscriptionExpired"
+          class="
+            text-amber-200 text-xs
+            mt-1
+            leading-snug
+            whitespace-normal
+            break-words
+          "
+        >
+          {{ t`Subscription expired` }}
+          <button
+            type="button"
+            class="underline hover:text-white"
+            @click="handleManageBilling"
+          >
+            {{ t`Manage billing` }}
+          </button>
+        </p>
+        <p
+          v-else-if="livebooksCloudNeedsSubscription"
+          class="
+            text-white/85 text-xs
+            mt-1
+            leading-snug
+            whitespace-normal
+            break-words
+          "
+        >
+          {{ t`Subscribe to enable bank sync` }}
+        </p>
+      </div>
     </div>
 
     <!-- Hide Sidebar Button -->
@@ -297,7 +352,7 @@
             "
           >
             {{
-              t`Sign in on the web to link this computer to LiveBooks Cloud (Pro). Keep this app open while you connect.`
+              t`Sign in on the web to link this computer to LiveBooks Cloud. Keep this app open while you connect.`
             }}
           </p>
         </div>
@@ -333,14 +388,23 @@ import { fyo } from 'src/initFyo';
 import { showDialog, showToast } from 'src/utils/interactive';
 import {
   getLivebooksCloudSessionSummary,
+  LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
+  openLivebooksCloudBillingPortal,
   openLivebooksCloudSignIn,
   signOutLivebooksCloud,
 } from 'src/utils/livebooksCloud';
+import {
+  getLivebooksSubscriptionSnapshot,
+  refreshLivebooksSubscription,
+  subscribeLivebooksSubscription,
+  type LivebooksSubscriptionSnapshot,
+} from 'src/utils/livebooksCloudSubscription';
 import { languageDirectionKey, shortcutsKey } from 'src/utils/injectionKeys';
 import { docsPathRef } from 'src/utils/refs';
 import { getSidebarConfig } from 'src/utils/sidebarConfig';
 import { SidebarConfig, SidebarItem, SidebarRoot } from 'src/utils/types';
 import { routeTo, toggleSidebar } from 'src/utils/ui';
+import { livebooksDesktopDisplayName } from 'utils/livebooksAppEnv';
 import { defineComponent, inject } from 'vue';
 import router from '../router';
 import Button from './Button.vue';
@@ -373,22 +437,103 @@ export default defineComponent({
       groups: [],
       viewShortcuts: false,
       activeGroup: null,
-      showDevMode: false,
       livebooksCloudSignedIn: false,
+      livebooksCloudReachable: null as boolean | null,
+      livebooksCloudSubscriptionStatus: null as string | null,
+      livebooksCloudInGracePeriod: false,
       showLivebooksCloudModal: false,
+      livebooksCloudReachabilityDebounce: null as ReturnType<
+        typeof setTimeout
+      > | null,
+      livebooksCloudReachabilityInterval: null as ReturnType<
+        typeof setInterval
+      > | null,
+      onLivebooksCloudAppRefreshBound: null as (() => void) | null,
+      onDocumentVisibilityBound: null as (() => void) | null,
+      unsubscribeLivebooksSubscription: null as (() => void) | null,
     } as {
       companyName: string;
       groups: SidebarConfig;
       viewShortcuts: boolean;
       activeGroup: null | SidebarRoot;
-      showDevMode: boolean;
       livebooksCloudSignedIn: boolean;
+      livebooksCloudReachable: boolean | null;
+      livebooksCloudSubscriptionStatus: string | null;
+      livebooksCloudInGracePeriod: boolean;
       showLivebooksCloudModal: boolean;
+      livebooksCloudReachabilityDebounce: ReturnType<typeof setTimeout> | null;
+      livebooksCloudReachabilityInterval: ReturnType<
+        typeof setInterval
+      > | null;
+      onLivebooksCloudAppRefreshBound: (() => void) | null;
+      onDocumentVisibilityBound: (() => void) | null;
+      unsubscribeLivebooksSubscription: (() => void) | null;
     };
   },
   computed: {
     appVersion() {
       return fyo.store.appVersion;
+    },
+    livebooksCloudShowProBranding(): boolean {
+      if (!this.livebooksCloudSignedIn || this.livebooksCloudReachable !== true) {
+        return false;
+      }
+      const status = this.livebooksCloudSubscriptionStatus;
+      return status === 'active' || status === 'trialing';
+    },
+    livebooksCloudPaymentFailed(): boolean {
+      if (!this.livebooksCloudSignedIn || this.livebooksCloudReachable !== true) {
+        return false;
+      }
+      const status = this.livebooksCloudSubscriptionStatus;
+      return status === 'past_due' && this.livebooksCloudInGracePeriod;
+    },
+    livebooksCloudSubscriptionExpired(): boolean {
+      if (!this.livebooksCloudSignedIn || this.livebooksCloudReachable !== true) {
+        return false;
+      }
+      const status = this.livebooksCloudSubscriptionStatus;
+      if (status === 'past_due' && this.livebooksCloudInGracePeriod) {
+        return false;
+      }
+      return status === 'past_due' || status === 'canceled' || status === 'incomplete_expired';
+    },
+    livebooksCloudNeedsSubscription(): boolean {
+      if (!this.livebooksCloudSignedIn || this.livebooksCloudReachable !== true) {
+        return false;
+      }
+      const status = this.livebooksCloudSubscriptionStatus;
+      return status === 'none' || status === null;
+    },
+    livebooksCloudManageButtonIcon(): string {
+      if (!this.livebooksCloudSignedIn) {
+        return 'cloud';
+      }
+      if (this.livebooksCloudReachable === false) {
+        return 'alert-triangle';
+      }
+      if (this.livebooksCloudReachable === null) {
+        return 'cloud';
+      }
+      return 'check-circle';
+    },
+    livebooksDesktopBrandName(): string {
+      return livebooksDesktopDisplayName(
+        this.fyo.store.appEnv,
+        this.livebooksCloudShowProBranding
+      );
+    },
+    livebooksCloudManageButtonTitle(): string {
+      if (!this.livebooksCloudSignedIn) {
+        return t`LiveBooks Cloud — sign in or manage`;
+      }
+      if (this.livebooksCloudReachable === false) {
+        return t`LiveBooks Cloud — signed in, server unreachable`;
+      }
+      if (this.livebooksCloudReachable === null) {
+        return t`LiveBooks Cloud — checking connection`;
+      }
+      return t`LiveBooks Cloud — connected`;
     },
   },
   async mounted() {
@@ -408,15 +553,64 @@ export default defineComponent({
     });
     this.shortcuts?.set(COMPONENT_NAME, ['F1'], () => this.openDocumentation());
 
-    this.showDevMode = this.fyo.store.isDevelopment;
-
     await this.refreshLivebooksCloudSignedIn();
     ipc.registerLivebooksCloudSessionListener(() => {
       void this.refreshLivebooksCloudSignedIn();
     });
+
+    this.onLivebooksCloudAppRefreshBound = () => {
+      void this.refreshLivebooksCloudSignedIn();
+    };
+    document.addEventListener(
+      LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
+      this.onLivebooksCloudAppRefreshBound
+    );
+
+    this.onDocumentVisibilityBound = () => {
+      if (document.visibilityState !== 'visible') {
+        return;
+      }
+      this.scheduleLivebooksCloudReachabilityRefresh();
+    };
+    document.addEventListener('visibilitychange', this.onDocumentVisibilityBound);
+
+    this.unsubscribeLivebooksSubscription = subscribeLivebooksSubscription(
+      (s) => this.applyLivebooksSubscriptionSnapshot(s)
+    );
+
+    this.livebooksCloudReachabilityInterval = setInterval(() => {
+      if (document.hidden || !this.livebooksCloudSignedIn) {
+        return;
+      }
+      void refreshLivebooksSubscription(true);
+    }, 90_000);
   },
   unmounted() {
     this.shortcuts?.delete(COMPONENT_NAME);
+    if (this.onLivebooksCloudAppRefreshBound) {
+      document.removeEventListener(
+        LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
+        this.onLivebooksCloudAppRefreshBound
+      );
+    }
+    if (this.onDocumentVisibilityBound) {
+      document.removeEventListener(
+        'visibilitychange',
+        this.onDocumentVisibilityBound
+      );
+    }
+    if (this.livebooksCloudReachabilityDebounce) {
+      clearTimeout(this.livebooksCloudReachabilityDebounce);
+      this.livebooksCloudReachabilityDebounce = null;
+    }
+    if (this.livebooksCloudReachabilityInterval) {
+      clearInterval(this.livebooksCloudReachabilityInterval);
+      this.livebooksCloudReachabilityInterval = null;
+    }
+    if (this.unsubscribeLivebooksSubscription) {
+      this.unsubscribeLivebooksSubscription();
+      this.unsubscribeLivebooksSubscription = null;
+    }
   },
   methods: {
     routeTo,
@@ -425,13 +619,49 @@ export default defineComponent({
     openDocumentation() {
       ipc.openLink('https://docs.frappe.io/' + docsPathRef.value);
     },
+    applyLivebooksSubscriptionSnapshot(s: LivebooksSubscriptionSnapshot) {
+      this.livebooksCloudSignedIn = s.signedIn;
+      if (!s.signedIn) {
+        this.livebooksCloudReachable = null;
+        this.livebooksCloudSubscriptionStatus = null;
+        this.livebooksCloudInGracePeriod = false;
+        return;
+      }
+      this.livebooksCloudReachable = s.reachable;
+      this.livebooksCloudSubscriptionStatus = s.status;
+      this.livebooksCloudInGracePeriod = s.inGracePeriod;
+    },
     async refreshLivebooksCloudSignedIn() {
       const { signedIn } = await getLivebooksCloudSessionSummary();
       this.livebooksCloudSignedIn = signedIn;
+      if (!signedIn) {
+        this.applyLivebooksSubscriptionSnapshot(getLivebooksSubscriptionSnapshot());
+        return;
+      }
+      await refreshLivebooksSubscription(true);
+    },
+    scheduleLivebooksCloudReachabilityRefresh() {
+      if (this.livebooksCloudReachabilityDebounce) {
+        clearTimeout(this.livebooksCloudReachabilityDebounce);
+      }
+      this.livebooksCloudReachabilityDebounce = setTimeout(() => {
+        this.livebooksCloudReachabilityDebounce = null;
+        void this.refreshLivebooksCloudSignedIn();
+      }, 400);
     },
     async handleLivebooksCloudModalPrimary() {
       await openLivebooksCloudSignIn();
       this.showLivebooksCloudModal = false;
+    },
+    async handleManageBilling() {
+      const res = await openLivebooksCloudBillingPortal();
+      if (!res.ok) {
+        showToast({
+          type: 'error',
+          message: t`Could not open billing portal. Please try again.`,
+          duration: 'short',
+        });
+      }
     },
     async handleDisconnectLivebooksCloud() {
       await showDialog({
@@ -450,6 +680,7 @@ export default defineComponent({
             action: async () => {
               await signOutLivebooksCloud();
               this.showLivebooksCloudModal = false;
+              await this.refreshLivebooksCloudSignedIn();
               showToast({
                 type: 'success',
                 message: t`Disconnected from LiveBooks Cloud`,

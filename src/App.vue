@@ -13,58 +13,6 @@
     :dir="languageDirection"
     :language="language"
   >
-    <div
-      v-if="showSplash"
-      class="
-        fixed
-        inset-0
-        z-[99999]
-        flex flex-col
-        items-center
-        justify-center
-        bg-gray-50
-        dark:bg-gray-900
-        px-6
-        text-center
-      "
-      aria-hidden="true"
-    >
-      <h1 class="text-3xl font-semibold text-green-700 dark:text-green-600">
-        LiveBooks Desktop
-      </h1>
-      <p
-        class="
-          mt-3
-          max-w-md
-          text-sm
-          leading-relaxed
-          text-gray-600
-          dark:text-gray-300
-        "
-      >
-        Open source, offline-first accounting software powered by Frappe Books.
-      </p>
-      <svg
-        class="mt-6 h-8 w-8 animate-spin text-green-700 dark:text-green-700"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
-        <circle
-          class="opacity-25"
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          stroke-width="4"
-          fill="none"
-        />
-        <path
-          class="opacity-75"
-          fill="currentColor"
-          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-        />
-      </svg>
-    </div>
     <WindowsTitleBar
       v-if="platform === 'Windows'"
       :db-path="dbPath"
@@ -85,8 +33,19 @@
     />
     <SetupWizard
       v-if="activeScreen === 'SetupWizard'"
+      ref="setupWizard"
       @setup-complete="setupComplete"
       @setup-canceled="showDbSelector"
+    />
+    <RecoveryMode
+      v-if="activeScreen === 'RecoveryMode'"
+      @recovery-complete="onRecoveryComplete"
+      @backup-selected="onRecoveryBackupSelected"
+    />
+    <FreeUserBackupSafetyModal
+      :open="showFreeBackupSafetyModal"
+      @dismiss="showFreeBackupSafetyModal = false"
+      @exported="showFreeBackupSafetyModal = false"
     />
 
     <!-- Render target for toasts -->
@@ -107,6 +66,16 @@ import { handleErrorWithDialog } from './errorHandling';
 import { fyo } from './initFyo';
 import DatabaseSelector from './pages/DatabaseSelector.vue';
 import Desk from './pages/Desk.vue';
+import RecoveryMode from './pages/RecoveryMode.vue';
+import FreeUserBackupSafetyModal from './components/FreeUserBackupSafetyModal.vue';
+import {
+  recordDatabaseOpenForBackupReminder,
+  shouldShowFreeBackupSafetyNet,
+} from './utils/freeBackupSafetyNet';
+import {
+  getLivebooksSubscriptionSnapshot,
+  startLivebooksSubscriptionPolling,
+} from './utils/livebooksCloudSubscription';
 import SetupWizard from './pages/SetupWizard/SetupWizard.vue';
 import setupInstance from './setup/setupInstance';
 import { SetupWizardOptions } from './setup/types';
@@ -129,11 +98,13 @@ import {
 } from './utils/erpnextSync';
 import { ERPNextSyncSettings } from 'models/baseModels/ERPNextSyncSettings/ERPNextSyncSettings';
 import { ErrorLogEnum } from 'fyo/telemetry/types';
+import { dismissBootSplash } from './bootSplash';
 
 enum Screen {
   Desk = 'Desk',
   DatabaseSelector = 'DatabaseSelector',
   SetupWizard = 'SetupWizard',
+  RecoveryMode = 'RecoveryMode',
 }
 
 export default defineComponent({
@@ -142,6 +113,8 @@ export default defineComponent({
     Desk,
     SetupWizard,
     DatabaseSelector,
+    RecoveryMode,
+    FreeUserBackupSafetyModal,
     WindowsTitleBar,
   },
   setup() {
@@ -171,17 +144,17 @@ export default defineComponent({
   },
   data() {
     return {
-      showSplash: true,
       activeScreen: null,
       dbPath: '',
       companyName: '',
       darkMode: false,
+      showFreeBackupSafetyModal: false,
     } as {
-      showSplash: boolean;
       activeScreen: null | Screen;
       dbPath: string;
       companyName: string;
       darkMode: boolean | undefined;
+      showFreeBackupSafetyModal: boolean;
     };
   },
   computed: {
@@ -204,15 +177,12 @@ export default defineComponent({
         this.activeScreen = Screen.DatabaseSelector;
       }
     } finally {
-      const elapsed = Date.now() - splashStarted;
-      if (elapsed < minSplashMs) {
-        await new Promise((r) => setTimeout(r, minSplashMs - elapsed));
-      }
-      this.showSplash = false;
+      await dismissBootSplash(minSplashMs, splashStarted);
       if (this.activeScreen === null) {
         this.activeScreen = Screen.DatabaseSelector;
       }
     }
+    void startLivebooksSubscriptionPolling();
     const darkMode = !!fyo.singles.SystemSettings?.darkMode;
     setDarkMode(darkMode);
     this.darkMode = darkMode;
@@ -237,6 +207,14 @@ export default defineComponent({
     },
     async setDesk(filePath: string): Promise<void> {
       await setLanguageMap();
+      const openCount = recordDatabaseOpenForBackupReminder();
+      if (
+        !this.showFreeBackupSafetyModal &&
+        !getLivebooksSubscriptionSnapshot().proEntitled &&
+        shouldShowFreeBackupSafetyNet(openCount)
+      ) {
+        this.showFreeBackupSafetyModal = true;
+      }
       this.activeScreen = Screen.Desk;
       await this.setDeskRoute();
       await fyo.telemetry.start(true);
@@ -275,11 +253,25 @@ export default defineComponent({
       }
     },
     async setupComplete(setupWizardOptions: SetupWizardOptions): Promise<void> {
-      const companyName = setupWizardOptions.companyName;
-      const filePath = await ipc.getDbDefaultPath(companyName);
-      await setupInstance(filePath, setupWizardOptions, fyo);
-      fyo.config.set('lastSelectedFilePath', filePath);
-      await this.setDesk(filePath);
+      const wizard = this.$refs.setupWizard as
+        | { loading?: boolean }
+        | undefined;
+      try {
+        const companyName = setupWizardOptions.companyName;
+        const filePath = await ipc.getDbDefaultPath(companyName);
+        await setupInstance(filePath, setupWizardOptions, fyo);
+        fyo.config.set('lastSelectedFilePath', filePath);
+        if (!getLivebooksSubscriptionSnapshot().proEntitled) {
+          this.showFreeBackupSafetyModal = true;
+        }
+        await this.setDesk(filePath);
+      } catch (error) {
+        if (wizard) {
+          wizard.loading = false;
+        }
+        await handleErrorWithDialog(error, undefined, true, true);
+        this.activeScreen = Screen.SetupWizard;
+      }
     },
     async showSetupWizardOrDesk(filePath: string): Promise<void> {
       const { countryCode, error, actionSymbol } = await connectToDatabase(
@@ -358,6 +350,17 @@ export default defineComponent({
       await this.setDesk(filePath);
     },
     async handleConnectionFailed(error: Error, actionSymbol: symbol) {
+      // Day-1 Phase 0.1 / 2.2: keychain corruption / unavailability MUST
+      // surface the RecoveryMode screen. Never fall through to a generic
+      // dialog (which used to silently re-key via getOrCreateDatabaseKey
+      // on next open). RecoveryMode lives at the App-screen level rather
+      // than under the router because <router-view> is only mounted
+      // inside Desk, and Desk is unreachable until the DB is open.
+      if (actionSymbol === dbErrorActionSymbols.RecoveryRequired) {
+        this.activeScreen = Screen.RecoveryMode;
+        return;
+      }
+
       await this.showDbSelector();
 
       if (actionSymbol === dbErrorActionSymbols.CancelSelection) {
@@ -370,6 +373,34 @@ export default defineComponent({
       }
 
       throw error;
+    },
+    /**
+     * Day-1 Phase 2.2 — RecoveryMode succeeded. The main process has
+     * already persisted the recovered SQLCipher key into the OS keychain
+     * AND verified that the key opens the .db (via
+     * +databaseManager.connectToDatabase+ inside the IPC handler). All we
+     * need to do here is resume the normal post-connect flow.
+     */
+    async onRecoveryComplete(payload: {
+      dbPath: string;
+      countryCode?: string;
+    }) {
+      const { dbPath, countryCode } = payload;
+      try {
+        if (countryCode) {
+          await initializeInstance(dbPath, false, countryCode, fyo);
+          fyo.config.set('lastSelectedFilePath', dbPath);
+          await this.setDesk(dbPath);
+        } else {
+          await this.fileSelected(dbPath);
+        }
+      } catch (err) {
+        await handleErrorWithDialog(err, undefined, true, true);
+        await this.showDbSelector();
+      }
+    },
+    async onRecoveryBackupSelected(filePath: string) {
+      await this.fileSelected(filePath);
     },
     async setDeskRoute(): Promise<void> {
       const { onboardingComplete } = await fyo.doc.getDoc('GetStarted');

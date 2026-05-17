@@ -341,7 +341,7 @@
               class="px-4 py-1 grid grid-cols-2 text-base gap-4"
               style="grid-template-columns: 1rem auto"
             >
-              <div class="text-end">{{ i + 1 }}.</div>
+              <div class="text-start">{{ i + 1 }}.</div>
               <p class="whitespace-nowrap overflow-auto no-scrollbar">
                 {{ name }}
               </p>
@@ -371,7 +371,7 @@
               class="px-4 py-1 grid grid-cols-2 text-base gap-4"
               style="grid-template-columns: 1rem 8rem auto"
             >
-              <div class="text-end">{{ i + 1 }}.</div>
+              <div class="text-start">{{ i + 1 }}.</div>
               <p class="whitespace-nowrap overflow-auto no-scrollbar">
                 {{ f.name }}
               </p>

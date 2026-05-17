@@ -119,7 +119,7 @@
               class="
                 my-auto
                 w-10
-                text-base text-end
+                text-base text-start
                 bg-transparent
                 text-gray-800
                 focus:text-gray-900

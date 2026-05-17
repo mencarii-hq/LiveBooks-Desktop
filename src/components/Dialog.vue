@@ -39,6 +39,12 @@
               <p class="text-base">{{ d }}</p>
             </div>
           </template>
+          <p
+            v-if="detailEmphasis"
+            class="text-sm text-red-600 dark:text-red-400"
+          >
+            {{ detailEmphasis }}
+          </p>
           <div class="flex justify-end gap-4 mt-4">
             <Button
               v-for="(b, index) of buttons"
@@ -70,6 +76,10 @@ export default defineComponent({
     title: { type: String, required: true },
     detail: {
       type: [String, Array] as PropType<string | string[]>,
+      required: false,
+    },
+    detailEmphasis: {
+      type: String as PropType<string | undefined>,
       required: false,
     },
     buttons: {

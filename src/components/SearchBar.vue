@@ -90,7 +90,7 @@
               </p>
             </div>
             <p
-              class="text-sm text-end justify-self-end"
+              class="text-sm text-start justify-self-end"
               :class="`text-${groupColorMap[si.group]}-500`"
             >
               {{

@@ -1,33 +1,42 @@
 <template>
-  <div ref="reference">
-    <div class="h-full">
+  <!-- Trigger and panel are siblings so Popper's reference rect is never widened by
+       in-flow hacks; nested panel + tables/stacking contexts also miscomputed absolute position. -->
+  <div
+    :class="
+      fitReference ? 'inline-block w-max max-w-full align-middle' : undefined
+    "
+  >
+    <div ref="reference" class="h-full">
       <slot
         name="target"
         :toggle-popover="togglePopover"
         :handle-blur="handleBlur"
       ></slot>
     </div>
-    <Transition>
-      <div
-        v-show="isOpen"
-        ref="popover"
-        :class="popoverClass"
-        class="
-          bg-white
-          dark:bg-gray-850
-          rounded-md
-          border
-          dark:border-gray-875
-          shadow-lg
-          popover-container
-          relative
-          z-10
-        "
-        :style="{ 'transition-delay': `${isOpen ? entryDelay : exitDelay}ms` }"
-      >
-        <slot name="content" :toggle-popover="togglePopover"></slot>
-      </div>
-    </Transition>
+    <Teleport to="body">
+      <Transition>
+        <div
+          v-show="isOpen"
+          ref="popover"
+          :class="popoverClass"
+          class="
+            bg-white
+            dark:bg-gray-850
+            rounded-md
+            border
+            dark:border-gray-875
+            shadow-lg
+            popover-container
+            z-[10040]
+          "
+          :style="{
+            'transition-delay': `${isOpen ? entryDelay : exitDelay}ms`,
+          }"
+        >
+          <slot name="content" :toggle-popover="togglePopover"></slot>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -50,6 +59,8 @@ export default {
       default: 'bottom-start',
     },
     popoverClass: [String, Object, Array],
+    /** When true, anchor width matches the trigger (e.g. icon button in a wide table cell). */
+    fitReference: { type: Boolean, default: false },
   },
   emits: ['open', 'close'],
   data() {
@@ -79,7 +90,7 @@ export default {
       this.close();
     };
 
-    if (this.show == null) {
+    if (this.showPopup == null) {
       document.addEventListener('click', this.listener);
     }
   },
@@ -92,10 +103,16 @@ export default {
   },
   methods: {
     setupPopper() {
+      const refEl = this.$refs.reference;
+      const popEl = this.$refs.popover;
+      if (!(refEl instanceof Element) || !(popEl instanceof Element)) {
+        return;
+      }
       if (!this.popper) {
-        this.popper = createPopper(this.$refs.reference, this.$refs.popover, {
+        this.popper = createPopper(refEl, popEl, {
           placement: this.placement,
-          modifiers: [{ name: 'offset', options: { offset: [0, 8] } }],
+          strategy: 'fixed',
+          modifiers: [{ name: 'offset', options: { offset: [120, 0] } }],
         });
       } else {
         this.popper.update();
@@ -119,6 +136,7 @@ export default {
       this.isOpen = true;
       nextTick(() => {
         this.setupPopper();
+        requestAnimationFrame(() => this.popper?.update());
       });
       this.$emit('open');
     },

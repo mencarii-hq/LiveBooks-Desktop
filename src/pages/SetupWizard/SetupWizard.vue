@@ -70,13 +70,6 @@
           >{{ t`Cancel` }}</Button
         >
         <Button
-          v-if="fyo.store.isDevelopment && !loading"
-          class="w-24 ml-auto mr-4 border dark:border-gray-800"
-          :disabled="loading"
-          @click="fill"
-          >{{ t`Fill` }}</Button
-        >
-        <Button
           type="primary"
           class="w-24"
           data-testid="submit-button"
@@ -179,17 +172,6 @@ export default defineComponent({
     this.fyo.telemetry.log(Verb.Started, ModelNameEnum.SetupWizard);
   },
   methods: {
-    async fill() {
-      if (!this.hasDoc) {
-        return;
-      }
-
-      await this.doc.set('companyName', "Lin's Things");
-      await this.doc.set('email', 'lin@lthings.com');
-      await this.doc.set('fullname', 'Lin Slovenly');
-      await this.doc.set('bankName', 'Max Finance');
-      await this.doc.set('country', 'India');
-    },
     async onValueChange(field: Field, value: DocValue) {
       if (!this.hasDoc) {
         return;

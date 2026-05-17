@@ -3,6 +3,7 @@
     :show-popup="isShown"
     :hide-arrow="true"
     :placement="right ? 'bottom-end' : 'bottom-start'"
+    :fit-reference="fitReference"
   >
     <template #target>
       <div v-on-outside-click="() => (isShown = false)" class="h-full">
@@ -85,8 +86,7 @@
                     : ''
                 "
                 @mouseenter="highlightedIndex = index"
-                @mousedown.prevent
-                @click="selectItem(d)"
+                @mousedown.prevent="selectItem(d)"
               >
                 <component :is="d.component" v-if="d.component" />
                 <template v-else>{{ d.label }}</template>
@@ -132,6 +132,7 @@ export default defineComponent({
       type: Object as PropType<Doc | null>,
       default: null,
     },
+    fitReference: { type: Boolean, default: false },
   },
   data() {
     return {
@@ -189,13 +190,13 @@ export default defineComponent({
         return;
       }
 
+      this.toggleDropdown(false);
+
       if (this.doc) {
         await d.action(this.doc, this.$router);
       } else {
         await d.action();
       }
-
-      this.toggleDropdown(false);
     },
     toggleDropdown(flag?: boolean): void {
       if (typeof flag !== 'boolean') {

@@ -94,7 +94,7 @@ export default defineComponent({
 
       classes.push(...this.baseInputClasses);
       if (this.textRight ?? isNumeric(this.df)) {
-        classes.push('text-end');
+        classes.push('text-start');
       }
 
       classes.push(this.sizeClasses);

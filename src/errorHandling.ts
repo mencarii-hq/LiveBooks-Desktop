@@ -196,8 +196,11 @@ export function getErrorHandledSync<T extends (...args: any[]) => any>(
 function getFeatureFlags(): string[] {
   const getBooleanFields = (docName: string) => {
     const doc = fyo.singles[docName];
+    if (doc == null) {
+      return {} as Record<string, boolean>;
+    }
 
-    return Object.entries(doc as Doc).reduce((acc, [key, value]) => {
+    return Object.entries(doc).reduce((acc, [key, value]) => {
       const fieldsArray = fyo.schemaMap[docName]?.fields ?? [];
       const fieldsMap = new Map(fieldsArray.map((f) => [f.fieldname, f]));
 
@@ -246,7 +249,8 @@ function getFeatureFlags(): string[] {
 }
 
 function getIssueUrlQuery(errorLogObj?: ErrorLog): string {
-  const baseUrl = 'https://github.com/frappe/books/issues/new?labels=bug';
+  const baseUrl =
+    'https://github.com/Mencarii/LiveBooks-Desktop/issues/new?labels=bug';
 
   const body = [
     '<h2>Description</h2>',
