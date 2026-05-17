@@ -8,7 +8,7 @@ import path from 'path';
  * @param {string} root
  * @returns {import('esbuild').BuildOptions}
  */
-export function getMainProcessCommonConfig(root) {
+export function getMainProcessCommonConfig(root, { production = false } = {}) {
   const livebooksCloudOrigin =
     process.env.LIVEBOOKS_CLOUD_ORIGIN ||
     process.env.VITE_LIVEBOOKS_CLOUD_ORIGIN ||
@@ -20,7 +20,7 @@ export function getMainProcessCommonConfig(root) {
       path.join(root, 'main', 'preload.ts'),
     ],
     bundle: true,
-    sourcemap: true,
+    sourcemap: !production,
     sourcesContent: false,
     platform: 'node',
     target: 'node20',

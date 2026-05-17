@@ -15,7 +15,7 @@ const root = path.join(dirname, '..', '..');
 const buildDirPath = path.join(root, 'dist_electron', 'build');
 const packageDirPath = path.join(root, 'dist_electron', 'bundled');
 const mainFileName = 'main.js';
-const commonConfig = getMainProcessCommonConfig(root);
+const commonConfig = getMainProcessCommonConfig(root, { production: true });
 
 const rawArgs = yargs(hideBin(process.argv))
   .option('nosign', {
@@ -94,7 +94,7 @@ async function buildRendererProcessSource() {
   await vite.build({
     base: `/${base}`,
     root: path.join(root, 'src'),
-    build: { outDir, sourcemap: true },
+    build: { outDir, sourcemap: false },
     define: {
       'import.meta.env.VITE_LIVEBOOKS_CLOUD_ORIGIN':
         JSON.stringify(livebooksCloudOrigin),
