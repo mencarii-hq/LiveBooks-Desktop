@@ -140,7 +140,7 @@
           class="h-4 w-4 flex-shrink-0"
         />
         <p class="break-words">
-          {{ t`Manage Account` }}
+          {{ t`Manage Cloud` }}
         </p>
       </button>
 
