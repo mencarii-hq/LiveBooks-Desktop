@@ -1,5 +1,5 @@
 /**
- * Day-1 Phase 4 — LocalMutation outbox helpers (pure; testable without DB).
+ * LocalMutation outbox helpers (pure; testable without DB).
  */
 
 import { generateDocId } from 'utils/ids';
@@ -25,6 +25,36 @@ export const MUTATION_LOG_SKIP_SCHEMAS = new Set([
 
 export function shouldLogMutation(schemaName: string): boolean {
   return !MUTATION_LOG_SKIP_SCHEMAS.has(schemaName);
+}
+
+export type LocalMutationGateContext = {
+  syncEnabled: boolean;
+  proEntitled: boolean;
+  deviceId: string;
+};
+
+/** True when cloud sync intent is active and the device may enqueue mutations. */
+export function shouldRecordLocalMutation(
+  ctx: LocalMutationGateContext
+): boolean {
+  if (!ctx.syncEnabled) {
+    return false;
+  }
+  if (!ctx.proEntitled) {
+    return false;
+  }
+  if (!ctx.deviceId) {
+    return false;
+  }
+  return true;
+}
+
+/** Delete stale synced / aged rows when sync is off (disk hygiene). */
+export function outboxRetentionCutoffIso(
+  maxAgeMs: number = OUTBOX_MAX_AGE_MS,
+  nowMs: number = Date.now()
+): string {
+  return new Date(nowMs - maxAgeMs).toISOString();
 }
 
 export function maxClientSeq(

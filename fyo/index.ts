@@ -234,10 +234,12 @@ export class Fyo {
     language: '',
     instanceId: '',
     deviceId: '',
+    /** When true with Pro + linked cloud book, LocalMutation rows are recorded. */
+    syncEnabled: false,
     openCount: -1,
     appFlags: {} as Record<string, boolean>,
     reports: {} as Record<keyof typeof reports, Report | undefined>,
-    /** Phase 4 — device reconciliation snapshot after DB connect. */
+    /** device reconciliation snapshot after DB connect. */
     syncDevice: null as import('utils/sync/types').SyncDeviceSnapshot | null,
   };
 }

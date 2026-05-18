@@ -1,5 +1,5 @@
 /**
- * Day-1 Phase 4 — global outbox pause state (renderer + fyo).
+ * global outbox pause state (renderer + fyo).
  */
 
 import type { OutboxSyncControlState } from 'utils/sync/outboxSyncControl';
@@ -11,6 +11,16 @@ import {
 
 let state: OutboxSyncControlState = initialOutboxSyncControl();
 const listeners = new Set<(s: OutboxSyncControlState) => void>();
+
+let proEntitledProvider: () => boolean = () => false;
+
+export function setOutboxProEntitlementProvider(fn: () => boolean): void {
+  proEntitledProvider = fn;
+}
+
+export function getOutboxProEntitled(): boolean {
+  return proEntitledProvider();
+}
 
 function notify(): void {
   for (const fn of listeners) {

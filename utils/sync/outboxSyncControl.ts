@@ -1,5 +1,5 @@
 /**
- * Day-1 Phase 4 — outbox pause / resume when Pro lapses (pure state machine).
+ * outbox pause / resume when Pro lapses (pure state machine).
  */
 
 import type { OutboxPauseReason } from 'utils/sync/types';
@@ -12,7 +12,8 @@ export type OutboxSyncControlState = {
 };
 
 export function initialOutboxSyncControl(): OutboxSyncControlState {
-  return { paused: false, reason: null, awaitingReconcile: false };
+  // Paused until Pro entitlement is known — avoids pre-poll outbox growth.
+  return { paused: true, reason: null, awaitingReconcile: false };
 }
 
 export function applyProEntitlementChange(

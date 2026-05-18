@@ -1,5 +1,5 @@
 /**
- * Day-1 Phase 2.7 — subscription staleness polling for desktop.
+ * subscription staleness polling for desktop.
  *
  * Polls +GET /api/v1/me/subscription+ on launch and every 24 hours while the
  * app is open. When the server bumps +subscription_changed_at+ (Stripe webhooks),
@@ -12,6 +12,7 @@ import {
   dispatchLivebooksCloudSessionAppRefresh,
   fetchLivebooksCloudSubscription,
 } from 'src/utils/livebooksCloud';
+import { refreshSyncIntent } from 'src/utils/syncIntent';
 import {
   isSubscriptionRevisionNewer,
   parseSubscriptionChangedAtIso,
@@ -19,6 +20,7 @@ import {
 import {
   completeOutboxReconcile,
   onProEntitlementChanged,
+  setOutboxProEntitlementProvider,
 } from 'utils/sync/outboxSyncState';
 
 export {
@@ -47,6 +49,8 @@ let snapshot: LivebooksSubscriptionSnapshot = {
   proEntitled: false,
   polledAt: null,
 };
+
+setOutboxProEntitlementProvider(() => snapshot.proEntitled);
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let visibilityListener: (() => void) | null = null;
@@ -245,6 +249,7 @@ async function refreshLivebooksSubscriptionInner(
   }
 
   notify();
+  await refreshSyncIntent(fyo);
   return snapshot;
 }
 

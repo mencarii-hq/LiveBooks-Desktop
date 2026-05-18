@@ -1,5 +1,5 @@
 /**
- * Day-1 Phase 4 — persist LocalMutation rows on desk writes.
+ * persist LocalMutation rows on desk writes.
  */
 
 import type { Fyo } from 'fyo';
@@ -11,10 +11,12 @@ import {
   evaluateOutboxCap,
   nextClientSeq,
   shouldLogMutation,
+  shouldRecordLocalMutation,
 } from 'utils/sync/localMutationOutbox';
 import { applySnapshotCap } from 'utils/sync/outboxSyncControl';
 import type { LocalMutationOperation } from 'utils/sync/types';
 import {
+  getOutboxProEntitled,
   getOutboxSyncControl,
   setOutboxSyncControl,
 } from 'utils/sync/outboxSyncState';
@@ -79,7 +81,13 @@ export async function recordLocalMutation(
   }
 
   const deviceId = fyo.store.deviceId;
-  if (!deviceId) {
+  if (
+    !shouldRecordLocalMutation({
+      syncEnabled: fyo.store.syncEnabled,
+      proEntitled: getOutboxProEntitled(),
+      deviceId,
+    })
+  ) {
     return;
   }
 

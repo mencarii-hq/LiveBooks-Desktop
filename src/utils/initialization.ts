@@ -4,6 +4,8 @@ import { getRegionalModels, models } from 'models/index';
 import { ModelNameEnum } from 'models/types';
 import { TargetField } from 'schemas/types';
 import { generateDeviceId } from 'utils/ids';
+import { pruneStaleLocalMutations } from 'src/utils/localMutationRetention';
+import { refreshSyncIntent } from 'src/utils/syncIntent';
 import { runSyncDeviceGuard } from 'src/utils/syncDeviceGuard';
 import {
   getMapFromList,
@@ -35,6 +37,8 @@ export async function initializeInstance(
   await setInstanceId(fyo);
   await ensureLedgerDeviceId(fyo);
   await runSyncDeviceGuard(fyo);
+  await refreshSyncIntent(fyo);
+  await pruneStaleLocalMutations(fyo).catch(() => undefined);
   await setOpenCount(fyo);
   await setCurrencySymbols(fyo);
 }

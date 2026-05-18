@@ -7,6 +7,13 @@ import {
   markReconcileComplete,
 } from 'utils/sync/outboxSyncControl';
 
+test('initial outbox is paused before entitlement poll', (t) => {
+  const initial = initialOutboxSyncControl();
+  t.ok(initial.paused);
+  t.notOk(canFlushOutbox(initial));
+  t.end();
+});
+
 test('Pro lapse pauses outbox', (t) => {
   const next = applyProEntitlementChange(initialOutboxSyncControl(), false);
   t.ok(next.paused);
