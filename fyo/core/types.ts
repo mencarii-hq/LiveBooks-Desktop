@@ -32,7 +32,7 @@ export type DatabaseDemuxConstructor = new (
 export type AuthDemuxConstructor = new (isElectron?: boolean) => AuthDemuxBase;
 
 /**
- * NOTE — Day-1 Phase 1.1 namespacing:
+ * SQLCipher key namespacing:
  *
  *   * `dbEncryptionKey_encrypted` is the LEGACY global slot. It is migrated
  *     into a per-account namespace on first cloud sign-in via
@@ -73,17 +73,17 @@ export type ConfigMap = {
   livebooksCloudRefreshToken_encrypted?: string;
   /** Legacy global SQLCipher key slot — migrated on first sign-in. */
   dbEncryptionKey_encrypted?: string;
-  /** Phase 1.1: dbPath -> local-only key namespace for unsigned-in users. */
+  /** dbPath -> local-only key namespace for unsigned-in users. */
   localBookKeyNamespaces?: LocalBookKeyNamespace[];
-  /** Phase 1.1: per-account namespaced SQLCipher keys (dynamic). */
+  /** per-account namespaced SQLCipher keys (dynamic). */
   [namespacedKey: `dbEncryptionKey_${string}_encrypted`]: string | undefined;
-  /** Phase 2.6 — free-tier backup safety-net modal bookkeeping. */
+  /** free-tier backup safety-net modal bookkeeping. */
   freeBackupSafetyNetDbOpenCount?: number;
   freeBackupSafetyNetLastShownAt?: string;
   miscLastBackupExportedAt?: string;
-  /** Phase 2.3 — last successful cloud key escrow push (ISO timestamp). */
+  /** last successful cloud key escrow push (ISO timestamp). */
   livebooksCloudKeyEscrowedAt?: string;
-  /** Phase 2.7 — last seen server subscription_changed_at (ISO timestamp). */
+  /** last seen server subscription_changed_at (ISO timestamp). */
   livebooksCloudSubscriptionChangedAt?: string | null;
 };
 

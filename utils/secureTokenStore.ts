@@ -1,5 +1,5 @@
 /**
- * Day-1 Phase 1.4 — refresh / access token storage policy.
+ * refresh / access token storage policy.
  *
  *   * If +safeStorage+ is available, tokens are stored encrypted under
  *     +<key>_encrypted+ (base64). Existing plaintext entries are
@@ -10,7 +10,7 @@
  *     plaintext on disk is a permanent leak we won't accept in production
  *     just to spare the user a re-authentication. Instead, the user must
  *     re-authenticate each launch and Settings shows a "Secure storage
- *     unavailable" warning badge (UI added in Phase 2.3).
+ *     unavailable" warning badge in Settings.
  *
  *   * In dev / unpackaged builds plaintext fallback is allowed so
  *     contributors aren't blocked when running the app without code
@@ -75,7 +75,7 @@ export function getSecureToken(key: TokenKey): string | null {
       return plaintext;
     }
     if (!plaintextFallbackAllowed()) {
-      // Day-1 Phase 1.4: refuse to surface the plaintext token in
+      // refuse to surface the plaintext token in
       // packaged builds even if a legacy install left one on disk.
       // Drop the legacy slot so we never trust it again.
       config.delete(key);
@@ -100,10 +100,10 @@ export function setSecureToken(key: TokenKey, value: string): void {
   }
 
   if (!plaintextFallbackAllowed()) {
-    // Day-1 Phase 1.4 — in packaged builds without OS keychain support,
+    // in packaged builds without OS keychain support,
     // skip persistence entirely. The user will be prompted to sign in
     // again on next launch; that is preferable to a plaintext token on
-    // disk. Settings (Phase 2.3) surfaces the warning badge.
+    // disk. Settings surfaces the warning badge.
     config.delete(encryptedKey(key));
     config.delete(key);
     return;

@@ -1,5 +1,5 @@
 /**
- * Day-1 Phase 1.1 — namespaced SQLCipher key store (main process only).
+ * namespaced SQLCipher key store (main process only).
  *
  * Replaces the legacy +getOrCreateDatabaseKey+ design, which had two
  * critical bugs:
@@ -22,7 +22,6 @@
  *   * +setDatabaseKeyFromRecovery+ writes a key delivered by cloud
  *     escrow. Main process only.
  *
- * @see plan day-1_sync_foundation §1.1
  */
 
 import crypto from 'crypto';
@@ -35,7 +34,7 @@ import {
 import { wipeSecretBuffer } from './crypto/secretBuffer';
 import type { LocalBookKeyNamespace } from 'fyo/core/types';
 
-/** Legacy global slot. Read-only after Phase 1 migration. */
+/** Legacy global slot. Read-only after legacy global-key migration. */
 const LEGACY_GLOBAL_KEY = 'dbEncryptionKey_encrypted';
 const LOCAL_NAMESPACES_KEY = 'localBookKeyNamespaces';
 const LOCAL_NAMESPACE_PREFIX = 'local_';
@@ -184,7 +183,7 @@ function storeKeyForAccount(accountKey: AccountKey, hexKey: string): boolean {
 /**
  * Mint a new SQLCipher key for a brand-new database. Only legitimate at
  * +DB_CREATE+ or as the target side of a verified plaintext -> encrypted
- * migration (target migration code path documented in §1.3).
+ * migration.
  */
 export function createDatabaseKeyForNewBook(
   accountKey: AccountKey
@@ -279,7 +278,7 @@ function writeLocalNamespaceMap(entries: LocalBookKeyNamespace[]): void {
  * mapping, mint a key in that namespace, and return both.
  *
  * Critical: do NOT collapse multiple offline users on the same OS login
- * into a shared +local_default+ — see plan §"Trap" under 1.1.
+ * into a shared +local_default+ namespace.
  */
 export function createLocalNamespaceForNewBook(dbPath: string): {
   localNamespaceId: AccountKey;

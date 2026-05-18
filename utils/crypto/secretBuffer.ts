@@ -1,7 +1,7 @@
 /**
- * Day-1 Phase 1.2 — main-process Buffer helpers for SQLCipher hex keys.
+ * main-process Buffer helpers for SQLCipher hex keys.
  *
- * Goals (see plan §"Threat model — cloud escrow"):
+ * Goals:
  *   * Minimize the time a database key spends as a JS String. V8 strings
  *     are reference-counted and may persist in heap snapshots indefinitely;
  *     Node Buffers can at least be zero-filled before being released.

@@ -1,5 +1,5 @@
 /**
- * Day-1 Phase 1.2 — single source of truth for the SQLCipher hex-key shape.
+ * single source of truth for the SQLCipher hex-key shape.
  *
  * Every PRAGMA / IPC / cloud-escrow boundary that touches the database key
  * MUST run the value through one of these helpers before doing anything
