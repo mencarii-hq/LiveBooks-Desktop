@@ -1,4 +1,10 @@
+import { t } from 'fyo';
 import { livebooksCloudRequest } from 'src/utils/livebooksCloud';
+import {
+  livebooksCloudRequestWithStepUp,
+  promptPlaidMfaTotp,
+} from 'src/utils/plaidBankFeedsApi';
+import type { PromptTotpFn } from 'src/utils/plaidBankFeedsApi';
 
 export type CloudStatementFileRow = {
   id: number;
@@ -10,6 +16,19 @@ export type CloudStatementFileRow = {
   pdf: boolean;
 };
 
+function messageFromCloudResponse(data: unknown, status: number): string {
+  if (data && typeof data === 'object') {
+    const o = data as Record<string, unknown>;
+    if (typeof o.message === 'string' && o.message.length > 0) {
+      return o.message;
+    }
+    if (typeof o.error === 'string' && o.error.length > 0) {
+      return o.error;
+    }
+  }
+  return `HTTP ${String(status)}`;
+}
+
 export async function fetchCloudStatementFiles(
   bookId: string,
   itemId?: string
@@ -20,14 +39,10 @@ export async function fetchCloudStatementFiles(
     path: `/api/v1/books/${bookId}/plaid/statement_files${q}`,
   });
   if (!res.ok || !res.data || typeof res.data !== 'object') {
-    const err =
-      res.data &&
-      typeof res.data === 'object' &&
-      'message' in res.data &&
-      typeof (res.data as { message: unknown }).message === 'string'
-        ? (res.data as { message: string }).message
-        : `HTTP ${String(res.status)}`;
-    return { files: [], error: err };
+    return {
+      files: [],
+      error: messageFromCloudResponse(res.data, res.status),
+    };
   }
   const body = res.data as { files?: CloudStatementFileRow[] };
   return { files: body.files ?? [] };
@@ -35,23 +50,41 @@ export async function fetchCloudStatementFiles(
 
 export async function syncCloudStatementFiles(
   bookId: string,
-  itemId?: string
-): Promise<{ ok: boolean; data: unknown; error?: string }> {
+  itemId?: string,
+  opts?: { promptTotp?: PromptTotpFn }
+): Promise<{
+  ok: boolean;
+  data: unknown;
+  error?: string;
+  totpRequired?: boolean;
+}> {
   const q = itemId ? `?item_id=${encodeURIComponent(itemId)}` : '';
-  const res = await livebooksCloudRequest({
+  const promptTotp =
+    opts?.promptTotp ??
+    (async () =>
+      promptPlaidMfaTotp(
+        t`Enter your LiveBooks Cloud authenticator or backup code to sync bank statements.`
+      ));
+  const res = await livebooksCloudRequestWithStepUp({
     method: 'POST',
     path: `/api/v1/books/${bookId}/plaid/statement_files/sync${q}`,
     body: {},
+    promptTotp,
   });
+  if (res.totpRequired) {
+    return {
+      ok: false,
+      data: res.data,
+      error: t`Authenticator code required.`,
+      totpRequired: true,
+    };
+  }
   if (!res.ok) {
-    const err =
-      res.data &&
-      typeof res.data === 'object' &&
-      'message' in res.data &&
-      typeof (res.data as { message: unknown }).message === 'string'
-        ? (res.data as { message: string }).message
-        : `HTTP ${String(res.status)}`;
-    return { ok: false, data: res.data, error: err };
+    return {
+      ok: false,
+      data: res.data,
+      error: messageFromCloudResponse(res.data, res.status),
+    };
   }
   return { ok: true, data: res.data };
 }
