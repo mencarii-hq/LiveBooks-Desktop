@@ -232,11 +232,15 @@ export default defineComponent({
         );
         if (!res.ok) {
           this.escrowEnabled = false;
+          const msg =
+            res.error === 'escrow_key_probe_failed'
+              ? res.message ||
+                t`Your local encryption key could not open this company file. Cloud backup was not updated.`
+              : res.message ||
+                t`Could not back up your encryption key. Check your Pro subscription and try again.`;
           showToast({
             type: 'error',
-            message:
-              res.message ||
-              t`Could not back up your encryption key. Check your Pro subscription and try again.`,
+            message: msg,
             duration: 'long',
           });
           return;
