@@ -8,6 +8,12 @@ After a release tag ships, **never edit** the `execute` body of an existing patc
 2. Register it in `backend/patches/index.ts` with an appropriate `version` guard inside `execute`.
 3. Make `execute` idempotent (check column/state before mutating).
 
-## CI
+## CI (after first public release)
 
-`scripts/verify-patch-immutability.sh` compares patch blobs at the latest release tag to `main` and fails if any file present at the tag changed (new files are allowed).
+Pre-launch: immutability is policy-only. After you tag a public release, enable CI with:
+
+```bash
+PATCH_IMMUTABILITY_TAG=v1.0.0 bash scripts/verify-patch-immutability.sh
+```
+
+`scripts/verify-patch-immutability.sh` compares patch blobs at that tag to the current tree and fails if any file present at the tag changed (new files are allowed).
