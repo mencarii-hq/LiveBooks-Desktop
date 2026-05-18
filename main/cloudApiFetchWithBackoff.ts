@@ -1,5 +1,5 @@
 /**
- * Day-1 Phase 4 — cloud fetch with 429/503 backoff (main process).
+ * cloud fetch with 429/503 backoff (main process).
  */
 
 import fetch from 'node-fetch';

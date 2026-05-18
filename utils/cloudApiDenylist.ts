@@ -1,5 +1,5 @@
 /**
- * Day-1 Phase 1b.0 — renderer cloud API path denylist.
+ * Renderer cloud API path denylist.
  *
  * Paths that touch escrow keys, recovery grants, or MFA must never be
  * invoked from the renderer via LIVEBOOKS_CLOUD_API.

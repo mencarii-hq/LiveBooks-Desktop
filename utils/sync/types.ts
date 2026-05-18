@@ -1,5 +1,5 @@
 /**
- * Day-1 Phase 4 — sync / outbox shared types.
+ * sync / outbox shared types.
  */
 
 export type LocalMutationOperation = 'insert' | 'update' | 'delete' | 'submit' | 'cancel';

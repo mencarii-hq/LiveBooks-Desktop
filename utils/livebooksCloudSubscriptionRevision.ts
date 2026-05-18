@@ -1,4 +1,4 @@
-/** Pure helpers for Phase 2.7 subscription revision detection (no fyo/ipc). */
+/** Pure helpers for subscription revision detection (no fyo/ipc). */
 
 export function parseSubscriptionChangedAtIso(
   value: string | null | undefined

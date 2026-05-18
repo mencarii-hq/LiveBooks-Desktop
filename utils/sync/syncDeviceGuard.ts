@@ -1,5 +1,5 @@
 /**
- * Day-1 Phase 4 — ledger vs machine deviceId reconciliation (pure).
+ * ledger vs machine deviceId reconciliation (pure).
  */
 
 import type { DeviceReconcileResult, LocalMutationRow } from 'utils/sync/types';

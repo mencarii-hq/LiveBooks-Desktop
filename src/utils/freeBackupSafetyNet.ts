@@ -1,5 +1,5 @@
 /**
- * Day-1 Phase 2.6 — free-tier backup safety-net modal gating.
+ * free-tier backup safety-net modal gating.
  */
 
 const REMINDER_INTERVAL = 30;

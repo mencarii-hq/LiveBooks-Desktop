@@ -1,5 +1,5 @@
 /**
- * Day-1 Phase 4 — run deviceId reconciliation after DB connect.
+ * run deviceId reconciliation after DB connect.
  */
 
 import type { Fyo } from 'fyo';

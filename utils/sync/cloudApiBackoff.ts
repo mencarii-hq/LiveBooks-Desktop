@@ -1,5 +1,5 @@
 /**
- * Day-1 Phase 4 — exponential backoff for cloud API retries (pure).
+ * exponential backoff for cloud API retries (pure).
  */
 
 export const CLOUD_API_MAX_503_RETRIES = 3;

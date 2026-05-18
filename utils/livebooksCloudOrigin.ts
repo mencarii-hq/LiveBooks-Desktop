@@ -1,5 +1,5 @@
 /**
- * Day-1 Phase 0.4 — cloud origin resolution (pure; testable without Electron).
+ * cloud origin resolution (pure; testable without Electron).
  */
 
 const DEV_DEFAULT_ORIGIN = 'http://127.0.0.1:3000';
