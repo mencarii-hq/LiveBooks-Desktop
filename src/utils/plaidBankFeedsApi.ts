@@ -37,6 +37,8 @@ export type PlaidFeedItemRow = {
   last_pending_dropped_count?: number;
   health?: 'ok' | 'stale' | 'broken';
   recent_apply_failures?: PlaidApplyFailureRow[];
+  /** Set when cloud circuit breaker paused ingest (oldest unacked batch > 180 days). */
+  ingest_paused_at?: string | null;
 };
 
 export type PlaidFeedsPayload = { items: PlaidFeedItemRow[] };
@@ -56,6 +58,27 @@ export type ImportBatchesListPayload = {
 };
 
 export type PromptTotpFn = () => Promise<string | null>;
+
+/** Modal prompt for Plaid mutating cloud APIs (link, disconnect, sync, etc.). */
+export function promptPlaidMfaTotp(detail: string): Promise<string | null> {
+  return promptTotpCode({
+    title: t`Authenticator code`,
+    detail,
+  });
+}
+
+function messageFromCloudResponse(data: unknown, status: number): string {
+  if (data && typeof data === 'object') {
+    const o = data as Record<string, unknown>;
+    if (typeof o.message === 'string' && o.message.length > 0) {
+      return o.message;
+    }
+    if (typeof o.error === 'string' && o.error.length > 0) {
+      return o.error;
+    }
+  }
+  return `HTTP ${String(status)}`;
+}
 
 export async function postMfaStepUp(
   totpCode: string
@@ -136,10 +159,9 @@ export async function livebooksCloudRequestWithStepUp(
 }
 
 const defaultPromptTotp: PromptTotpFn = async () =>
-  promptTotpCode({
-    title: t`Authenticator code`,
-    detail: t`Enter your LiveBooks Cloud authenticator or backup code to view bank feed status.`,
-  });
+  promptPlaidMfaTotp(
+    t`Enter your LiveBooks Cloud authenticator or backup code to view bank feed status.`
+  );
 
 export async function fetchPlaidFeeds(
   bookId: string,
@@ -382,33 +404,35 @@ export async function bulkAckImportBatches(
 export async function reopenAckedPlaidImportBatches(
   bookId: string,
   itemId: string,
-  opts?: { days?: number }
+  opts?: { days?: number; promptTotp?: PromptTotpFn }
 ): Promise<{
   ok: boolean;
   reopenedCount?: number;
   days?: number;
   error?: string;
+  totpRequired?: boolean;
 }> {
   const body: Record<string, number> = {};
   if (opts?.days != null) {
     body.days = Math.max(1, Math.min(90, Math.floor(opts.days)));
   }
-  const res = await livebooksCloudRequest({
+  const res = await livebooksCloudRequestWithStepUp({
     method: 'POST',
     path: `/api/v1/books/${encodeURIComponent(
       bookId
     )}/plaid/items/${encodeURIComponent(itemId)}/import_batches/reopen`,
     body: Object.keys(body).length ? body : undefined,
+    promptTotp: opts?.promptTotp,
   });
+  if (res.totpRequired) {
+    return {
+      ok: false,
+      error: t`Authenticator code required.`,
+      totpRequired: true,
+    };
+  }
   if (!res.ok) {
-    const err =
-      res.data &&
-      typeof res.data === 'object' &&
-      'message' in res.data &&
-      typeof (res.data as { message: unknown }).message === 'string'
-        ? (res.data as { message: string }).message
-        : `HTTP ${String(res.status)}`;
-    return { ok: false, error: err };
+    return { ok: false, error: messageFromCloudResponse(res.data, res.status) };
   }
   const data = res.data as
     | { reopened_count?: unknown; days?: unknown }
@@ -451,16 +475,30 @@ export async function ackImportBatch(
 export async function disconnectPlaidAccountFeed(
   bookId: string,
   itemId: string,
-  plaidAccountId: string
-): Promise<{ ok: boolean; error?: string; itemRemoved?: boolean }> {
-  const res = await livebooksCloudRequest({
+  plaidAccountId: string,
+  opts?: { promptTotp?: PromptTotpFn }
+): Promise<{
+  ok: boolean;
+  error?: string;
+  itemRemoved?: boolean;
+  totpRequired?: boolean;
+}> {
+  const res = await livebooksCloudRequestWithStepUp({
     method: 'DELETE',
     path: `/api/v1/books/${encodeURIComponent(
       bookId
     )}/plaid/items/${encodeURIComponent(itemId)}/accounts/${encodeURIComponent(
       plaidAccountId
     )}`,
+    promptTotp: opts?.promptTotp,
   });
+  if (res.totpRequired) {
+    return {
+      ok: false,
+      error: t`Authenticator code required.`,
+      totpRequired: true,
+    };
+  }
   if (res.status === 404) {
     return {
       ok: false,
@@ -468,19 +506,13 @@ export async function disconnectPlaidAccountFeed(
     };
   }
   if (!res.ok) {
-    const err =
-      res.data &&
-      typeof res.data === 'object' &&
-      'message' in res.data &&
-      typeof (res.data as { message: unknown }).message === 'string'
-        ? (res.data as { message: string }).message
-        : `HTTP ${String(res.status)}`;
-    return { ok: false, error: err };
+    return { ok: false, error: messageFromCloudResponse(res.data, res.status) };
   }
-  const itemRemoved =
+  const itemRemoved = !!(
     res.data &&
     typeof res.data === 'object' &&
-    (res.data as { item_removed?: unknown }).item_removed === true;
+    (res.data as { item_removed?: unknown }).item_removed === true
+  );
   return { ok: true, itemRemoved };
 }
 
@@ -488,16 +520,25 @@ export async function disconnectPlaidAccountFeed(
 export async function enablePlaidAccountFeed(
   bookId: string,
   itemId: string,
-  plaidAccountId: string
-): Promise<{ ok: boolean; error?: string }> {
-  const res = await livebooksCloudRequest({
+  plaidAccountId: string,
+  opts?: { promptTotp?: PromptTotpFn }
+): Promise<{ ok: boolean; error?: string; totpRequired?: boolean }> {
+  const res = await livebooksCloudRequestWithStepUp({
     method: 'POST',
     path: `/api/v1/books/${encodeURIComponent(
       bookId
     )}/plaid/items/${encodeURIComponent(itemId)}/accounts/${encodeURIComponent(
       plaidAccountId
     )}/enable_feed`,
+    promptTotp: opts?.promptTotp,
   });
+  if (res.totpRequired) {
+    return {
+      ok: false,
+      error: t`Authenticator code required.`,
+      totpRequired: true,
+    };
+  }
   if (res.status === 404) {
     return {
       ok: false,
@@ -505,14 +546,7 @@ export async function enablePlaidAccountFeed(
     };
   }
   if (!res.ok) {
-    const err =
-      res.data &&
-      typeof res.data === 'object' &&
-      'message' in res.data &&
-      typeof (res.data as { message: unknown }).message === 'string'
-        ? (res.data as { message: string }).message
-        : `HTTP ${String(res.status)}`;
-    return { ok: false, error: err };
+    return { ok: false, error: messageFromCloudResponse(res.data, res.status) };
   }
   return { ok: true };
 }
@@ -520,14 +554,23 @@ export async function enablePlaidAccountFeed(
 /** Remove the Plaid Item server-side (token revoked at Plaid); local maps must be cleared separately. */
 export async function removePlaidItem(
   bookId: string,
-  itemId: string
-): Promise<{ ok: boolean; error?: string }> {
-  const res = await livebooksCloudRequest({
+  itemId: string,
+  opts?: { promptTotp?: PromptTotpFn }
+): Promise<{ ok: boolean; error?: string; totpRequired?: boolean }> {
+  const res = await livebooksCloudRequestWithStepUp({
     method: 'DELETE',
     path: `/api/v1/books/${encodeURIComponent(
       bookId
     )}/plaid/items/${encodeURIComponent(itemId)}`,
+    promptTotp: opts?.promptTotp,
   });
+  if (res.totpRequired) {
+    return {
+      ok: false,
+      error: t`Authenticator code required.`,
+      totpRequired: true,
+    };
+  }
   if (res.status === 404) {
     return {
       ok: false,
@@ -535,14 +578,7 @@ export async function removePlaidItem(
     };
   }
   if (!res.ok) {
-    const err =
-      res.data &&
-      typeof res.data === 'object' &&
-      'message' in res.data &&
-      typeof (res.data as { message: unknown }).message === 'string'
-        ? (res.data as { message: string }).message
-        : `HTTP ${String(res.status)}`;
-    return { ok: false, error: err };
+    return { ok: false, error: messageFromCloudResponse(res.data, res.status) };
   }
   return { ok: true };
 }
