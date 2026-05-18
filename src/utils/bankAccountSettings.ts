@@ -12,6 +12,7 @@ import {
   disconnectPlaidAccountFeed,
   removePlaidItem,
 } from 'src/utils/plaidBankFeedsApi';
+import type { PromptTotpFn } from 'src/utils/plaidBankFeedsApi';
 
 export async function countLedgerRowsForAccount(
   accountName: string
@@ -80,12 +81,14 @@ export async function deletePlaidMapsForItemAccount(
 export async function disconnectPlaidAccountFeedLocalAndRemote(
   bookId: string,
   itemId: string,
-  plaidAccountId: string
+  plaidAccountId: string,
+  opts?: { promptTotp?: PromptTotpFn }
 ): Promise<{ ok: true; itemRemoved: boolean } | { ok: false; error: string }> {
   const remote = await disconnectPlaidAccountFeed(
     bookId,
     itemId,
-    plaidAccountId
+    plaidAccountId,
+    opts
   );
   if (!remote.ok) {
     return { ok: false, error: remote.error ?? 'Disconnect failed.' };
@@ -135,9 +138,10 @@ export async function excludeUnmatchedFeedLinesForAccount(
 
 export async function disconnectPlaidItemLocalAndRemote(
   bookId: string,
-  itemId: string
+  itemId: string,
+  opts?: { promptTotp?: PromptTotpFn }
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const remote = await removePlaidItem(bookId, itemId);
+  const remote = await removePlaidItem(bookId, itemId, opts);
   if (!remote.ok) {
     return { ok: false, error: remote.error ?? 'Disconnect failed.' };
   }
