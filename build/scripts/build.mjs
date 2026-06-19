@@ -148,6 +148,7 @@ function copyPackageJson() {
   const packageJson = JSON.parse(packageJsonText);
   const keys = [
     'name',
+    'productName',
     'version',
     'description',
     'author',
