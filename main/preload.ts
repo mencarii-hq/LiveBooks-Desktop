@@ -228,33 +228,6 @@ const ipc = {
     )) as { ok: boolean; status: number; data: unknown; etag?: string };
   },
 
-  /**
-   * main-process recovery loop. The renderer never
-   * sees the recovered SQLCipher key. This call:
-   *   1. POSTs to +/api/v1/me/escrow_key_retrieval+ (TOTP required).
-   *   2. Persists the returned key into the OS keychain via
-   *      +setDatabaseKeyFromRecovery+.
-   *   3. Reconnects the database to verify the key opens the file.
-   *   4. Returns +{ ok: true }+ or +{ ok: false, error, message }+.
-   */
-  async recoverySubmitAndRekey(payload: {
-    dbPath: string;
-    countryCode?: string;
-    email: string;
-    password: string;
-    totpCode?: string;
-  }) {
-    return (await ipcRenderer.invoke(
-      IPC_ACTIONS.RECOVERY_SUBMIT_AND_REKEY,
-      payload
-    )) as {
-      ok: boolean;
-      error?: string;
-      message?: string;
-      countryCode?: string;
-    };
-  },
-
   registerLivebooksCloudSessionListener(listener: IPCRendererListener) {
     ipcRenderer.on(IPC_CHANNELS.LIVEBOOKS_CLOUD_SESSION_CHANGED, listener);
   },
@@ -290,14 +263,6 @@ const ipc = {
       )) as BackendResponse;
     },
 
-    async bootProbe(dbPath: string, countryCode?: string) {
-      return (await ipcRenderer.invoke(
-        IPC_ACTIONS.DB_BOOT_PROBE,
-        dbPath,
-        countryCode
-      )) as BackendResponse;
-    },
-
     async call(method: DatabaseMethod, ...args: unknown[]) {
       return (await ipcRenderer.invoke(
         IPC_ACTIONS.DB_CALL,
@@ -326,32 +291,6 @@ const ipc = {
         ...args
       )) as BackendResponse;
     },
-
-    async encryptionStatus(dbPath?: string) {
-      return (await ipcRenderer.invoke(
-        IPC_ACTIONS.DB_ENCRYPTION_STATUS,
-        dbPath
-      )) as { available: boolean; hasKey: boolean };
-    },
-  },
-
-  async desktopKeyEscrowPush(dbPath: string, totpCode?: string) {
-    return (await ipcRenderer.invoke(
-      IPC_ACTIONS.DESKTOP_KEY_ESCROW_PUSH,
-      dbPath,
-      totpCode
-    )) as {
-      ok: boolean;
-      escrowed_at?: string;
-      error?: string;
-      message?: string;
-    };
-  },
-
-  async desktopKeyEscrowStatus() {
-    return (await ipcRenderer.invoke(
-      IPC_ACTIONS.DESKTOP_KEY_ESCROW_STATUS
-    )) as { ok: boolean; escrowed?: boolean; error?: string };
   },
 
   store: {
