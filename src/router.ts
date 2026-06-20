@@ -2,7 +2,6 @@ import ChartOfAccounts from 'src/pages/ChartOfAccounts.vue';
 import CommonForm from 'src/pages/CommonForm/CommonForm.vue';
 import Dashboard from 'src/pages/Dashboard/Dashboard.vue';
 import GetStarted from 'src/pages/GetStarted.vue';
-import RecoveryMode from 'src/pages/RecoveryMode.vue';
 import BankFeedHub from 'src/pages/BankFeedHub.vue';
 import BankAccountActivity from 'src/pages/BankAccountActivity.vue';
 import BankFeedSettings from 'src/pages/BankFeedSettings.vue';
@@ -32,11 +31,6 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/get-started',
     component: GetStarted,
-  },
-  {
-    path: '/recovery',
-    name: 'Recovery Mode',
-    component: RecoveryMode,
   },
   {
     path: `/edit/:schemaName/:name`,

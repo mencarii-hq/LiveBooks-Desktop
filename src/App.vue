@@ -37,11 +37,6 @@
       @setup-complete="setupComplete"
       @setup-canceled="showDbSelector"
     />
-    <RecoveryMode
-      v-if="activeScreen === 'RecoveryMode'"
-      @recovery-complete="onRecoveryComplete"
-      @backup-selected="onRecoveryBackupSelected"
-    />
     <FreeUserBackupSafetyModal
       :open="showFreeBackupSafetyModal"
       @dismiss="showFreeBackupSafetyModal = false"
@@ -67,7 +62,6 @@ import { handleErrorWithDialog } from './errorHandling';
 import { fyo } from './initFyo';
 import DatabaseSelector from './pages/DatabaseSelector.vue';
 import Desk from './pages/Desk.vue';
-import RecoveryMode from './pages/RecoveryMode.vue';
 import FreeUserBackupSafetyModal from './components/FreeUserBackupSafetyModal.vue';
 import LoadingWorkspaceOverlay from './components/LoadingWorkspaceOverlay.vue';
 import {
@@ -111,7 +105,6 @@ enum Screen {
   Desk = 'Desk',
   DatabaseSelector = 'DatabaseSelector',
   SetupWizard = 'SetupWizard',
-  RecoveryMode = 'RecoveryMode',
 }
 
 export default defineComponent({
@@ -120,7 +113,6 @@ export default defineComponent({
     Desk,
     SetupWizard,
     DatabaseSelector,
-    RecoveryMode,
     FreeUserBackupSafetyModal,
     LoadingWorkspaceOverlay,
     WindowsTitleBar,
@@ -358,17 +350,6 @@ export default defineComponent({
       await this.setDesk(filePath);
     },
     async handleConnectionFailed(error: Error, actionSymbol: symbol) {
-      // keychain corruption / unavailability MUST
-      // surface the RecoveryMode screen. Never fall through to a generic
-      // dialog (which used to silently re-key via getOrCreateDatabaseKey
-      // on next open). RecoveryMode lives at the App-screen level rather
-      // than under the router because <router-view> is only mounted
-      // inside Desk, and Desk is unreachable until the DB is open.
-      if (actionSymbol === dbErrorActionSymbols.RecoveryRequired) {
-        this.activeScreen = Screen.RecoveryMode;
-        return;
-      }
-
       await this.showDbSelector();
 
       if (actionSymbol === dbErrorActionSymbols.CancelSelection) {
@@ -381,34 +362,6 @@ export default defineComponent({
       }
 
       throw error;
-    },
-    /**
-     * RecoveryMode succeeded. The main process has
-     * already persisted the recovered SQLCipher key into the OS keychain
-     * AND verified that the key opens the .db (via
-     * +databaseManager.connectToDatabase+ inside the IPC handler). All we
-     * need to do here is resume the normal post-connect flow.
-     */
-    async onRecoveryComplete(payload: {
-      dbPath: string;
-      countryCode?: string;
-    }) {
-      const { dbPath, countryCode } = payload;
-      try {
-        if (countryCode) {
-          await initializeInstance(dbPath, false, countryCode, fyo);
-          fyo.config.set('lastSelectedFilePath', dbPath);
-          await this.setDesk(dbPath);
-        } else {
-          await this.fileSelected(dbPath);
-        }
-      } catch (err) {
-        await handleErrorWithDialog(err, undefined, true, true);
-        await this.showDbSelector();
-      }
-    },
-    async onRecoveryBackupSelected(filePath: string) {
-      await this.fileSelected(filePath);
     },
     async setDeskRoute(): Promise<void> {
       const { onboardingComplete } = await fyo.doc.getDoc('GetStarted');
