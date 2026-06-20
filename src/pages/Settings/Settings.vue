@@ -21,14 +21,7 @@
       </FormHeader>
 
       <!-- Section Container -->
-      <LiveBooksCloudSecurityPanel
-        v-if="activeTab === cloudSecurityTab"
-        :db-path="dbPathForCloudSecurity"
-      />
-      <div
-        v-else-if="doc"
-        class="overflow-auto custom-scroll custom-scroll-thumb1"
-      >
+      <div v-if="doc" class="overflow-auto custom-scroll custom-scroll-thumb1">
         <CommonFormSection
           v-for="([name, fields], idx) in activeGroup.entries()"
           :key="name + idx"
@@ -105,10 +98,8 @@ import { docsPathRef } from 'src/utils/refs';
 import { UIGroupedFields } from 'src/utils/types';
 import { computed, defineComponent, inject } from 'vue';
 import CommonFormSection from '../CommonForm/CommonFormSection.vue';
-import LiveBooksCloudSecurityPanel from './LiveBooksCloudSecurityPanel.vue';
 
 const COMPONENT_NAME = 'Settings';
-const CLOUD_SECURITY_TAB = 'LiveBooksCloudSecurity';
 
 export default defineComponent({
   components: {
@@ -116,7 +107,6 @@ export default defineComponent({
     Button,
     FormHeader,
     CommonFormSection,
-    LiveBooksCloudSecurityPanel,
   },
   provide() {
     return { doc: computed(() => this.doc) };
@@ -149,9 +139,6 @@ export default defineComponent({
       ].some((s) => this.fyo.singles[s]?.canSave);
     },
     doc(): Doc | null {
-      if (this.activeTab === CLOUD_SECURITY_TAB) {
-        return null;
-      }
       const doc = this.fyo.singles[this.activeTab];
       if (!doc) {
         return null;
@@ -159,16 +146,8 @@ export default defineComponent({
 
       return doc;
     },
-    cloudSecurityTab(): string {
-      return CLOUD_SECURITY_TAB;
-    },
-    dbPathForCloudSecurity(): string {
-      const p = this.fyo.config.get('lastSelectedFilePath');
-      return typeof p === 'string' ? p : '';
-    },
     tabLabels(): Record<string, string> {
       return {
-        [CLOUD_SECURITY_TAB]: this.t`Cloud backup`,
         [ModelNameEnum.AccountingSettings]: this.t`General`,
         [ModelNameEnum.PrintSettings]: this.t`Print`,
         [ModelNameEnum.InventorySettings]: this.t`Inventory`,
@@ -205,12 +184,12 @@ export default defineComponent({
     },
     settingsTabKeys(): string[] {
       if (!this.groupedFields) {
-        return [CLOUD_SECURITY_TAB];
+        return [ModelNameEnum.AccountingSettings];
       }
-      return [CLOUD_SECURITY_TAB, ...this.groupedFields.keys()];
+      return [...this.groupedFields.keys()];
     },
     activeGroup(): Map<string, Field[]> {
-      if (this.activeTab === CLOUD_SECURITY_TAB || !this.groupedFields) {
+      if (!this.groupedFields) {
         return new Map();
       }
 

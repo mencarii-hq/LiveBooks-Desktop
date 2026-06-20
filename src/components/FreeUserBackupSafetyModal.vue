@@ -33,12 +33,12 @@
         </h2>
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
           {{
-            t`LiveBooks stores your ledger as an encrypted file on this device. If you reinstall your OS, lose this computer, or install a different signed build, you may not be able to open the file again without a backup you saved yourself.`
+            t`LiveBooks stores your ledger as a file on this device. Enable full-disk encryption on your computer and export backups you can restore. If you lose this machine without a backup, your books may be unrecoverable.`
           }}
         </p>
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
           {{
-            t`LiveBooks Pro uses MFA on your cloud account to protect bank feeds (Plaid) and access to this encrypted file. We do not store a full copy of your ledger in the cloud. Export a backup you can store safely.`
+            t`LiveBooks Pro uses MFA on your cloud account to protect bank feeds (Plaid). We do not store a full copy of your ledger in the cloud. Export a backup you can store safely.`
           }}
         </p>
         <div class="flex flex-col sm:flex-row gap-3">
