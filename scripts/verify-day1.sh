@@ -8,17 +8,13 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 export IS_TEST=true
-export LIVEBOOKS_TEST_DB_KEY="${LIVEBOOKS_TEST_DB_KEY:-$(printf 'a%.0s' {1..64})}"
 
 DAY1_DESKTOP_SPECS=(
   ./utils/tests/testCloudApiDenylist.spec.ts
   ./utils/tests/testLivebooksCloudOrigin.spec.ts
   ./utils/tests/testLivebooksCloudSubscriptionRevision.spec.ts
-  ./utils/tests/testDatabaseKeyStore.spec.ts
   ./utils/crypto/tests/testAssertHexDatabaseKey.spec.ts
-  ./fyo/demux/tests/testDatabaseDemuxErrorCode.spec.ts
   ./main/tests/testFrozenSigningIdentity.spec.ts
-  ./backend/database/tests/testBootProbeTypes.spec.ts
   ./backend/database/tests/testCipherProfile.spec.ts
   ./utils/ids/tests/testIds.spec.ts
   ./utils/sync/tests/testLocalMutationOutbox.spec.ts
@@ -33,8 +29,12 @@ echo "==> LiveBooks Desktop security specs"
 
 CLOUD_ROOT="$(cd "$ROOT/../livebooks-cloud" && pwd)"
 if [[ -d "$CLOUD_ROOT/test" ]]; then
-  echo "==> livebooks-cloud integration (escrow/MFA)"
-  (cd "$CLOUD_ROOT" && bin/rails test test/integration/api_v1_escrow_mfa_test.rb)
+  echo "==> livebooks-cloud integration (desktop link / MFA)"
+  if command -v rbenv >/dev/null 2>&1 && rbenv versions --bare 2>/dev/null | grep -qx '4.0.2'; then
+    (cd "$CLOUD_ROOT" && RBENV_VERSION=4.0.2 bin/rails test test/integration/web_desktop_session_url_test.rb test/integration/api_v1_mfa_security_test.rb)
+  else
+    echo "==> skip livebooks-cloud integration (rbenv Ruby 4.0.2 not installed)"
+  fi
 else
   echo "==> skip livebooks-cloud (directory not found)"
 fi

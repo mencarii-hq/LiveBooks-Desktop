@@ -11,7 +11,7 @@ backend.
 
 This platform variablity will be handled by code in the `fyo/demux` subdirectory.
 
-_In LiveBooks Desktop (Electron), database demux calls use IPC; `DB_CALL` from the renderer is limited to the allowlisted methods in [`backend/helpers.ts`](../backend/helpers.ts) (`databaseMethodSet`). SQLCipher keys, cloud escrow, and recovery run only in the **main** process — see [`SECURITY.md`](../SECURITY.md) and [`utils/databaseKeyStore.ts`](../utils/databaseKeyStore.ts). IPC `error.code` (e.g. `KEYCHAIN_CORRUPTED`) is propagated through [`fyo/demux/db.ts`](demux/db.ts) for Recovery Mode routing._
+_In LiveBooks Desktop (Electron), database demux calls use IPC; `DB_CALL` from the renderer is limited to the allowlisted methods in [`backend/helpers.ts`](../backend/helpers.ts) (`databaseMethodSet`). Cloud session tokens use `safeStorage` in the main process — see [`SECURITY.md`](../SECURITY.md) and [`utils/secureTokenStore.ts`](../utils/secureTokenStore.ts)._
 
 ## Pre Req
 
@@ -64,15 +64,14 @@ other things.
 **First Load**: i.e. registering or creating a new instance.
 
 - Get `countryCode` from the setup wizard.
-- (Electron) The **main** process mints a new namespaced SQLCipher key only on `DB_CREATE` (when `safeStorage` is available); the renderer calls `fyo.db.createNewDatabase` via IPC.
+- (Electron) The **main** process creates a plaintext SQLite file on `DB_CREATE`; the renderer calls `fyo.db.createNewDatabase` via IPC.
 - Create a new DB using `fyo.db.createNewDatabase` with the `countryCode`.
 - Get models and `regionalModels` using `countryCode` from `models/index.ts/getRegionalModels`.
 - Call `fyo.initializeAndRegister` with the all models.
 
 **Next Load**: i.e. logging in or opening an existing instance.
 
-- (Electron) The **main** process reads the key with `getDatabaseKeyOnly` only — it never writes a new key on connect ([`utils/databaseKeyStore.ts`](../utils/databaseKeyStore.ts)). Decrypt failure surfaces `KEYCHAIN_CORRUPTED` and Recovery Mode. Legacy plaintext → encrypted migration is dev/target-only, not the production connect path.
-- The renderer calls `fyo.db.connectToDatabase(dbPath, countryCode?)`; the demux invokes IPC so the main process applies the key **before** any query reads **SystemSettings** (see [`DatabaseCore.getCountryCode`](../backend/database/core.ts)). Encrypted SQLite cannot return `countryCode` until the file is unlocked.
+- (Electron) The renderer calls `fyo.db.connectToDatabase(dbPath, countryCode?)`; the demux invokes IPC so the main process opens the plaintext SQLite file before any query reads **SystemSettings** (see [`DatabaseCore.getCountryCode`](../backend/database/core.ts)).
 - Use the returned `countryCode` to load models and `regionalModels` from `models/index.ts/getRegionalModels`.
 - Call `fyo.initializeAndRegister` with all models.
 

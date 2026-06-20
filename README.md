@@ -40,31 +40,29 @@ Accounting core and many capabilities come from upstream; see **[frappe/books](h
 ### Data philosophy
 
 - **Local-first:** Your company ledger is a file on your machine, not a shared cloud database you must trust for every edit.
-- **Encrypted by default:** Books use SQLCipher; the encryption key is generated locally and, when the OS allows, stored via Electron [`safeStorage`](https://www.electronjs.org/docs/latest/api/safe-storage) (macOS Keychain / Windows DPAPI) — not as plaintext in app settings.
-- **Cloud is additive:** Sign-in and Pro features (bank feeds, optional MFA-protected key recovery) layer on top; offline work remains possible without cloud dependency.
+- **Plaintext ledger (MVP):** Books are standard SQLite files on disk. Protect them with **OS full-disk encryption** (FileVault, BitLocker, etc.) and **backups you control**. LiveBooks does not cloud-host your full ledger.
+- **Cloud is additive:** Sign-in and Pro features (bank feeds, MFA-protected Plaid linking) layer on top; offline work remains possible without cloud dependency.
 - **Distinct from upstream:** LiveBooks extends [Frappe Books](https://github.com/frappe/books) for US workflows and security boundaries documented in this repo — not a drop-in replacement for every upstream deployment pattern.
 
 ### Security posture (summary)
 
-| Topic                | Behavior                                                                                                                                                 |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SQLCipher ledger     | 256-bit hex key; main process only ([`databaseKeyStore.ts`](utils/databaseKeyStore.ts))                                                                  |
-| Per-account keys     | Namespaced by cloud user id or `local_{uuid}` for offline-created books                                                                                  |
-| Connect vs create    | **No** auto re-key on decrypt failure — routes to Recovery Mode                                                                                          |
-| Cloud session tokens | Encrypted via `safeStorage` when available; packaged builds refuse plaintext persistence ([`secureTokenStore.ts`](utils/secureTokenStore.ts))            |
-| Sensitive cloud APIs | Escrow / MFA / recovery paths blocked from renderer IPC ([`cloudApiDenylist.ts`](utils/cloudApiDenylist.ts))                                             |
-| Pro key backup       | MFA-gated retrieval; **not** zero-knowledge — see [`SECURITY.md`](SECURITY.md)                                                                           |
-| Code signing         | Frozen bundle id `io.livebooks.desktop`; unsigned→signed install may require cloud recovery ([`docs/signing-qa-runbook.md`](docs/signing-qa-runbook.md)) |
+| Topic                | Behavior                                                                                                                                                    |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local ledger         | Plaintext SQLite (`.books`); rely on OS FDE + user backups — see [`SECURITY.md`](SECURITY.md)                                                               |
+| Cloud session tokens | Encrypted via `safeStorage` when available; packaged builds refuse plaintext persistence ([`secureTokenStore.ts`](utils/secureTokenStore.ts))               |
+| Sensitive cloud APIs | MFA setup/confirm blocked from renderer IPC ([`cloudApiDenylist.ts`](utils/cloudApiDenylist.ts))                                                            |
+| Plaid (Pro)          | Tokens held and encrypted on LiveBooks Cloud; MFA required for sensitive actions                                                                            |
+| Code signing         | Frozen bundle id `io.livebooks.desktop`; signing-identity changes may require cloud re-sign-in ([`docs/signing-qa-runbook.md`](docs/signing-qa-runbook.md)) |
 
-Full threat model, IPC denylist, and breach response: **[`SECURITY.md`](SECURITY.md)**.
+Full threat model, IPC denylist, and future encryption re-entry: **[`SECURITY.md`](SECURITY.md)**.
 
 ### Under the hood
 
 - **Vue.js**: Reactive, component-based UI.
 - **Electron**: Desktop packaging for Windows, macOS, and Linux.
-- **SQLite** ([`better-sqlite3-multiple-ciphers`](https://www.npmjs.com/package/better-sqlite3-multiple-ciphers)): Local-first ledger in an SQLite file on the machine. When encryption is enabled, the file is encrypted at rest; a per-device 256-bit key (64 hex characters) is generated locally and, when Electron [`safeStorage`](https://www.electronjs.org/docs/latest/api/safe-storage) is available, that key material is encrypted before persistence via **electron-store** (see [`utils/databaseKeyStore.ts`](utils/databaseKeyStore.ts)). Opening the database applies the key in the main process before any ledger queries run.
+- **SQLite** ([`better-sqlite3`](https://www.npmjs.com/package/better-sqlite3)): Local-first ledger in an SQLite file on the machine. The MVP stores company files as plaintext SQLite; enable OS full-disk encryption on the host for at-rest protection.
 
-**Handoff to accountants:** Use built-in **reports** (CSV/PDF and on-screen statements such as trial balance, profit and loss, balance sheet, and general ledger views)—the supported path for sharing financials with a CPA who does not use LiveBooks. Delivering a raw plaintext copy of the SQLite file is not the primary workflow.
+**Handoff to accountants:** Use built-in **reports** (CSV/PDF and on-screen statements such as trial balance, profit and loss, balance sheet, and general ledger views)—the supported path for sharing financials with a CPA who does not use LiveBooks.
 
 ---
 
@@ -111,7 +109,7 @@ By default this targets your current OS and architecture. For other targets, see
 
 - **API origin:** Set **`LIVEBOOKS_CLOUD_ORIGIN`** and **`VITE_LIVEBOOKS_CLOUD_ORIGIN`** to the same production base URL (no trailing slash) when producing binaries for end users. The [Publish](.github/workflows/publish.yml) workflow passes both from repository secret **`LIVEBOOKS_CLOUD_ORIGIN`**; if that secret is unset, the build still defaults to `http://127.0.0.1:3000` (suitable for local packaging only).
 - **Auto-updates:** Prerelease channels are **off** by default (`electron-updater`). For internal QA builds that should consume GitHub prereleases, set environment variable **`LIVEBOOKS_UPDATER_ALLOW_PRERELEASE=1`** (or `true`) when launching the app or when wrapping the packaged binary.
-- **Data encryption & session security:** See **Security posture** above. In **packaged** builds, refresh tokens are **not** written in plaintext when `safeStorage` is unavailable — you re-authenticate each launch. **Dev** (`yarn dev`) may use plaintext token fallback so contributors are not blocked.
+- **Session security:** See **Security posture** above. In **packaged** builds, refresh tokens are **not** written in plaintext when `safeStorage` is unavailable — you re-authenticate each launch. **Dev** (`yarn dev`) may use plaintext token fallback so contributors are not blocked.
 - **Day-1 verification:** `yarn test:day1` runs automated checks; pre-GA signing QA is in [`docs/signing-qa-runbook.md`](docs/signing-qa-runbook.md).
 
 ---
