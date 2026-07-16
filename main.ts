@@ -9,16 +9,13 @@ import {
   app,
   BrowserWindow,
   BrowserWindowConstructorOptions,
-  nativeImage,
   protocol,
   ProtocolRequest,
   ProtocolResponse,
   session,
 } from 'electron';
 import { autoUpdater } from 'electron-updater';
-import { execFileSync } from 'child_process';
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 import registerAppLifecycleListeners from './main/registerAppLifecycleListeners';
 import registerAutoUpdaterListeners from './main/registerAutoUpdaterListeners';
@@ -133,69 +130,12 @@ export class Main {
   }
 
   /**
-   * macOS: set Dock icon as early as possible when creating a window.
-   * Packaged apps ship `Contents/Resources/icon.icns` (see electron-builder);
-   * dev runs use repo `LiveBooks.icns` / PNG fallbacks.
+   * Dock icon comes from the .app bundle (`icon.icns` packaged, branded
+   * `Electron.app` in dev via `brandElectronAppForDevMac`). Never call
+   * `dock.setIcon` — it reseats the tile and often inflates icon size.
    */
   setMacDockIcon(): void {
-    if (!this.isMac || !app.dock) {
-      return;
-    }
-
-    if (app.isPackaged) {
-      const bundledIcns = path.join(process.resourcesPath, 'icon.icns');
-      if (fs.existsSync(bundledIcns)) {
-        try {
-          app.dock.setIcon(path.resolve(bundledIcns));
-          return;
-        } catch {
-          /* fall through */
-        }
-      }
-    }
-
-    const projectRoot = path.resolve(path.join(__dirname, '..', '..'));
-    const icnsCandidates = [
-      path.join(projectRoot, 'LiveBooks.icns'),
-      path.join(projectRoot, 'build', 'LiveBooks.icns'),
-    ];
-    const icns = icnsCandidates.find((p) => fs.existsSync(p));
-
-    if (icns) {
-      const icnsAbs = path.resolve(icns);
-      try {
-        app.dock.setIcon(icnsAbs);
-        return;
-      } catch {
-        const rasterPath = rasterizeIcnsToTempPng(icnsAbs);
-        if (rasterPath) {
-          try {
-            const img = nativeImage.createFromPath(rasterPath);
-            if (!img.isEmpty()) {
-              app.dock.setIcon(img);
-              return;
-            }
-          } catch {
-            /* fall through */
-          } finally {
-            try {
-              fs.unlinkSync(rasterPath);
-            } catch {
-              /* ignore */
-            }
-          }
-        }
-      }
-    }
-
-    try {
-      const img = nativeImage.createFromPath(path.resolve(this.icon));
-      if (!img.isEmpty()) {
-        app.dock.setIcon(img);
-      }
-    } catch {
-      /* ignore */
-    }
+    /* intentionally no-op */
   }
 
   get isDevelopment() {
@@ -383,21 +323,6 @@ export class Main {
         this.toggleRendererDevTools()
       );
     }
-  }
-}
-
-function rasterizeIcnsToTempPng(icnsPath: string): string | null {
-  const out = path.join(os.tmpdir(), `livebooks-dock-${process.pid}.png`);
-  try {
-    if (fs.existsSync(out)) {
-      fs.unlinkSync(out);
-    }
-    execFileSync('sips', ['-s', 'format', 'png', icnsPath, '--out', out], {
-      stdio: 'ignore',
-    });
-    return fs.existsSync(out) ? out : null;
-  } catch {
-    return null;
   }
 }
 

@@ -241,7 +241,7 @@ export async function fetchPendingImportBatches(
   opts?: {
     plaidAccountId?: string;
     limit?: number;
-    promptTotp?: PromptTotpFn;
+    promptTotp?: MfaStepUpPrompt;
   }
 ): Promise<{
   batches: ImportBatchListRow[];
@@ -287,7 +287,7 @@ export async function fetchPendingImportBatches(
 export async function fetchImportBatchPayload(
   bookId: string,
   publicId: string,
-  opts?: { promptTotp?: PromptTotpFn }
+  opts?: { promptTotp?: MfaStepUpPrompt }
 ): Promise<{
   payload: unknown;
   error?: string;
@@ -334,7 +334,7 @@ export type BulkImportBatchPayloadRow = {
 export async function bulkFetchImportBatchPayloads(
   bookId: string,
   publicIds: string[],
-  opts?: { promptTotp?: PromptTotpFn }
+  opts?: { promptTotp?: MfaStepUpPrompt }
 ): Promise<{
   batches: BulkImportBatchPayloadRow[];
   error?: string;

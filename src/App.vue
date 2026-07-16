@@ -176,33 +176,35 @@ export default defineComponent({
     try {
       pendingDbPath = this.prepareInitialScreen();
     } catch {
-      if (this.activeScreen === null) {
-        this.activeScreen = Screen.DatabaseSelector;
-      }
-    } finally {
-      if (!pendingDbPath) {
-        await nextTick();
-        await waitForNextPaint();
-        await dismissBootSplash(0, splashStarted);
-        markSplashDismissed();
-        markSetInitialScreenEnd();
-      }
-      if (this.activeScreen === null) {
-        this.activeScreen = Screen.DatabaseSelector;
-      }
+      pendingDbPath = null;
     }
 
-    if (pendingDbPath) {
+    // No saved company file → company select (never keep splash waiting).
+    if (!pendingDbPath) {
+      this.activeScreen = Screen.DatabaseSelector;
+      await nextTick();
+      await waitForNextPaint();
+      await dismissBootSplash(0, splashStarted);
+      markSplashDismissed();
+      markSetInitialScreenEnd();
+    } else {
+      // Dismiss splash before auto-open so access/DB dialogs are not trapped
+      // under the full-screen overlay (which looked like a hang with no errors).
       setBootSplashSubtitle('Loading your workspace…');
+      await nextTick();
+      await waitForNextPaint();
+      await dismissBootSplash(0, splashStarted);
+      markSplashDismissed();
       try {
         await this.fileSelected(pendingDbPath);
       } catch (error) {
         await handleErrorWithDialog(error, undefined, true, true);
         await this.showDbSelector();
       } finally {
-        await dismissBootSplash(0, splashStarted);
-        markSplashDismissed();
         markSetInitialScreenEnd();
+        if (this.activeScreen === null) {
+          this.activeScreen = Screen.DatabaseSelector;
+        }
       }
     }
 
@@ -216,15 +218,17 @@ export default defineComponent({
   methods: {
     prepareInitialScreen(): string | null {
       const lastSelectedFilePath = fyo.config.get('lastSelectedFilePath', null);
-      this.activeScreen = Screen.DatabaseSelector;
 
       if (
         typeof lastSelectedFilePath !== 'string' ||
         !lastSelectedFilePath.length
       ) {
+        this.activeScreen = Screen.DatabaseSelector;
         return null;
       }
 
+      // Keep selector as the fallback screen until Desk/SetupWizard takes over.
+      this.activeScreen = Screen.DatabaseSelector;
       return lastSelectedFilePath;
     },
     async setSearcher(): Promise<void> {

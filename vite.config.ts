@@ -1,6 +1,7 @@
 import vue from '@vitejs/plugin-vue';
 import path from 'path';
 import { defineConfig } from 'vite';
+import { isProductionCloudOrigin } from './utils/livebooksCloudOrigin';
 
 /**
  * This vite config file is used only for dev mode, i.e.
@@ -18,10 +19,15 @@ export default () => {
     host = process.env.VITE_HOST;
   }
 
-  const livebooksCloudOrigin =
+  // Dev server only. Never bake production Cloud into yarn dev,
+  // even if LIVEBOOKS_CLOUD_ORIGIN is set in the environment.
+  const fromEnv =
     process.env.VITE_LIVEBOOKS_CLOUD_ORIGIN ||
     process.env.LIVEBOOKS_CLOUD_ORIGIN ||
     'http://127.0.0.1:3000';
+  const livebooksCloudOrigin = isProductionCloudOrigin(fromEnv)
+    ? 'http://127.0.0.1:3000'
+    : fromEnv;
 
   return defineConfig({
     define: {

@@ -15,8 +15,6 @@
         {{ bookError }}
       </div>
 
-      <PlaidBankSyncMfaBanner @verified="onBankSyncMfaVerified" />
-
       <div
         v-if="accountsLoading || feedsLoading"
         class="text-sm text-gray-600 dark:text-gray-400"
@@ -228,17 +226,12 @@ import {
   type ImportBatchListRow,
   type PlaidFeedItemRow,
 } from 'src/utils/plaidBankFeedsApi';
-import {
-  ensureNotificationPermission,
-  notifyNewBatches,
-} from 'src/utils/desktopNotifications';
+import { refreshFeedsNow } from 'src/utils/plaidBackgroundSync';
 import {
   fetchPlaidLinkedAccounts,
   formatPlaidAccountLabel as formatPlaidLinkedRowLabel,
   type PlaidLinkedAccountRow,
 } from 'src/utils/plaidLinkedAccountsApi';
-import PlaidBankSyncMfaBanner from 'src/components/PlaidBankSyncMfaBanner.vue';
-import { isBankSyncMfaPaused } from 'src/utils/plaidBankSyncMfaGate';
 import { routeTo } from 'src/utils/ui';
 import { isCredit } from 'models/helpers';
 import { AccountTypeEnum } from 'models/baseModels/Account/types';
@@ -285,26 +278,23 @@ type BankTable = {
 
 export default defineComponent({
   name: 'BankFeedHub',
-  components: { PageHeader, Button, PlaidBankSyncMfaBanner },
+  components: { PageHeader, Button },
   data() {
     return {
       bookId: '' as string,
       bookError: '' as string,
-      plaidLinkBusy: false,
       feedsLoading: false,
       feedsError: '' as string,
       feedItems: [] as PlaidFeedItemRow[],
       feedsEtag: undefined as string | undefined,
+      plaidLinkBusy: false,
       expandedItemId: null as string | null,
       batchesForExpanded: [] as ImportBatchListRow[],
       batchListLoading: false,
       batchListError: '' as string,
       previewByBatch: {} as Record<string, PreviewState>,
-      pollTimer: null as ReturnType<typeof setTimeout> | null,
       boundVisibility: null as (() => void) | null,
       boundCloudSessionRefresh: null as (() => void) | null,
-      lastPendingByItem: {} as Record<string, number>,
-      notificationPermissionRequested: false,
       chartBankAccounts: [] as {
         name: string;
         accountName?: string;
@@ -330,14 +320,6 @@ export default defineComponent({
     };
   },
   computed: {
-    pollIntervalMs(): number {
-      const any =
-        this.feedItems.some(
-          (i) =>
-            i.pending_import_batches_count > 0 || i.sync_suggested === true
-        ) ?? false;
-      return any ? 30_000 : 90_000;
-    },
     feedByItem(): Record<string, PlaidFeedItemRow> {
       return feedItemById(this.feedItems);
     },
@@ -443,6 +425,14 @@ export default defineComponent({
       return tables;
     },
   },
+  watch: {
+    feedItems: {
+      handler() {
+        void this.prefetchLinkedForAllItems();
+      },
+      deep: true,
+    },
+  },
   mounted() {
     void this.bootstrapAccounts();
     void this.bootstrapFeeds();
@@ -451,9 +441,8 @@ export default defineComponent({
     };
     document.addEventListener('visibilitychange', this.boundVisibility);
     this.boundCloudSessionRefresh = () => {
-      this.clearPoll();
       void this.bootstrapAccounts();
-      void this.bootstrapFeeds();
+      void refreshFeedsNow();
     };
     document.addEventListener(
       LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
@@ -470,7 +459,6 @@ export default defineComponent({
         this.boundCloudSessionRefresh
       );
     }
-    this.clearPoll();
   },
   methods: {
     t,
@@ -871,26 +859,8 @@ export default defineComponent({
     },
     onVisibility() {
       if (!document.hidden) {
-        void this.refreshFeeds(false);
+        void refreshFeedsNow();
       }
-    },
-    clearPoll() {
-      if (this.pollTimer) {
-        clearTimeout(this.pollTimer);
-        this.pollTimer = null;
-      }
-    },
-    schedulePoll() {
-      this.clearPoll();
-      this.pollTimer = setTimeout(() => {
-        if (!document.hidden && !isBankSyncMfaPaused()) {
-          void this.refreshFeeds(true);
-        }
-        this.schedulePoll();
-      }, this.pollIntervalMs);
-    },
-    onBankSyncMfaVerified() {
-      void this.refreshFeeds(false);
     },
     async bootstrapFeeds() {
       const ctx = await ensureLivebooksCloudBookId(fyo);
@@ -907,7 +877,6 @@ export default defineComponent({
       this.bookId = ctx.bookId;
       await this.loadChartBankAccountsForMaps();
       await this.refreshFeeds(false);
-      this.schedulePoll();
     },
     async refreshFeeds(
       useEtag: boolean
@@ -919,7 +888,6 @@ export default defineComponent({
       this.feedsError = '';
       const res = await fetchPlaidFeedsWithStepUp(this.bookId, {
         ifNoneMatch: useEtag ? this.feedsEtag : undefined,
-        // Background polls pause and show PlaidBankSyncMfaBanner instead of a modal.
         promptTotp: useEtag ? null : () => this.promptPlaidTotp(),
       });
       this.feedsLoading = false;
@@ -932,7 +900,6 @@ export default defineComponent({
       }
       if (res.payload) {
         const items = res.payload.items ?? [];
-        this.detectAndNotifyNewBatches(items);
         this.feedItems = items;
         if (res.etag) {
           this.feedsEtag = res.etag;
@@ -940,46 +907,6 @@ export default defineComponent({
         await this.prefetchLinkedForAllItems();
       }
       return { notModified: false, fetchFailed: false };
-    },
-    /**
-     * Compare the new poll's pending counts against the previous snapshot per
-     * Plaid item; if any item's pending grew, fire one OS notification (the
-     * helper rate-limits and gates on `document.hidden`).
-     */
-    detectAndNotifyNewBatches(items: PlaidFeedItemRow[]) {
-      const next: Record<string, number> = {};
-      let anyGrew = false;
-      const grew: Array<{ item: PlaidFeedItemRow; delta: number }> = [];
-      for (const it of items) {
-        const cur = it.pending_import_batches_count ?? 0;
-        next[it.item_id] = cur;
-        const prev = this.lastPendingByItem[it.item_id];
-        if (prev !== undefined && cur > prev) {
-          anyGrew = true;
-          grew.push({ item: it, delta: cur - prev });
-        }
-      }
-      // First poll establishes a baseline without notifying.
-      if (Object.keys(this.lastPendingByItem).length === 0) {
-        this.lastPendingByItem = next;
-        return;
-      }
-      this.lastPendingByItem = next;
-
-      if (!anyGrew) {
-        return;
-      }
-      if (!this.notificationPermissionRequested) {
-        this.notificationPermissionRequested = true;
-        void ensureNotificationPermission();
-      }
-      for (const { item, delta } of grew) {
-        notifyNewBatches({
-          itemId: item.item_id,
-          totalBatchesAdded: delta,
-          institutionName: item.institution_name,
-        });
-      }
     },
     async toggleItem(itemId: string) {
       if (this.expandedItemId === itemId) {

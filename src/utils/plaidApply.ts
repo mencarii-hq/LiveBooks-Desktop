@@ -21,13 +21,29 @@
  */
 
 import { fyo } from 'src/initFyo';
-import { setLastSuccessfulPlaidApplyAt } from 'src/utils/plaidApplyBookmark';
 import { runInDbTransaction } from 'src/utils/runInDbTransaction';
 import {
   ackImportBatch,
+  bulkFetchImportBatchPayloads,
   fetchImportBatchPayload,
+  fetchPendingImportBatches,
   reportPlaidApplyFailed,
 } from 'src/utils/plaidBankFeedsApi';
+import type {
+  ImportBatchListRow,
+  MfaStepUpPrompt,
+} from 'src/utils/plaidBankFeedsApi';
+import { loadPlaidAccountMaps } from 'src/utils/bankFeedHelpers';
+import {
+  evaluatePlaidCatchUp,
+  oldestCreatedAt,
+} from 'src/utils/plaidCatchUpGuard';
+import type { PlaidCatchUpDecision } from 'src/utils/plaidCatchUpGuard';
+import {
+  getLastSuccessfulPlaidApplyAt,
+  setLastSuccessfulPlaidApplyAt,
+} from 'src/utils/plaidApplyBookmark';
+import { setBankSyncMfaPaused } from 'src/utils/plaidBankSyncMfaGate';
 import { ModelNameEnum } from 'models/types';
 import type { Doc } from 'fyo/model/doc';
 
@@ -949,4 +965,224 @@ export async function applyPlaidBatchWithPayload(
 /** Test/recovery helper: returns a snapshot of the in-process apply mutex. */
 export function inflightApplyPublicIds(): ReadonlySet<string> {
   return inflightPublicIds;
+}
+
+type PendingBatch = ImportBatchListRow & { itemId: string };
+
+export type ApplyAllPendingForBookOpts = {
+  background?: boolean;
+  promptTotp?: MfaStepUpPrompt;
+  /** On-page only: skip catch-up guard after explicit user consent. */
+  catchUpOverride?: boolean;
+  /** When set, only apply batches mapped to this chart account. */
+  chartAccount?: string;
+};
+
+export type ApplyAllPendingSummary = {
+  applied: number;
+  mfaPaused: boolean;
+  catchUpBlocked: Extract<PlaidCatchUpDecision, { allow: false }> | null;
+  catchUpWarning?: string;
+  retractedMatched: RetractedMatchedRow[];
+  error?: string;
+};
+
+function pauseBankSyncMfaIfBackground(opts: ApplyAllPendingForBookOpts): void {
+  if (opts.background || opts.promptTotp === null) {
+    setBankSyncMfaPaused(true);
+  }
+}
+
+async function loadPendingBatchesForBook(
+  bookId: string,
+  maps: { plaidItemId: string; plaidAccountId: string; chartAccount: string }[],
+  opts: ApplyAllPendingForBookOpts
+): Promise<{
+  batches: PendingBatch[];
+  mfaPaused: boolean;
+  lastError?: string;
+}> {
+  const promptTotp = opts.promptTotp ?? undefined;
+  const seen = new Set<string>();
+  const out: PendingBatch[] = [];
+  for (const m of maps) {
+    const { batches, error, totpRequired } = await fetchPendingImportBatches(
+      bookId,
+      m.plaidItemId,
+      {
+        plaidAccountId: m.plaidAccountId,
+        limit: 30,
+        promptTotp,
+      }
+    );
+    if (totpRequired) {
+      pauseBankSyncMfaIfBackground(opts);
+      return { batches: [], mfaPaused: true, lastError: error };
+    }
+    if (error) {
+      return { batches: [], mfaPaused: false, lastError: error };
+    }
+    for (const b of batches) {
+      if (seen.has(b.public_id)) {
+        continue;
+      }
+      seen.add(b.public_id);
+      out.push({ ...b, itemId: m.plaidItemId });
+    }
+  }
+  return { batches: out, mfaPaused: false };
+}
+
+function isBatchMapped(
+  b: PendingBatch,
+  mappedPlaidAccountIds: Set<string>
+): boolean {
+  const aid = b.plaid_account_id;
+  if (!aid) {
+    return true;
+  }
+  return mappedPlaidAccountIds.has(`${b.itemId}\x1f${aid}`);
+}
+
+/**
+ * Apply every pending Plaid batch whose sub-account is mapped, then ack.
+ * Headless: safe for background timers and on-page wrappers alike.
+ */
+export async function applyAllPendingForBook(
+  bookId: string,
+  opts: ApplyAllPendingForBookOpts = {}
+): Promise<ApplyAllPendingSummary> {
+  const promptTotp: MfaStepUpPrompt | undefined =
+    opts.promptTotp === undefined ? undefined : opts.promptTotp;
+  const empty: ApplyAllPendingSummary = {
+    applied: 0,
+    mfaPaused: false,
+    catchUpBlocked: null,
+    retractedMatched: [],
+  };
+
+  let maps = await loadPlaidAccountMaps();
+  if (opts.chartAccount) {
+    maps = maps.filter((m) => m.chartAccount === opts.chartAccount);
+  }
+  if (!maps.length) {
+    return empty;
+  }
+
+  const mappedPlaidAccountIds = new Set(
+    maps.map((m) => `${m.plaidItemId}\x1f${m.plaidAccountId}`)
+  );
+
+  const loaded = await loadPendingBatchesForBook(bookId, maps, opts);
+  if (loaded.mfaPaused) {
+    return {
+      ...empty,
+      mfaPaused: true,
+      error: loaded.lastError,
+    };
+  }
+  if (loaded.lastError) {
+    return { ...empty, error: loaded.lastError };
+  }
+
+  const pending = loaded.batches;
+  if (!pending.length) {
+    return empty;
+  }
+
+  let catchUpWarning: string | undefined;
+  if (!opts.catchUpOverride) {
+    const last = await getLastSuccessfulPlaidApplyAt(fyo);
+    const decision = evaluatePlaidCatchUp({
+      lastSuccessfulPlaidApplyAt: last,
+      oldestPendingCreatedAt: oldestCreatedAt(pending.map((b) => b.created_at)),
+      pendingBatchCount: pending.length,
+    });
+    if (!decision.allow) {
+      return { ...empty, catchUpBlocked: decision };
+    }
+    catchUpWarning = decision.warning;
+  }
+
+  const applicable = pending.filter((b) =>
+    isBatchMapped(b, mappedPlaidAccountIds)
+  );
+  if (!applicable.length) {
+    return empty;
+  }
+
+  const retractedMatched: RetractedMatchedRow[] = [];
+  let applied = 0;
+  let error: string | undefined;
+  const BULK_CAP = 30;
+
+  for (let i = 0; i < applicable.length; i += BULK_CAP) {
+    const slice = applicable.slice(i, i + BULK_CAP);
+    const ids = slice.map((b) => b.public_id);
+    const itemIdByPublicId = new Map(slice.map((b) => [b.public_id, b.itemId]));
+    const {
+      batches,
+      error: bulkErr,
+      totpRequired,
+    } = await bulkFetchImportBatchPayloads(bookId, ids, { promptTotp });
+    if (totpRequired) {
+      pauseBankSyncMfaIfBackground(opts);
+      return {
+        applied,
+        mfaPaused: true,
+        catchUpBlocked: null,
+        retractedMatched,
+        error: bulkErr,
+      };
+    }
+
+    const applyOutcome = async (
+      publicId: string,
+      itemId: string,
+      payload?: Record<string, unknown>
+    ) => {
+      const outcome = payload
+        ? await applyPlaidBatchWithPayload(bookId, publicId, itemId, payload)
+        : await applyPlaidBatch(bookId, publicId, itemId);
+      if (outcome.ok) {
+        applied += 1;
+        if (outcome.retractedMatched.length) {
+          retractedMatched.push(...outcome.retractedMatched);
+        }
+      } else if (outcome.reason !== 'already_inflight' && outcome.message) {
+        error = outcome.message;
+      }
+    };
+
+    if (bulkErr || !batches.length) {
+      for (const b of slice) {
+        await applyOutcome(b.public_id, b.itemId);
+      }
+      continue;
+    }
+
+    const found = new Set(batches.map((r) => r.public_id));
+    for (const row of batches) {
+      const itemId = itemIdByPublicId.get(row.public_id);
+      if (!itemId) {
+        continue;
+      }
+      await applyOutcome(row.public_id, itemId, row.payload);
+    }
+    for (const b of slice) {
+      if (found.has(b.public_id)) {
+        continue;
+      }
+      await applyOutcome(b.public_id, b.itemId);
+    }
+  }
+
+  return {
+    applied,
+    mfaPaused: false,
+    catchUpBlocked: null,
+    catchUpWarning,
+    retractedMatched,
+    error,
+  };
 }

@@ -3,8 +3,20 @@ import { showSidebar } from 'src/utils/refs';
 import { toggleSidebar } from 'src/utils/ui';
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { runApplyJournalRecovery } from 'src/utils/plaidApplyRecovery';
+import {
+  notifyPlaidBackgroundMfaVerified,
+  startPlaidBackgroundSync,
+  stopPlaidBackgroundSync,
+} from 'src/utils/plaidBackgroundSync';
+import PlaidBankSyncMfaBanner from 'src/components/PlaidBankSyncMfaBanner.vue';
+import PlaidSyncStatusBanner from 'src/components/PlaidSyncStatusBanner.vue';
+import Sidebar from '../components/Sidebar.vue';
 
 const emit = defineEmits(['change-db-file']);
+
+defineProps({
+  darkMode: { type: Boolean, default: false },
+});
 
 const SIDEBAR_WIDTH_STORAGE_KEY = 'livebooks-sidebar-width-pct';
 const SIDEBAR_MIN_PCT = 10;
@@ -111,15 +123,19 @@ function onWindowResize() {
 
 let applyRecoveryTimer: ReturnType<typeof setTimeout> | null = null;
 
+function onPlaidMfaVerified() {
+  notifyPlaidBackgroundMfaVerified();
+}
+
 onMounted(() => {
   void nextTick(() => syncSidebarCssVar());
   window.addEventListener('resize', onWindowResize);
 
-  // Background sweep over PlaidBatchApplyJournal orphans. Delayed so it never
-  // contends with the first paint of the desk shell; intentionally not awaited.
   applyRecoveryTimer = setTimeout(() => {
     void runApplyJournalRecovery();
   }, 2000);
+
+  startPlaidBackgroundSync();
 });
 
 onUnmounted(() => {
@@ -130,6 +146,7 @@ onUnmounted(() => {
     clearTimeout(applyRecoveryTimer);
     applyRecoveryTimer = null;
   }
+  stopPlaidBackgroundSync();
 });
 
 watch([showSidebar, sidebarWidthPct], () => {
@@ -186,20 +203,24 @@ watch([showSidebar, sidebarWidthPct], () => {
 
     <div
       class="
-        flex flex-1
+        flex flex-1 flex-col
         overflow-y-hidden
         custom-scroll custom-scroll-thumb1
         bg-white
         dark:bg-gray-875
       "
     >
+      <div class="shrink-0 px-4 pt-2">
+        <PlaidBankSyncMfaBanner @verified="onPlaidMfaVerified" />
+        <PlaidSyncStatusBanner />
+      </div>
       <router-view v-slot="{ Component }">
         <keep-alive>
           <component
             :is="Component"
             :key="$route.path"
             :dark-mode="darkMode"
-            class="flex-1"
+            class="flex-1 min-h-0"
           />
         </keep-alive>
       </router-view>
@@ -217,7 +238,6 @@ watch([showSidebar, sidebarWidthPct], () => {
       </router-view>
     </div>
 
-    <!-- Show Sidebar Button -->
     <button
       v-show="!showSidebar"
       class="
@@ -241,19 +261,6 @@ watch([showSidebar, sidebarWidthPct], () => {
     </button>
   </div>
 </template>
-<script lang="ts">
-import { defineComponent } from 'vue';
-import Sidebar from '../components/Sidebar.vue';
-export default defineComponent({
-  name: 'Desk',
-  components: {
-    Sidebar,
-  },
-  props: {
-    darkMode: { type: Boolean, default: false },
-  },
-});
-</script>
 
 <style scoped>
 .sidebar-enter-from,
@@ -274,7 +281,6 @@ export default defineComponent({
 }
 </style>
 
-<!-- While dragging, force resize cursor above any nested cursor (links, inputs, etc.). -->
 <style>
 html.desk-sidebar-resizing,
 html.desk-sidebar-resizing * {

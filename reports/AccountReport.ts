@@ -27,6 +27,7 @@ import {
 } from 'reports/types';
 import { Field } from 'schemas/types';
 import { getMapFromList } from 'utils';
+import { accountDisplayName } from 'utils/accountDisplay';
 import { QueryFilter } from 'utils/db/types';
 
 export const ACC_NAME_WIDTH = 2;
@@ -116,7 +117,7 @@ export abstract class AccountReport extends LedgerReport {
 
   getRowFromAccountListNode(al: AccountListNode) {
     const nameCell = {
-      value: al.name,
+      value: accountDisplayName(al),
       rawValue: al.name,
       align: 'left',
       width: ACC_NAME_WIDTH,
@@ -209,10 +210,11 @@ export abstract class AccountReport extends LedgerReport {
 
     const accountList: Account[] = (
       await this.fyo.db.getAllRaw('Account', {
-        fields: ['name', 'rootType', 'isGroup', 'parentAccount'],
+        fields: ['name', 'accountName', 'rootType', 'isGroup', 'parentAccount'],
       })
     ).map((rv) => ({
       name: rv.name as string,
+      accountName: rv.accountName as string | null,
       rootType: rv.rootType as AccountRootType,
       isGroup: Boolean(rv.isGroup),
       parentAccount: rv.parentAccount as string | null,
@@ -615,6 +617,7 @@ function pushToAccountList(
 ) {
   accountList.push({
     name: accountTreeNode.name,
+    accountName: accountTreeNode.accountName,
     rootType: accountTreeNode.rootType,
     isGroup: accountTreeNode.isGroup,
     parentAccount: accountTreeNode.parentAccount,

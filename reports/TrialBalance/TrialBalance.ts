@@ -27,6 +27,7 @@ import {
   ValueMap,
 } from 'reports/types';
 import { Field } from 'schemas/types';
+import { accountDisplayName } from 'utils/accountDisplay';
 import { QueryFilter } from 'utils/db/types';
 
 export class TrialBalance extends AccountReport {
@@ -153,7 +154,7 @@ export class TrialBalance extends AccountReport {
 
   getRowFromAccountListNode(al: AccountListNode) {
     const nameCell = {
-      value: al.name,
+      value: accountDisplayName(al),
       rawValue: al.name,
       align: 'left',
       width: ACC_NAME_WIDTH,

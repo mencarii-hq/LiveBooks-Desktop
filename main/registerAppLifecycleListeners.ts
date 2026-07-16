@@ -14,6 +14,20 @@ import {
 import { configureDevelopmentShell } from './setupDevelopmentShell';
 
 export default function registerAppLifecycleListeners(main: Main) {
+  if (!app.requestSingleInstanceLock()) {
+    app.quit();
+    process.exit(0);
+  }
+
+  app.on('second-instance', () => {
+    if (main.mainWindow && !main.mainWindow.isDestroyed()) {
+      if (main.mainWindow.isMinimized()) {
+        main.mainWindow.restore();
+      }
+      main.mainWindow.focus();
+    }
+  });
+
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
       app.quit();

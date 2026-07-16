@@ -77,6 +77,7 @@ export type ValueMap = Map<DateRange, Record<string, number>>;
 
 export interface Account {
   name: string;
+  accountName?: string | null;
   rootType: AccountRootType;
   isGroup: boolean;
   parentAccount: string | null;

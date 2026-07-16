@@ -29,11 +29,15 @@ export function livebooksDesktopShellDisplayName(
   return livebooksDesktopDisplayName(appEnv, pro);
 }
 
+/** Dock / Electron.app CFBundleName for unpackaged macOS `yarn dev` runs. */
+export const LIVEBOOKS_DESKTOP_DEV_BUNDLE_NAME = 'livebooks-desktop-dev';
+
 /**
- * macOS dev runs may set app name for menu bar; packaged builds keep frozen name.
+ * macOS unpackaged: align menu-bar name with branded Electron.app Dock name.
+ * Packaged builds keep the frozen product name.
  */
 export function applyMacShellDisplayName(appEnv: LivebooksAppEnv): void {
   if (!app.isPackaged && appEnv === 'development') {
-    app.setName(livebooksDesktopShellDisplayName(appEnv));
+    app.setName(LIVEBOOKS_DESKTOP_DEV_BUNDLE_NAME);
   }
 }

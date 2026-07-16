@@ -56,7 +56,7 @@ const liveBooksConfig = {
     type: 'distribution',
     artifactName: '${productName}-v${version}-mac-${arch}.${ext}',
     category: 'public.app-category.finance',
-    icon: 'LiveBooks.icns',
+    icon: 'build/LiveBooks.icns',
     notarize: {
       teamId: process.env.APPLE_TEAM_ID || '',
     },

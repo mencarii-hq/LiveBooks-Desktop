@@ -97,7 +97,7 @@ if (viteProcess) {
  * Build once and run electron before setting file watcher
  */
 await handleResult(await ctx.rebuild());
-copyCreditsIntoElectronMac();
+brandElectronAppForDevMac();
 electronProcess = runElectron();
 
 /**
@@ -114,7 +114,7 @@ fswatcher.on('change', async (path) => {
   if (electronProcess) {
     isReload = true;
     electronProcess.kill();
-    copyCreditsIntoElectronMac();
+    brandElectronAppForDevMac();
     electronProcess = runElectron();
   }
 });
@@ -136,45 +136,90 @@ async function handleResult(result) {
 }
 
 /**
- * macOS About panel loads `Credits.html` from the *Electron.app* bundle Resources.
- * Copy our centered credits there in dev so unpackaged runs match production.
+ * macOS unpackaged runs: brand a *copy* of Electron.app as livebooks-desktop-dev.app
+ * so the Dock tooltip uses that name. Editing CFBundleName on Electron.app alone is
+ * not enough — Dock still labels the tile from the .app folder name.
  */
-function copyCreditsIntoElectronMac() {
+function brandElectronAppForDevMac() {
   if (process.platform !== 'darwin') {
     return;
   }
 
-  const resourcesDir = path.join(
+  const distDir = path.join(root, 'node_modules', 'electron', 'dist');
+  const electronApp = path.join(distDir, 'Electron.app');
+  const brandedApp = path.join(distDir, 'livebooks-desktop-dev.app');
+  const bundleName = 'livebooks-desktop-dev';
+
+  if (!fs.existsSync(electronApp)) {
+    console.warn(`dev: Electron.app not found at ${electronApp}`);
+    return;
+  }
+
+  // Refresh branded copy from stock Electron.app (icon/name applied after).
+  fs.rmSync(brandedApp, { recursive: true, force: true });
+  spawnSync('ditto', [electronApp, brandedApp], { stdio: 'inherit' });
+
+  const resourcesDir = path.join(brandedApp, 'Contents', 'Resources');
+  const plistPath = path.join(brandedApp, 'Contents', 'Info.plist');
+
+  const creditsSrc = path.join(root, 'build', 'Credits.html');
+  if (fs.existsSync(creditsSrc)) {
+    fs.copyFileSync(creditsSrc, path.join(resourcesDir, 'Credits.html'));
+  }
+
+  const icnsSrc = [
+    path.join(root, 'build', 'LiveBooks.icns'),
+    path.join(root, 'LiveBooks.icns'),
+  ].find((candidate) => fs.existsSync(candidate));
+  if (icnsSrc) {
+    fs.copyFileSync(icnsSrc, path.join(resourcesDir, 'electron.icns'));
+  } else {
+    console.warn('dev: LiveBooks.icns not found; Dock will keep Electron icon');
+  }
+
+  const pb = '/usr/libexec/PlistBuddy';
+  if (fs.existsSync(pb)) {
+    const setOrAdd = (key, value) => {
+      const set = spawnSync(pb, ['-c', `Set :${key} ${value}`, plistPath]);
+      if (set.status !== 0) {
+        spawnSync(pb, ['-c', `Add :${key} string ${value}`, plistPath]);
+      }
+    };
+    setOrAdd('CFBundleName', bundleName);
+    setOrAdd('CFBundleDisplayName', bundleName);
+  }
+
+  const lsregister =
+    '/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister';
+  if (fs.existsSync(lsregister)) {
+    spawnSync(lsregister, ['-f', brandedApp]);
+  }
+
+  console.log(`dev: branded ${bundleName}.app for Dock`);
+}
+
+
+
+function runElectron() {
+  const mainEntry = path.join(root, 'dist_electron', 'dev', 'main.js');
+  const inspectArgs = ['--inspect=5858', mainEntry];
+
+  // Prefer the renamed macOS app so Dock tooltip is livebooks-desktop-dev.
+  const brandedBinary = path.join(
     root,
     'node_modules',
     'electron',
     'dist',
-    'Electron.app',
+    'livebooks-desktop-dev.app',
     'Contents',
-    'Resources'
+    'MacOS',
+    'Electron'
   );
-  const src = path.join(root, 'build', 'Credits.html');
-  const dest = path.join(resourcesDir, 'Credits.html');
 
-  if (!fs.existsSync(src)) {
-    console.warn(`dev: Credits.html not found at ${src}`);
-    return;
-  }
-  if (!fs.existsSync(resourcesDir)) {
-    console.warn(`dev: Electron Resources not found at ${resourcesDir}`);
-    return;
-  }
-
-  fs.copyFileSync(src, dest);
-}
-
-function runElectron() {
-  const electronProcess = $$`npx electron --inspect=5858 ${path.join(
-    root,
-    'dist_electron',
-    'dev',
-    'main.js'
-  )}`;
+  const electronProcess =
+    process.platform === 'darwin' && fs.existsSync(brandedBinary)
+      ? $$`${brandedBinary} ${inspectArgs}`
+      : $$`npx electron ${inspectArgs}`;
 
   electronProcess.on('close', async () => {
     if (isReload) {
@@ -186,3 +231,4 @@ function runElectron() {
 
   return electronProcess;
 }
+

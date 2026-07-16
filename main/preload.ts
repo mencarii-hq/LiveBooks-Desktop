@@ -6,7 +6,6 @@ import type {
 } from 'electron';
 import { contextBridge, ipcRenderer, webFrame } from 'electron';
 import type { ConfigMap } from 'fyo/core/types';
-import config from 'utils/config';
 import type { DatabaseMethod } from 'utils/db/types';
 import type { BackendResponse } from 'utils/ipc/types';
 import { IPC_ACTIONS, IPC_CHANNELS, IPC_MESSAGES } from 'utils/messages';
@@ -295,15 +294,17 @@ const ipc = {
 
   store: {
     get<K extends keyof ConfigMap>(key: K) {
-      return config.get(key);
+      return ipcRenderer.sendSync(IPC_MESSAGES.STORE_GET, key) as
+        | ConfigMap[K]
+        | undefined;
     },
 
     set<K extends keyof ConfigMap>(key: K, value: ConfigMap[K]) {
-      return config.set(key, value);
+      ipcRenderer.sendSync(IPC_MESSAGES.STORE_SET, key, value);
     },
 
     delete(key: keyof ConfigMap) {
-      return config.delete(key);
+      ipcRenderer.sendSync(IPC_MESSAGES.STORE_DELETE, key);
     },
   },
 } as const;

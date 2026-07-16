@@ -12,6 +12,9 @@ export enum IPC_MESSAGES {
   ISFULLSCREEN_MAIN_WINDOW = 'isfullscreen-main-window',
   ISFULLSCREEN_RESULT = 'isfullscreen-result',
   CLOSE_MAIN_WINDOW = 'close-main-window',
+  STORE_GET = 'store-get',
+  STORE_SET = 'store-set',
+  STORE_DELETE = 'store-delete',
 }
 
 // ipcRenderer.invoke(...)

@@ -859,9 +859,7 @@ import {
   type PlaidLinkedAccountRow,
 } from 'src/utils/plaidLinkedAccountsApi';
 import {
-  applyPlaidBatch,
-  applyPlaidBatchWithPayload,
-  type PlaidApplyOutcome,
+  applyAllPendingForBook,
   type RetractedMatchedRow,
 } from 'src/utils/plaidApply';
 import { getLastSuccessfulPlaidApplyAt } from 'src/utils/plaidApplyBookmark';
@@ -869,7 +867,6 @@ import {
   evaluatePlaidCatchUp,
   oldestCreatedAt,
 } from 'src/utils/plaidCatchUpGuard';
-import { bulkFetchImportBatchPayloads } from 'src/utils/plaidBankFeedsApi';
 import { promptTotpCode } from 'src/utils/promptTotpCode';
 import {
   categorizeAndAddLine,
@@ -1512,99 +1509,35 @@ export default defineComponent({
       if (!this.bookId || !this.mergedBatches.length) {
         return;
       }
-      if (!(await this.ensurePlaidCatchUpAllowed())) {
-        return;
-      }
-      const applicable = this.mergedBatches.filter(
-        (b) => !this.isBatchUnmapped(b)
-      );
-      if (!applicable.length) {
-        return;
-      }
       this.autoApplyBusy = true;
-      const fresh: RetractedMatchedRow[] = [];
       try {
-        // Bulk-fetch payloads in chunks of 30 (server cap) so a long-offline
-        // catch-up does one POST instead of N GETs.
-        const BULK_CAP = 30;
-        for (let i = 0; i < applicable.length; i += BULK_CAP) {
-          const slice = applicable.slice(i, i + BULK_CAP);
-          const ids = slice.map((b) => b.public_id);
-          const itemIdByPublicId = new Map(
-            slice.map((b) => [b.public_id, b.itemId])
-          );
-          const { batches, error } = await bulkFetchImportBatchPayloads(
-            this.bookId,
-            ids,
-            { promptTotp: () => this.promptBankFeedTotp() }
-          );
-          if (error || !batches.length) {
-            // Fall back to per-batch fetch so a transient bulk failure doesn't
-            // strand the whole catch-up window.
-            for (const b of slice) {
-              const outcome = await applyPlaidBatch(
-                this.bookId,
-                b.public_id,
-                b.itemId
-              );
-              this.collectRetractedFromOutcome(outcome, fresh);
-            }
-            continue;
-          }
-          const found = new Set(batches.map((r) => r.public_id));
-          for (const row of batches) {
-            const itemId = itemIdByPublicId.get(row.public_id);
-            if (!itemId) {
+        const summary = await applyAllPendingForBook(this.bookId, {
+          promptTotp: () => this.promptBankFeedTotp(),
+          catchUpOverride: this.plaidCatchUpOverride,
+          chartAccount: this.accountTitle,
+        });
+        if (summary.catchUpBlocked) {
+          this.plaidCatchUpBlocked = summary.catchUpBlocked;
+          this.plaidCatchUpWarning = '';
+          return;
+        }
+        this.plaidCatchUpBlocked = null;
+        this.plaidCatchUpWarning = summary.catchUpWarning ?? '';
+        if (summary.retractedMatched.length) {
+          const seen = new Set(this.retractedMatched.map((r) => r.externalId));
+          const merged = this.retractedMatched.slice();
+          for (const r of summary.retractedMatched) {
+            if (seen.has(r.externalId)) {
               continue;
             }
-            const outcome = await applyPlaidBatchWithPayload(
-              this.bookId,
-              row.public_id,
-              itemId,
-              row.payload
-            );
-            this.collectRetractedFromOutcome(outcome, fresh);
+            seen.add(r.externalId);
+            merged.push(r);
           }
-          // Anything bulk_show didn't return: best-effort per-batch fetch.
-          for (const b of slice) {
-            if (found.has(b.public_id)) {
-              continue;
-            }
-            const outcome = await applyPlaidBatch(
-              this.bookId,
-              b.public_id,
-              b.itemId
-            );
-            this.collectRetractedFromOutcome(outcome, fresh);
-          }
+          this.retractedMatched = merged;
+          this.retractedBannerDismissed = false;
         }
       } finally {
         this.autoApplyBusy = false;
-      }
-      if (fresh.length) {
-        // Merge into a per-externalId-deduped list so a re-run of an applied
-        // batch doesn't grow the banner forever.
-        const seen = new Set(this.retractedMatched.map((r) => r.externalId));
-        const merged = this.retractedMatched.slice();
-        for (const r of fresh) {
-          if (seen.has(r.externalId)) {
-            continue;
-          }
-          seen.add(r.externalId);
-          merged.push(r);
-        }
-        this.retractedMatched = merged;
-        this.retractedBannerDismissed = false;
-      }
-    },
-    collectRetractedFromOutcome(
-      outcome: PlaidApplyOutcome,
-      sink: RetractedMatchedRow[]
-    ) {
-      if (outcome.ok && outcome.retractedMatched.length) {
-        for (const r of outcome.retractedMatched) {
-          sink.push(r);
-        }
       }
     },
     dismissRetractedBanner() {

@@ -1,5 +1,7 @@
+import type { ConfigMap } from 'fyo/core/types';
 import { ipcMain, Menu, shell } from 'electron';
 import { Main } from '../main';
+import config from 'utils/config';
 import { IPC_MESSAGES } from '../utils/messages';
 import { emitMainProcessError } from 'backend/helpers';
 
@@ -51,5 +53,22 @@ export default function registerIpcMainMessageListeners(main: Main) {
 
   ipcMain.on(IPC_MESSAGES.SHOW_ITEM_IN_FOLDER, (_, filePath: string) => {
     return shell.showItemInFolder(filePath);
+  });
+
+  ipcMain.on(IPC_MESSAGES.STORE_GET, (event, key: keyof ConfigMap) => {
+    event.returnValue = config.get(key);
+  });
+
+  ipcMain.on(
+    IPC_MESSAGES.STORE_SET,
+    (event, key: keyof ConfigMap, value: ConfigMap[keyof ConfigMap]) => {
+      config.set(key, value);
+      event.returnValue = undefined;
+    }
+  );
+
+  ipcMain.on(IPC_MESSAGES.STORE_DELETE, (event, key: keyof ConfigMap) => {
+    config.delete(key);
+    event.returnValue = undefined;
   });
 }

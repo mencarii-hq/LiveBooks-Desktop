@@ -4,7 +4,7 @@ Automated checks: [`docs/verification-matrix.md`](docs/verification-matrix.md) �
 
 ## Supported versions
 
-Security fixes are applied to the current **LiveBooks Desktop** release line published on [GitHub Releases](https://github.com/Mencarii/LiveBooks-Desktop/releases). Older builds are not supported unless we state otherwise in a release note.
+Security fixes are applied to the current **LiveBooks Desktop** release line published on [GitHub Releases](https://github.com/mencarii-hq/LiveBooks-Desktop/releases). Older builds are not supported unless we state otherwise in a release note.
 
 ## Reporting a vulnerability
 
@@ -16,7 +16,7 @@ Report sensitive issues by email to **[ben.cheng@mencarii.com](mailto:ben.cheng@
 - Steps to reproduce (version, OS, and minimal scenario if possible)
 - Any proof-of-concept you are comfortable sharing
 
-We aim to acknowledge reports within a few business days. We will work with you on remediation and coordinated disclosure when appropriate.
+We acknowledge reports within a few business days and work with reporters on remediation and coordinated disclosure when appropriate.
 
 ## What to include (and avoid)
 
@@ -25,14 +25,14 @@ We aim to acknowledge reports within a few business days. We will work with you 
 
 ## Threat model and architecture
 
-LiveBooks is **local-first**. Customer ledgers live in a **plaintext SQLite file** on the user's machine; cloud sync is opt-in and additive. The security boundaries below match the MVP implementation in this repository and `livebooks-cloud`.
+LiveBooks is **local-first**. Customer ledgers live in a **plaintext SQLite file** on the user's machine; cloud sync is opt-in and additive. The security boundaries below match the current implementation in this repository and LiveBooks Cloud.
 
 ### Local ledger (desktop)
 
-- Each book is stored as a standard SQLite file (`.books`) under the user's documents folder. The app does **not** apply SQLCipher or hold a per-book encryption key in the MVP.
+- Each book is stored as a standard SQLite file (`.books`) under the user's documents folder. The app does **not** apply SQLCipher or hold a per-book encryption key.
 - **At-rest protection** relies on the host OS: enable **FileVault** (macOS), **BitLocker** (Windows), or equivalent full-disk encryption (FDE) on Linux. Anyone with filesystem access while the disk is unlocked can read the ledger file.
 - Backups (in `livebooks_backups/`) are file copies of the live database. Export backups to media you control; LiveBooks does not cloud-host a full ledger copy.
-- There is **no** cloud key escrow, Recovery Mode, or OS-keychain slot for database keys in the MVP.
+- There is **no** cloud key escrow, Recovery Mode, or OS-keychain slot for database keys.
 
 ### Renderer ↔ main IPC
 
@@ -51,7 +51,7 @@ LiveBooks is **local-first**. Customer ledgers live in a **plaintext SQLite file
 ### Plaid and MFA (Pro)
 
 - Bank feed credentials and Plaid access tokens live only on **LiveBooks Cloud**, encrypted at rest (Lockbox / Active Record encryption). The desktop never stores Plaid secrets.
-- Linking banks and other sensitive cloud actions require **LiveBooks Pro** and **TOTP MFA** on the cloud account. This protects cloud-held Plaid tokens and subscription state — not a local SQLCipher key (there isn't one in the MVP).
+- Linking banks and other sensitive cloud actions require **LiveBooks Pro** and **TOTP MFA** on the cloud account. This protects cloud-held Plaid tokens and subscription state — not a local SQLCipher key (application-layer ledger encryption is not used).
 
 ### HTTPS enforcement
 
@@ -59,7 +59,7 @@ LiveBooks is **local-first**. Customer ledgers live in a **plaintext SQLite file
 
 ### Code signing and token keychain identity
 
-`safeStorage` entries for cloud session tokens are scoped to the app's bundle id and code-signing identity (macOS Keychain / Windows DPAPI). A change in either (e.g. installing a signed build over an unsigned dev build, or after a certificate rolls) can invalidate prior token slots. The user **re-authenticates** to LiveBooks Cloud; there is no database Recovery Mode in the MVP.
+`safeStorage` entries for cloud session tokens are scoped to the app's bundle id and code-signing identity (macOS Keychain / Windows DPAPI). A change in either (e.g. installing a signed build over an unsigned dev build, or after a certificate rolls) can invalidate prior token slots. The user **re-authenticates** to LiveBooks Cloud; there is no database Recovery Mode.
 
 #### Frozen identity contract
 
@@ -90,7 +90,7 @@ Step-by-step runbook: [`docs/signing-qa-runbook.md`](docs/signing-qa-runbook.md)
 
 `config/initializers/filter_parameter_logging.rb` (cloud) filters: passwords, emails, secrets, tokens, and OTP codes/seeds. The desktop main-process IPC handlers never log request bodies for the cloud bridge.
 
-## Re-entry trigger for ledger encryption (future)
+## Ledger encryption (planned)
 
 We may reintroduce **SQLCipher at-rest encryption** for company files when **all** of the following are true:
 
@@ -101,7 +101,7 @@ We may reintroduce **SQLCipher at-rest encryption** for company files when **all
 
 Until then, treat **OS FDE + user-controlled backups** as the supported at-rest control for local ledgers.
 
-## Out of scope (MVP)
+## Out of scope
 
 - Malware running with the user's privileges on the host machine.
 - Protection against physical access to an unlocked, unencrypted disk.
@@ -114,7 +114,7 @@ We will not:
 
 - Persist cloud refresh tokens or OTP codes in `electron-store` plaintext in packaged builds.
 - Allow the renderer to call MFA setup/confirm cloud paths directly via `LIVEBOOKS_CLOUD_API`.
-- Market the MVP as SQLCipher-encrypted at the application layer.
+- Market LiveBooks Desktop as SQLCipher-encrypted at the application layer.
 
 ## LiveBooks Cloud
 

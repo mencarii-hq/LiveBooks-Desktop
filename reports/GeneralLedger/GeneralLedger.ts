@@ -10,6 +10,7 @@ import {
   ReportRow,
 } from 'reports/types';
 import { Field, FieldTypeEnum } from 'schemas/types';
+import { accountDisplayName } from 'utils/accountDisplay';
 import { QueryFilter } from 'utils/db/types';
 
 type ReferenceType =
@@ -32,9 +33,24 @@ export class GeneralLedger extends LedgerReport {
   referenceType: ReferenceType = 'All';
   groupBy: 'none' | 'party' | 'account' | 'referenceName' = 'none';
   _rawData: LedgerEntry[] = [];
+  _accountNameMap: Record<string, string> = {};
 
   constructor(fyo: Fyo) {
     super(fyo);
+  }
+
+  async _setAccountNameMap() {
+    const accounts = await this.fyo.db.getAllRaw('Account', {
+      fields: ['name', 'accountName'],
+    });
+
+    this._accountNameMap = {};
+    for (const acc of accounts) {
+      this._accountNameMap[acc.name as string] = accountDisplayName({
+        name: acc.name as string,
+        accountName: acc.accountName as string | null,
+      });
+    }
   }
 
   setDefaultFilters() {
@@ -46,6 +62,7 @@ export class GeneralLedger extends LedgerReport {
 
   async setReportData(filter?: string, force?: boolean) {
     this.loading = true;
+    await this._setAccountNameMap();
     let sort = true;
     if (force || filter !== 'grouped' || this._rawData.length === 0) {
       await this._setRawData();
@@ -145,6 +162,10 @@ export class GeneralLedger extends LedgerReport {
 
       if (fieldname === 'referenceType') {
         value = this.fyo.schemaMap[value]?.label ?? value;
+      }
+
+      if (fieldname === 'account' && rawValue != null) {
+        value = this._accountNameMap[String(rawValue)] ?? value;
       }
 
       row.cells.push({
