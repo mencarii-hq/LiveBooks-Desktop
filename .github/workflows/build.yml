@@ -15,14 +15,19 @@ jobs:
         with:
           node-version: '20.18.1'
 
-      - name: Set yarn version
-        run: yarn set version 1.22.18
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
       - name: Checkout Books
         uses: actions/checkout@v4
 
       - name: Install Dependencies
-        run: yarn
+        run: |
+          corepack enable
+          corepack prepare yarn@1.22.22 --activate
+          yarn
 
       - name: Run build
         env:

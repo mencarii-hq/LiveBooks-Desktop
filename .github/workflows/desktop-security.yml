@@ -27,8 +27,15 @@ jobs:
           node-version: '20.18.1'
           cache: 'yarn'
 
-      - name: Set Yarn version
-        run: yarn set version 1.22.18
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Enable Yarn
+        run: |
+          corepack enable
+          corepack prepare yarn@1.22.22 --activate
 
       - name: Install Socket Firewall (free)
         uses: SocketDev/action@2d3f25590c6ed6ba11a9a14c064d962a3a04698f # v1.3.1
@@ -70,9 +77,17 @@ jobs:
           node-version: '20.18.1'
           cache: 'yarn'
 
-      - name: Set Yarn version
+      - name: Setup Python
         if: steps.socket-key.outputs.present == 'true'
-        run: yarn set version 1.22.18
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Enable Yarn
+        if: steps.socket-key.outputs.present == 'true'
+        run: |
+          corepack enable
+          corepack prepare yarn@1.22.22 --activate
 
       - name: Install Socket Firewall (enterprise)
         if: steps.socket-key.outputs.present == 'true'
