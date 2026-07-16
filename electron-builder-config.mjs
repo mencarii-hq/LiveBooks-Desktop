@@ -58,6 +58,13 @@ const liveBooksConfig = {
     artifactName: '${productName}-v${version}-mac-${arch}.${ext}',
     category: 'public.app-category.finance',
     icon: 'build/LiveBooks.icns',
+    // MVP: Apple Silicon only. Re-add x64 when Intel Mac demand appears.
+    target: [
+      {
+        target: 'default',
+        arch: ['arm64'],
+      },
+    ],
     notarize: {
       teamId: process.env.APPLE_TEAM_ID || '',
     },
