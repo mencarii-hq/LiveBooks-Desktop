@@ -103,7 +103,8 @@
   },
   "homepage": "https://mencarii.com",
   "repository": {
-    "url": "https://github.com/Mencarii/LiveBooks-Desktop"
+    "type": "git",
+    "url": "https://github.com/mencarii-hq/LiveBooks-Desktop.git"
   },
   "license": "AGPL-3.0-only"
 }

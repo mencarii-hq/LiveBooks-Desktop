@@ -49,6 +49,11 @@ const liveBooksConfig = {
   ],
   files: '**',
   extends: null,
+  publish: {
+    provider: 'github',
+    owner: 'mencarii-hq',
+    repo: 'LiveBooks-Desktop',
+  },
   directories: {
     output: packageDirPath,
     app: buildDirPath,
