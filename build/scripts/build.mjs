@@ -1,3 +1,4 @@
+import './loadLocalEnv.mjs';
 import vue from '@vitejs/plugin-vue';
 import builder from 'electron-builder';
 import esbuild from 'esbuild';
@@ -16,6 +17,7 @@ const root = path.join(dirname, '..', '..');
 const buildDirPath = path.join(root, 'dist_electron', 'build');
 const packageDirPath = path.join(root, 'dist_electron', 'bundled');
 const mainFileName = 'main.js';
+
 const commonConfig = getMainProcessCommonConfig(root, { production: true });
 
 const rawArgs = yargs(hideBin(process.argv))

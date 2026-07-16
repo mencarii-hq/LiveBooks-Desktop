@@ -1,4 +1,5 @@
 // App is tagged with a .mjs extension to allow
+import './build/scripts/loadLocalEnv.mjs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import {
