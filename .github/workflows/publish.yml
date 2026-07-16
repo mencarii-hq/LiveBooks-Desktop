@@ -2,6 +2,10 @@ name: Publish
 
 on: workflow_dispatch
 
+# Needed so electron-builder can create the GitHub release with the built-in token.
+permissions:
+  contents: write
+
 # MVP platforms: macOS Apple Silicon + Windows.
 # Intel Mac and Linux can be re-added when demand justifies it.
 
@@ -73,7 +77,7 @@ jobs:
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           CSC_IDENTITY_AUTO_DISCOVERY: true
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Official releases: set repository secret to production API origin (no trailing slash).
           LIVEBOOKS_CLOUD_ORIGIN: ${{ secrets.LIVEBOOKS_CLOUD_ORIGIN }}
           VITE_LIVEBOOKS_CLOUD_ORIGIN: ${{ secrets.LIVEBOOKS_CLOUD_ORIGIN }}
@@ -150,7 +154,7 @@ jobs:
         env:
           WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LIVEBOOKS_CLOUD_ORIGIN: ${{ secrets.LIVEBOOKS_CLOUD_ORIGIN }}
           VITE_LIVEBOOKS_CLOUD_ORIGIN: ${{ secrets.LIVEBOOKS_CLOUD_ORIGIN }}
         run: yarn build --win --publish always
