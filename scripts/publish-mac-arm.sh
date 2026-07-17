@@ -23,10 +23,10 @@ git clone https://github.com/frappe/books --depth 1
 cd books
 
 # Copy creds to log_creds.txt
-echo $ERR_LOG_KEY > log_creds.txt
-echo $ERR_LOG_SECRET >> log_creds.txt
-echo $ERR_LOG_URL >> log_creds.txt
-echo $TELEMETRY_URL >> log_creds.txt
+printf '%s\n' "$ERR_LOG_KEY" > log_creds.txt
+printf '%s\n' "$ERR_LOG_SECRET" >> log_creds.txt
+printf '%s\n' "$ERR_LOG_URL" >> log_creds.txt
+printf '%s\n' "$TELEMETRY_URL" >> log_creds.txt
 
 
 # Install Dependencies

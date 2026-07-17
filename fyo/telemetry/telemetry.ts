@@ -43,7 +43,11 @@ export class TelemetryManager {
   }
 
   get hasCreds() {
-    return !!this.#url && !!this.#token;
+    return this.#isHttpUrl(this.#url) && !!this.#token;
+  }
+
+  #isHttpUrl(url: string) {
+    return /^https?:\/\//i.test(url);
   }
 
   get started() {
@@ -101,7 +105,11 @@ export class TelemetryManager {
       telemetryData,
     });
 
-    navigator.sendBeacon(this.#url, data);
+    try {
+      navigator.sendBeacon(this.#url, data);
+    } catch {
+      // Invalid or non-HTTP(S) beacon targets throw in Chromium/Electron.
+    }
   }
 
   async #setCreds() {
@@ -110,8 +118,8 @@ export class TelemetryManager {
     }
 
     const { telemetryUrl, tokenString } = await this.fyo.auth.getCreds();
-    this.#url = telemetryUrl;
-    this.#token = tokenString;
+    this.#url = this.#isHttpUrl(telemetryUrl) ? telemetryUrl : '';
+    this.#token = this.#url ? tokenString : '';
   }
 
   #getTelemtryData(

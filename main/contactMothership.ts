@@ -31,11 +31,15 @@ export function getUrlAndTokenString(): Creds {
     return empty;
   }
 
-  let apiKey, apiSecret, errorLogUrl, telemetryUrl;
+  let apiKey: string | undefined;
+  let apiSecret: string | undefined;
+  let errorLogUrl: string | undefined;
+  let telemetryUrl: string | undefined;
   try {
     [apiKey, apiSecret, errorLogUrl, telemetryUrl] = fs
       .readFileSync(errLogCredsPath, 'utf-8')
       .split('\n')
+      .map((line) => line.trim())
       .filter((f) => f.length);
   } catch (err) {
     if (!inProduction) {
@@ -47,9 +51,22 @@ export function getUrlAndTokenString(): Creds {
     return empty;
   }
 
+  if (!apiKey || !apiSecret || !errorLogUrl || !telemetryUrl) {
+    return empty;
+  }
+
+  const encodedErrorLogUrl = encodeURI(errorLogUrl);
+  const encodedTelemetryUrl = encodeURI(telemetryUrl);
+  const isHttpUrl = (url: string) => /^https?:\/\//i.test(url);
+
+  // sendBeacon / fetch only accept HTTP(S); bad lines in log_creds must not reach the renderer.
+  if (!isHttpUrl(encodedErrorLogUrl) || !isHttpUrl(encodedTelemetryUrl)) {
+    return empty;
+  }
+
   return {
-    errorLogUrl: encodeURI(errorLogUrl),
-    telemetryUrl: encodeURI(telemetryUrl),
+    errorLogUrl: encodedErrorLogUrl,
+    telemetryUrl: encodedTelemetryUrl,
     tokenString: `token ${apiKey}:${apiSecret}`,
   };
 }

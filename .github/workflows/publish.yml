@@ -41,10 +41,40 @@ jobs:
           ERR_LOG_SECRET: ${{ secrets.ERR_LOG_SECRET }}
           TELEMETRY_URL: ${{ secrets.TELEMETRY_URL }}
         run: |
-          echo $ERR_LOG_KEY > log_creds.txt
-          echo $ERR_LOG_SECRET >> log_creds.txt
-          echo $ERR_LOG_URL >> log_creds.txt
-          echo $TELEMETRY_URL >> log_creds.txt
+          missing=""
+          for var in ERR_LOG_KEY ERR_LOG_SECRET ERR_LOG_URL TELEMETRY_URL; do
+            if [ -z "${!var}" ]; then
+              missing="$missing $var"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Error/telemetry log secrets missing:$missing"
+            echo "::error::Refusing to publish a build that would ship broken sendBeacon/error logging."
+            exit 1
+          fi
+          case "$ERR_LOG_URL" in
+            https://*) ;;
+            *)
+              echo "::error::ERR_LOG_URL must be an https:// URL (got non-https value)."
+              exit 1
+              ;;
+          esac
+          case "$TELEMETRY_URL" in
+            https://*) ;;
+            *)
+              echo "::error::TELEMETRY_URL must be an https:// URL (got non-https value)."
+              exit 1
+              ;;
+          esac
+          # Quoted printf keeps empty/special values from shifting fields in log_creds.txt
+          printf '%s\n' "$ERR_LOG_KEY" > log_creds.txt
+          printf '%s\n' "$ERR_LOG_SECRET" >> log_creds.txt
+          printf '%s\n' "$ERR_LOG_URL" >> log_creds.txt
+          printf '%s\n' "$TELEMETRY_URL" >> log_creds.txt
+          if [ "$(grep -c . log_creds.txt)" -ne 4 ]; then
+            echo "::error::log_creds.txt must contain exactly 4 nonempty lines."
+            exit 1
+          fi
 
       # Fail fast if any mac signing / notarization secret is missing.
       # An unsigned or non-notarized build under the frozen productName +
@@ -125,10 +155,40 @@ jobs:
           ERR_LOG_SECRET: ${{ secrets.ERR_LOG_SECRET }}
           TELEMETRY_URL: ${{ secrets.TELEMETRY_URL }}
         run: |
-          echo $ERR_LOG_KEY > log_creds.txt
-          echo $ERR_LOG_SECRET >> log_creds.txt
-          echo $ERR_LOG_URL >> log_creds.txt
-          echo $TELEMETRY_URL >> log_creds.txt
+          missing=""
+          for var in ERR_LOG_KEY ERR_LOG_SECRET ERR_LOG_URL TELEMETRY_URL; do
+            if [ -z "${!var}" ]; then
+              missing="$missing $var"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Error/telemetry log secrets missing:$missing"
+            echo "::error::Refusing to publish a build that would ship broken sendBeacon/error logging."
+            exit 1
+          fi
+          case "$ERR_LOG_URL" in
+            https://*) ;;
+            *)
+              echo "::error::ERR_LOG_URL must be an https:// URL (got non-https value)."
+              exit 1
+              ;;
+          esac
+          case "$TELEMETRY_URL" in
+            https://*) ;;
+            *)
+              echo "::error::TELEMETRY_URL must be an https:// URL (got non-https value)."
+              exit 1
+              ;;
+          esac
+          # Quoted printf keeps empty/special values from shifting fields in log_creds.txt
+          printf '%s\n' "$ERR_LOG_KEY" > log_creds.txt
+          printf '%s\n' "$ERR_LOG_SECRET" >> log_creds.txt
+          printf '%s\n' "$ERR_LOG_URL" >> log_creds.txt
+          printf '%s\n' "$TELEMETRY_URL" >> log_creds.txt
+          if [ "$(grep -c . log_creds.txt)" -ne 4 ]; then
+            echo "::error::log_creds.txt must contain exactly 4 nonempty lines."
+            exit 1
+          fi
 
       # Refuse to publish an unsigned Windows build.
       # An unsigned NSIS installer under the frozen productName + appId would
