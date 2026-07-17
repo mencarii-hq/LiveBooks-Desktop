@@ -196,69 +196,6 @@
         >
           {{ livebooksDesktopBrandName }}
         </p>
-        <p
-          v-if="livebooksCloudSignedIn && livebooksCloudReachable === false"
-          class="
-            text-white/85 text-xs
-            mt-1
-            leading-snug
-            whitespace-normal
-            break-words
-          "
-        >
-          {{ t`Cannot reach LiveBooks Cloud` }}
-        </p>
-        <p
-          v-else-if="livebooksCloudPaymentFailed"
-          class="
-            text-amber-200 text-xs
-            mt-1
-            leading-snug
-            whitespace-normal
-            break-words
-          "
-        >
-          {{ t`Payment failed.` }}
-          <button
-            type="button"
-            class="underline hover:text-white"
-            @click="handleManageBilling"
-          >
-            {{ t`Update billing info` }}
-          </button>
-          {{ t`to avoid losing access.` }}
-        </p>
-        <p
-          v-else-if="livebooksCloudSubscriptionExpired"
-          class="
-            text-amber-200 text-xs
-            mt-1
-            leading-snug
-            whitespace-normal
-            break-words
-          "
-        >
-          {{ t`Subscription expired` }}
-          <button
-            type="button"
-            class="underline hover:text-white"
-            @click="handleManageBilling"
-          >
-            {{ t`Manage billing` }}
-          </button>
-        </p>
-        <p
-          v-else-if="livebooksCloudNeedsSubscription"
-          class="
-            text-white/85 text-xs
-            mt-1
-            leading-snug
-            whitespace-normal
-            break-words
-          "
-        >
-          {{ t`Subscribe to enable bank sync` }}
-        </p>
       </div>
     </div>
 
@@ -389,7 +326,6 @@ import { showDialog, showToast } from 'src/utils/interactive';
 import {
   getLivebooksCloudSessionSummary,
   LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
-  openLivebooksCloudBillingPortal,
   openLivebooksCloudSignIn,
   signOutLivebooksCloud,
 } from 'src/utils/livebooksCloud';
@@ -440,7 +376,6 @@ export default defineComponent({
       livebooksCloudSignedIn: false,
       livebooksCloudReachable: null as boolean | null,
       livebooksCloudSubscriptionStatus: null as string | null,
-      livebooksCloudInGracePeriod: false,
       showLivebooksCloudModal: false,
       livebooksCloudReachabilityDebounce: null as ReturnType<
         typeof setTimeout
@@ -459,7 +394,6 @@ export default defineComponent({
       livebooksCloudSignedIn: boolean;
       livebooksCloudReachable: boolean | null;
       livebooksCloudSubscriptionStatus: string | null;
-      livebooksCloudInGracePeriod: boolean;
       showLivebooksCloudModal: boolean;
       livebooksCloudReachabilityDebounce: ReturnType<typeof setTimeout> | null;
       livebooksCloudReachabilityInterval: ReturnType<
@@ -480,30 +414,6 @@ export default defineComponent({
       }
       const status = this.livebooksCloudSubscriptionStatus;
       return status === 'active' || status === 'trialing';
-    },
-    livebooksCloudPaymentFailed(): boolean {
-      if (!this.livebooksCloudSignedIn || this.livebooksCloudReachable !== true) {
-        return false;
-      }
-      const status = this.livebooksCloudSubscriptionStatus;
-      return status === 'past_due' && this.livebooksCloudInGracePeriod;
-    },
-    livebooksCloudSubscriptionExpired(): boolean {
-      if (!this.livebooksCloudSignedIn || this.livebooksCloudReachable !== true) {
-        return false;
-      }
-      const status = this.livebooksCloudSubscriptionStatus;
-      if (status === 'past_due' && this.livebooksCloudInGracePeriod) {
-        return false;
-      }
-      return status === 'past_due' || status === 'canceled' || status === 'incomplete_expired';
-    },
-    livebooksCloudNeedsSubscription(): boolean {
-      if (!this.livebooksCloudSignedIn || this.livebooksCloudReachable !== true) {
-        return false;
-      }
-      const status = this.livebooksCloudSubscriptionStatus;
-      return status === 'none' || status === null;
     },
     livebooksCloudManageButtonIcon(): string {
       if (!this.livebooksCloudSignedIn) {
@@ -624,12 +534,10 @@ export default defineComponent({
       if (!s.signedIn) {
         this.livebooksCloudReachable = null;
         this.livebooksCloudSubscriptionStatus = null;
-        this.livebooksCloudInGracePeriod = false;
         return;
       }
       this.livebooksCloudReachable = s.reachable;
       this.livebooksCloudSubscriptionStatus = s.status;
-      this.livebooksCloudInGracePeriod = s.inGracePeriod;
     },
     async refreshLivebooksCloudSignedIn() {
       const { signedIn } = await getLivebooksCloudSessionSummary();
@@ -652,16 +560,6 @@ export default defineComponent({
     async handleLivebooksCloudModalPrimary() {
       await openLivebooksCloudSignIn();
       this.showLivebooksCloudModal = false;
-    },
-    async handleManageBilling() {
-      const res = await openLivebooksCloudBillingPortal();
-      if (!res.ok) {
-        showToast({
-          type: 'error',
-          message: t`Could not open billing portal. Please try again.`,
-          duration: 'short',
-        });
-      }
     },
     async handleDisconnectLivebooksCloud() {
       await showDialog({
