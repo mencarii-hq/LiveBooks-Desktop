@@ -62,10 +62,6 @@ export type ConfigMap = {
   localBookKeyNamespaces?: LocalBookKeyNamespace[];
   /** per-account namespaced SQLCipher keys (dynamic). */
   [namespacedKey: `dbEncryptionKey_${string}_encrypted`]: string | undefined;
-  /** free-tier backup safety-net modal bookkeeping. */
-  freeBackupSafetyNetDbOpenCount?: number;
-  freeBackupSafetyNetLastShownAt?: string;
-  miscLastBackupExportedAt?: string;
   /** @deprecated legacy escrow timestamp; ignored in plaintext-ledger MVP */
   livebooksCloudKeyEscrowedAt?: string;
   /** last seen server subscription_changed_at (ISO timestamp). */

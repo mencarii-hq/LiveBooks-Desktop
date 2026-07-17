@@ -37,11 +37,6 @@
       @setup-complete="setupComplete"
       @setup-canceled="showDbSelector"
     />
-    <FreeUserBackupSafetyModal
-      :open="showFreeBackupSafetyModal"
-      @dismiss="showFreeBackupSafetyModal = false"
-      @exported="showFreeBackupSafetyModal = false"
-    />
     <LoadingWorkspaceOverlay :open="loadingWorkspace" />
 
     <!-- Render target for toasts -->
@@ -62,16 +57,8 @@ import { handleErrorWithDialog } from './errorHandling';
 import { fyo } from './initFyo';
 import DatabaseSelector from './pages/DatabaseSelector.vue';
 import Desk from './pages/Desk.vue';
-import FreeUserBackupSafetyModal from './components/FreeUserBackupSafetyModal.vue';
 import LoadingWorkspaceOverlay from './components/LoadingWorkspaceOverlay.vue';
-import {
-  recordDatabaseOpenForBackupReminder,
-  shouldShowFreeBackupSafetyNet,
-} from './utils/freeBackupSafetyNet';
-import {
-  getLivebooksSubscriptionSnapshot,
-  startLivebooksSubscriptionPolling,
-} from './utils/livebooksCloudSubscription';
+import { startLivebooksSubscriptionPolling } from './utils/livebooksCloudSubscription';
 import SetupWizard from './pages/SetupWizard/SetupWizard.vue';
 import setupInstance from './setup/setupInstance';
 import { SetupWizardOptions } from './setup/types';
@@ -113,7 +100,6 @@ export default defineComponent({
     Desk,
     SetupWizard,
     DatabaseSelector,
-    FreeUserBackupSafetyModal,
     LoadingWorkspaceOverlay,
     WindowsTitleBar,
   },
@@ -148,14 +134,12 @@ export default defineComponent({
       dbPath: '',
       companyName: '',
       darkMode: false,
-      showFreeBackupSafetyModal: false,
       loadingWorkspace: false,
     } as {
       activeScreen: null | Screen;
       dbPath: string;
       companyName: string;
       darkMode: boolean | undefined;
-      showFreeBackupSafetyModal: boolean;
       loadingWorkspace: boolean;
     };
   },
@@ -236,14 +220,6 @@ export default defineComponent({
       await this.searcher.initializeKeywords();
     },
     async setDesk(filePath: string): Promise<void> {
-      const openCount = recordDatabaseOpenForBackupReminder();
-      if (
-        !this.showFreeBackupSafetyModal &&
-        !getLivebooksSubscriptionSnapshot().proEntitled &&
-        shouldShowFreeBackupSafetyNet(openCount)
-      ) {
-        this.showFreeBackupSafetyModal = true;
-      }
       this.activeScreen = Screen.Desk;
       await this.setDeskRoute();
       if (fyo.store.telemetryEnabled) {
@@ -316,9 +292,6 @@ export default defineComponent({
         const filePath = await ipc.getDbDefaultPath(companyName);
         await setupInstance(filePath, setupWizardOptions, fyo);
         fyo.config.set('lastSelectedFilePath', filePath);
-        if (!getLivebooksSubscriptionSnapshot().proEntitled) {
-          this.showFreeBackupSafetyModal = true;
-        }
         await this.setDesk(filePath);
       } catch (error) {
         if (wizard) {
