@@ -6,6 +6,7 @@ import {
   livebooksCloudSignInUrl,
   livebooksCloudSignUpUrl,
   livebooksCloudAccountSecurityUrl,
+  livebooksCloudMfaStepUpUrl,
   livebooksCloudSubscribeUrl,
 } from './livebooksCloudUrls';
 
@@ -58,6 +59,11 @@ export function openLivebooksCloudHome(): void {
 
 export function openLivebooksCloudAccountSecurity(): void {
   ipc.openLink(livebooksCloudAccountSecurityUrl());
+}
+
+/** Opens cloud MFA step-up in the system browser (no TOTP entry in Electron). */
+export function openLivebooksCloudMfaStepUp(): void {
+  ipc.openLink(livebooksCloudMfaStepUpUrl());
 }
 
 export async function signOutLivebooksCloud(): Promise<void> {

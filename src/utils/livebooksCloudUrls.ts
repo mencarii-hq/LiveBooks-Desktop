@@ -33,5 +33,10 @@ export function livebooksCloudSubscribeUrl(): string {
 }
 
 export function livebooksCloudAccountSecurityUrl(): string {
-  return livebooksCloudRootUrl();
+  return `${getLivebooksCloudOrigin()}/account/security`;
+}
+
+/** Browser MFA step-up for desktop bank feeds (records cloud mfa_verified_at). */
+export function livebooksCloudMfaStepUpUrl(): string {
+  return `${getLivebooksCloudOrigin()}/account/security/step_up`;
 }

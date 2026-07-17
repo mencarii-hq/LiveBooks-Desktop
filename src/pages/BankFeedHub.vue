@@ -552,10 +552,9 @@ export default defineComponent({
       const bookId = this.bookId;
       this.plaidLinkBusy = true;
       try {
-        const { linkToken, error: tokenErr, totpCode, mfaNotConfigured } =
+        const { linkToken, error: tokenErr, mfaNotConfigured } =
           await requestPlaidLinkTokenWithStepUp(bookId, {
             itemId,
-            promptTotp: () => this.plaidLinkPromptTotp(),
           });
         if (mfaNotConfigured) {
           showToast({
@@ -573,17 +572,12 @@ export default defineComponent({
           });
           return;
         }
-        let plaidTotp = totpCode;
         const outcome = await openPlaidLinkModal({
           linkToken,
           onSuccess: async (publicToken) => {
             const ex = await exchangePlaidPublicTokenWithStepUp(
               bookId,
-              publicToken,
-              {
-                totpCode: plaidTotp,
-                promptTotp: () => this.plaidLinkPromptTotp(),
-              }
+              publicToken
             );
             if (ex.mfaNotConfigured) {
               openLivebooksCloudAccountSecurity();

@@ -390,8 +390,7 @@ export default function registerIpcMainActionListeners(main: Main) {
           data: { error: 'invalid_path' as const },
         } as LivebooksCloudApiResult;
       }
-      // MFA paths are main-process only. The renderer must never carry
-      // TOTP codes over the IPC boundary.
+      // MFA verification is web-only. Renderer must never call /api/v1/me/mfa/*.
       if (isRendererDenylistedCloudPath(path)) {
         return {
           ok: false,

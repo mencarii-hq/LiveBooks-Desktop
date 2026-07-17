@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="paused"
+    v-if="showBanner"
     class="
       mb-4
       rounded-lg
@@ -16,52 +16,33 @@
   >
     <p class="font-medium mb-2">
       {{
-        t`Bank sync paused. Please verify your identity to resume downloading transactions.`
+        t`Bank sync paused. Verify your identity in LiveBooks Cloud to resume downloading transactions.`
       }}
     </p>
-    <div class="flex flex-col sm:flex-row gap-2 sm:items-end">
-      <input
-        v-model="totpCode"
-        type="text"
-        inputmode="numeric"
-        autocomplete="one-time-code"
-        class="
-          flex-1
-          rounded
-          border border-amber-300
-          dark:border-amber-600
-          bg-white
-          dark:bg-gray-900
-          px-3
-          py-2
-          text-sm
-        "
-        :placeholder="t`Authenticator or backup code`"
-        :disabled="busy"
-        @keyup.enter="verify"
-      />
-      <Button
-        type="primary"
-        :disabled="busy || !totpCode.trim()"
-        @click="verify"
-      >
-        {{ t`Verify and resume` }}
+    <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+      <Button type="primary" :disabled="busy" @click="openVerify">
+        {{ t`Open LiveBooks Cloud to verify` }}
+      </Button>
+      <Button type="secondary" :disabled="busy" @click="retry">
+        {{ t`I've verified — try again` }}
       </Button>
     </div>
-    <p v-if="errorMessage" class="mt-2 text-red-700 dark:text-red-300 text-xs">
-      {{ errorMessage }}
-    </p>
   </div>
 </template>
 
 <script lang="ts">
 import { t } from 'fyo';
 import Button from 'src/components/Button.vue';
-import { postMfaStepUp } from 'src/utils/plaidBankFeedsApi';
+import {
+  getLivebooksCloudSessionSummary,
+  LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
+  openLivebooksCloudMfaStepUp,
+} from 'src/utils/livebooksCloud';
 import {
   bankSyncMfaPausedState,
   setBankSyncMfaPaused,
 } from 'src/utils/plaidBankSyncMfaGate';
+import { setPlaidSyncMfaPaused } from 'src/utils/plaidSyncStore';
 import { defineComponent } from 'vue';
 
 export default defineComponent({
@@ -70,33 +51,60 @@ export default defineComponent({
   emits: ['verified'],
   data() {
     return {
-      totpCode: '',
       busy: false,
-      errorMessage: '',
+      cloudSignedIn: false,
+      onSessionRefresh: null as (() => void) | null,
+      onVisibility: null as (() => void) | null,
     };
   },
   computed: {
     paused(): boolean {
       return bankSyncMfaPausedState.value;
     },
+    showBanner(): boolean {
+      return this.paused && this.cloudSignedIn;
+    },
+  },
+  mounted() {
+    void this.refreshSignedIn();
+    this.onSessionRefresh = () => {
+      void this.refreshSignedIn();
+    };
+    document.addEventListener(
+      LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
+      this.onSessionRefresh
+    );
+    this.onVisibility = () => {
+      if (document.visibilityState === 'visible' && this.showBanner) {
+        this.retry();
+      }
+    };
+    document.addEventListener('visibilitychange', this.onVisibility);
+  },
+  unmounted() {
+    if (this.onSessionRefresh) {
+      document.removeEventListener(
+        LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
+        this.onSessionRefresh
+      );
+    }
+    if (this.onVisibility) {
+      document.removeEventListener('visibilitychange', this.onVisibility);
+    }
   },
   methods: {
-    async verify() {
-      const code = this.totpCode.trim();
-      if (!code) {
-        return;
-      }
+    async refreshSignedIn() {
+      const { signedIn } = await getLivebooksCloudSessionSummary();
+      this.cloudSignedIn = signedIn;
+    },
+    openVerify() {
+      openLivebooksCloudMfaStepUp();
+    },
+    retry() {
       this.busy = true;
-      this.errorMessage = '';
       try {
-        const up = await postMfaStepUp(code);
-        if (!up.ok) {
-          this.errorMessage =
-            up.error ?? t`Invalid code. Try again or use a backup code.`;
-          return;
-        }
         setBankSyncMfaPaused(false);
-        this.totpCode = '';
+        setPlaidSyncMfaPaused(false);
         this.$emit('verified');
       } finally {
         this.busy = false;

@@ -5,6 +5,7 @@
 
 import { fyo } from 'src/initFyo';
 import { ensureLivebooksCloudBookId } from 'src/utils/livebooksCloudBook';
+import { getLivebooksCloudSessionSummary } from 'src/utils/livebooksCloud';
 import { fetchPlaidFeedsWithStepUp } from 'src/utils/plaidBankFeedsApi';
 import type { PlaidFeedItemRow } from 'src/utils/plaidBankFeedsApi';
 import {
@@ -128,6 +129,17 @@ async function tick(): Promise<void> {
     scheduleNext(IDLE_INTERVAL_MS);
     return;
   }
+
+  const { signedIn } = await getLivebooksCloudSessionSummary();
+  if (!signedIn) {
+    setBankSyncMfaPaused(false);
+    setPlaidSyncMfaPaused(false);
+    consecutiveFailures = 0;
+    clearPlaidSyncLastError();
+    scheduleNext(IDLE_INTERVAL_MS);
+    return;
+  }
+
   syncMfaPausedToStore();
   if (isBankSyncMfaPaused()) {
     scheduleNext(IDLE_INTERVAL_MS);

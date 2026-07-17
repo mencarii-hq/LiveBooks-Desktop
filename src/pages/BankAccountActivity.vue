@@ -837,7 +837,10 @@ import Button from 'src/components/Button.vue';
 import PageHeader from 'src/components/PageHeader.vue';
 import { t } from 'fyo';
 import { showToast } from 'src/utils/interactive';
-import { LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT } from 'src/utils/livebooksCloud';
+import {
+  LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
+  openLivebooksCloudMfaStepUp,
+} from 'src/utils/livebooksCloud';
 import { ensureLivebooksCloudBookId } from 'src/utils/livebooksCloudBook';
 import {
   isManualBankAccount,
@@ -867,7 +870,7 @@ import {
   evaluatePlaidCatchUp,
   oldestCreatedAt,
 } from 'src/utils/plaidCatchUpGuard';
-import { promptTotpCode } from 'src/utils/promptTotpCode';
+import { setBankSyncMfaPaused } from 'src/utils/plaidBankSyncMfaGate';
 import {
   categorizeAndAddLine,
   findExactMatchCandidate,
@@ -1033,11 +1036,10 @@ export default defineComponent({
     categoryLabel(acc: CategoryOption) {
       return accountDisplayName(acc);
     },
-    async promptBankFeedTotp(): Promise<string | null> {
-      return await promptTotpCode({
-        title: t`Authenticator code`,
-        detail: t`Enter your LiveBooks Cloud authenticator or backup code to download bank transactions.`,
-      });
+    promptBankFeedTotp(): Promise<string | null> {
+      openLivebooksCloudMfaStepUp();
+      setBankSyncMfaPaused(true);
+      return Promise.resolve(null);
     },
     async loadLedgerAccountLabel() {
       try {

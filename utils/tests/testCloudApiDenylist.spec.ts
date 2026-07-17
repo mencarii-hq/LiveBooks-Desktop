@@ -10,7 +10,11 @@ test('denylist covers MFA prefix', (t) => {
 });
 
 test('renderer denylisted paths block MFA cloud routes', (t) => {
-  const blocked = ['/api/v1/me/mfa/setup', '/api/v1/me/mfa/confirm'];
+  const blocked = [
+    '/api/v1/me/mfa/setup',
+    '/api/v1/me/mfa/confirm',
+    '/api/v1/me/mfa/step_up',
+  ];
   for (const path of blocked) {
     t.ok(isRendererDenylistedCloudPath(path), `expected deny: ${path}`);
   }

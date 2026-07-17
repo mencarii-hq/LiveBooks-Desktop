@@ -36,8 +36,8 @@ LiveBooks is **local-first**. Customer ledgers live in a **plaintext SQLite file
 
 ### Renderer ↔ main IPC
 
-- Sensitive cloud paths are explicitly **denylisted** so the renderer cannot invoke MFA setup/confirm via `LIVEBOOKS_CLOUD_API` (see [`utils/cloudApiDenylist.ts`](utils/cloudApiDenylist.ts): `/api/v1/me/mfa/`).
-- MFA enrollment and step-up remain **main-process or web** flows; the renderer never receives raw TOTP seeds or Plaid tokens.
+- Sensitive cloud paths are explicitly **denylisted** so the renderer cannot invoke MFA APIs via `LIVEBOOKS_CLOUD_API` (see [`utils/cloudApiDenylist.ts`](utils/cloudApiDenylist.ts): `/api/v1/me/mfa/`).
+- MFA enrollment and step-up happen on **LiveBooks Cloud web** (system browser). The renderer never collects TOTP codes or receives raw TOTP seeds or Plaid tokens.
 
 ### Cloud session tokens
 
@@ -51,7 +51,8 @@ LiveBooks is **local-first**. Customer ledgers live in a **plaintext SQLite file
 ### Plaid and MFA (Pro)
 
 - Bank feed credentials and Plaid access tokens live only on **LiveBooks Cloud**, encrypted at rest (Lockbox / Active Record encryption). The desktop never stores Plaid secrets.
-- Linking banks and other sensitive cloud actions require **LiveBooks Pro** and **TOTP MFA** on the cloud account. This protects cloud-held Plaid tokens and subscription state — not a local SQLCipher key (application-layer ledger encryption is not used).
+- Linking banks and other sensitive cloud actions require **LiveBooks Pro** and **TOTP MFA** on the cloud account. Desktop opens the system browser to `/account/security/step_up` when the 30-minute verification window expires; it does not collect TOTP in the Electron UI. This protects cloud-held Plaid tokens and subscription state — not a local SQLCipher key (application-layer ledger encryption is not used).
+- Signing out of LiveBooks Cloud on desktop clears MFA-paused UI state and stops background bank-feed polling until the user signs in again.
 
 ### HTTPS enforcement
 
@@ -113,7 +114,8 @@ Until then, treat **OS FDE + user-controlled backups** as the supported at-rest 
 We will not:
 
 - Persist cloud refresh tokens or OTP codes in `electron-store` plaintext in packaged builds.
-- Allow the renderer to call MFA setup/confirm cloud paths directly via `LIVEBOOKS_CLOUD_API`.
+- Allow the renderer to call MFA cloud paths (`/api/v1/me/mfa/*`) directly via `LIVEBOOKS_CLOUD_API`.
+- Collect TOTP codes in the Electron renderer for cloud step-up.
 - Market LiveBooks Desktop as SQLCipher-encrypted at the application layer.
 
 ## LiveBooks Cloud

@@ -4,6 +4,11 @@ import { fyo } from 'src/initFyo';
 import { showToast } from 'src/utils/interactive';
 import { dispatchLivebooksCloudSessionAppRefresh } from 'src/utils/livebooksCloud';
 import { refreshLivebooksSubscription } from 'src/utils/livebooksCloudSubscription';
+import { setBankSyncMfaPaused } from 'src/utils/plaidBankSyncMfaGate';
+import {
+  clearPlaidSyncLastError,
+  setPlaidSyncMfaPaused,
+} from 'src/utils/plaidSyncStore';
 
 export default function registerIpcRendererListeners() {
   ipc.registerMainProcessErrorListener(
@@ -51,6 +56,10 @@ export default function registerIpcRendererListeners() {
         message: t`LiveBooks Cloud account connected`,
         duration: 'short',
       });
+    } else {
+      setBankSyncMfaPaused(false);
+      setPlaidSyncMfaPaused(false);
+      clearPlaidSyncLastError();
     }
     dispatchLivebooksCloudSessionAppRefresh();
     void refreshLivebooksSubscription(signedIn);

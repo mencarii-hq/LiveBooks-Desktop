@@ -1,8 +1,10 @@
 import { t } from 'fyo';
-import { livebooksCloudRequest } from 'src/utils/livebooksCloud';
+import {
+  livebooksCloudRequest,
+  openLivebooksCloudMfaStepUp,
+} from 'src/utils/livebooksCloud';
 import type { LivebooksCloudApiResult } from 'src/utils/livebooksCloud';
 import { setBankSyncMfaPaused } from 'src/utils/plaidBankSyncMfaGate';
-import { promptTotpCode } from 'src/utils/promptTotpCode';
 
 function cloudErrorCode(data: unknown): string | undefined {
   if (data && typeof data === 'object' && 'error' in data) {
@@ -57,14 +59,22 @@ export type ImportBatchesListPayload = {
   batches: ImportBatchListRow[];
 };
 
+/**
+ * Legacy option kept for call-site compatibility.
+ * `null` = silent pause (background). Any other value = open browser step-up.
+ * TOTP is never collected in the renderer.
+ */
 export type PromptTotpFn = () => Promise<string | null>;
+export type MfaStepUpPrompt = PromptTotpFn | null | undefined;
 
-/** Modal prompt for Plaid mutating cloud APIs (link, disconnect, sync, etc.). */
-export function promptPlaidMfaTotp(detail: string): Promise<string | null> {
-  return promptTotpCode({
-    title: t`Authenticator code`,
-    detail,
-  });
+export const MFA_BROWSER_STEP_UP_MESSAGE = t`Verify your identity in LiveBooks Cloud, then try again.`;
+
+/** @deprecated Use openLivebooksCloudMfaStepUp — TOTP is no longer collected in-app. */
+export function promptPlaidMfaTotp(_detail?: string): Promise<string | null> {
+  void _detail;
+  openLivebooksCloudMfaStepUp();
+  setBankSyncMfaPaused(true);
+  return Promise.resolve(null);
 }
 
 function messageFromCloudResponse(data: unknown, status: number): string {
@@ -80,88 +90,45 @@ function messageFromCloudResponse(data: unknown, status: number): string {
   return `HTTP ${String(status)}`;
 }
 
-export async function postMfaStepUp(
-  totpCode: string
-): Promise<{ ok: boolean; error?: string }> {
-  const res = await livebooksCloudRequest({
-    method: 'POST',
-    path: '/api/v1/me/mfa/step_up',
-    body: { totp_code: totpCode },
-  });
-  if (res.ok) {
-    return { ok: true };
-  }
-  const err =
-    res.data &&
-    typeof res.data === 'object' &&
-    'message' in res.data &&
-    typeof (res.data as { message: unknown }).message === 'string'
-      ? (res.data as { message: string }).message
-      : `HTTP ${String(res.status)}`;
-  return { ok: false, error: err };
-}
-
 let stepUpInFlight: Promise<boolean> | null = null;
 
-/** `null` = silent pause (background poll); omit = default modal prompt. */
-export type MfaStepUpPrompt = PromptTotpFn | null | undefined;
-
-async function ensureMfaStepUp(promptTotp: MfaStepUpPrompt): Promise<boolean> {
+/**
+ * Opens browser MFA step-up (interactive) or silently pauses (background).
+ * Always returns false — caller retries after the user verifies on the web.
+ */
+function ensureMfaStepUp(promptTotp: MfaStepUpPrompt): Promise<boolean> {
   if (stepUpInFlight) {
     return stepUpInFlight;
   }
-  stepUpInFlight = (async () => {
-    if (promptTotp === null) {
-      setBankSyncMfaPaused(true);
-      return false;
-    }
-    const prompt = promptTotp ?? defaultPromptTotp;
-    const code = await prompt();
-    if (!code) {
-      setBankSyncMfaPaused(true);
-      return false;
-    }
-    const up = await postMfaStepUp(code);
-    if (up.ok) {
-      setBankSyncMfaPaused(false);
-      return true;
-    }
+  stepUpInFlight = Promise.resolve().then(() => {
     setBankSyncMfaPaused(true);
+    if (promptTotp !== null) {
+      openLivebooksCloudMfaStepUp();
+    }
     return false;
-  })();
-  try {
-    return await stepUpInFlight;
-  } finally {
+  });
+  return stepUpInFlight.finally(() => {
     stepUpInFlight = null;
-  }
+  });
 }
 
 type CloudRequestOptions = Parameters<typeof livebooksCloudRequest>[0];
 
-/** Cloud API call with MFA step-up retry when the 30-minute window expired. */
+/** Cloud API call; on totp_required opens browser step-up (unless promptTotp is null). */
 export async function livebooksCloudRequestWithStepUp(
   options: CloudRequestOptions & { promptTotp?: MfaStepUpPrompt }
 ): Promise<LivebooksCloudApiResult & { totpRequired?: boolean }> {
   const { promptTotp: promptOverride, ...requestOptions } = options;
   const promptTotp: MfaStepUpPrompt =
-    promptOverride === undefined ? defaultPromptTotp : promptOverride;
-  let res = await livebooksCloudRequest(requestOptions);
+    promptOverride === undefined ? undefined : promptOverride;
+  const res = await livebooksCloudRequest(requestOptions);
   const code = cloudErrorCode(res.data);
   if (!(res.status === 401 && code === 'totp_required')) {
     return res;
   }
-  const stepped = await ensureMfaStepUp(promptTotp);
-  if (!stepped) {
-    return { ...res, totpRequired: true };
-  }
-  res = await livebooksCloudRequest(requestOptions);
-  return res;
+  await ensureMfaStepUp(promptTotp);
+  return { ...res, totpRequired: true };
 }
-
-const defaultPromptTotp: PromptTotpFn = async () =>
-  promptPlaidMfaTotp(
-    t`Enter your LiveBooks Cloud authenticator or backup code to view bank feed status.`
-  );
 
 export async function fetchPlaidFeeds(
   bookId: string,
@@ -208,7 +175,7 @@ export async function fetchPlaidFeeds(
   };
 }
 
-/** Fetches Plaid feed metadata; prompts once for MFA step-up when the 30-minute window expired. */
+/** Fetches Plaid feed metadata; opens browser MFA step-up when the 30-minute window expired. */
 export async function fetchPlaidFeedsWithStepUp(
   bookId: string,
   options?: { ifNoneMatch?: string; promptTotp?: MfaStepUpPrompt }
@@ -218,21 +185,17 @@ export async function fetchPlaidFeedsWithStepUp(
   payload: PlaidFeedsPayload | null;
   error?: string;
 }> {
-  const promptTotp = options?.promptTotp ?? defaultPromptTotp;
-  let res = await fetchPlaidFeeds(bookId, options);
+  const promptTotp = options?.promptTotp;
+  const res = await fetchPlaidFeeds(bookId, options);
   if (!res.totpRequired) {
     return res;
   }
-  const stepped = await ensureMfaStepUp(promptTotp);
-  if (!stepped) {
-    return {
-      notModified: false,
-      payload: null,
-      error: res.error ?? t`Authenticator code required.`,
-    };
-  }
-  res = await fetchPlaidFeeds(bookId, options);
-  return res;
+  await ensureMfaStepUp(promptTotp);
+  return {
+    notModified: false,
+    payload: null,
+    error: res.error ?? MFA_BROWSER_STEP_UP_MESSAGE,
+  };
 }
 
 export async function fetchPendingImportBatches(
@@ -266,7 +229,7 @@ export async function fetchPendingImportBatches(
   if (res.totpRequired) {
     return {
       batches: [],
-      error: t`Authenticator code required.`,
+      error: MFA_BROWSER_STEP_UP_MESSAGE,
       totpRequired: true,
     };
   }
@@ -304,7 +267,7 @@ export async function fetchImportBatchPayload(
   if (res.totpRequired) {
     return {
       payload: null,
-      error: t`Authenticator code required.`,
+      error: MFA_BROWSER_STEP_UP_MESSAGE,
       status: 401,
       totpRequired: true,
     };
@@ -352,7 +315,7 @@ export async function bulkFetchImportBatchPayloads(
   if (res.totpRequired) {
     return {
       batches: [],
-      error: t`Authenticator code required.`,
+      error: MFA_BROWSER_STEP_UP_MESSAGE,
       status: 401,
       totpRequired: true,
     };
@@ -427,7 +390,7 @@ export async function reopenAckedPlaidImportBatches(
   if (res.totpRequired) {
     return {
       ok: false,
-      error: t`Authenticator code required.`,
+      error: MFA_BROWSER_STEP_UP_MESSAGE,
       totpRequired: true,
     };
   }
@@ -495,7 +458,7 @@ export async function disconnectPlaidAccountFeed(
   if (res.totpRequired) {
     return {
       ok: false,
-      error: t`Authenticator code required.`,
+      error: MFA_BROWSER_STEP_UP_MESSAGE,
       totpRequired: true,
     };
   }
@@ -535,7 +498,7 @@ export async function enablePlaidAccountFeed(
   if (res.totpRequired) {
     return {
       ok: false,
-      error: t`Authenticator code required.`,
+      error: MFA_BROWSER_STEP_UP_MESSAGE,
       totpRequired: true,
     };
   }
@@ -567,7 +530,7 @@ export async function removePlaidItem(
   if (res.totpRequired) {
     return {
       ok: false,
-      error: t`Authenticator code required.`,
+      error: MFA_BROWSER_STEP_UP_MESSAGE,
       totpRequired: true,
     };
   }

@@ -1,8 +1,7 @@
-import { t } from 'fyo';
 import { livebooksCloudRequest } from 'src/utils/livebooksCloud';
 import {
   livebooksCloudRequestWithStepUp,
-  promptPlaidMfaTotp,
+  MFA_BROWSER_STEP_UP_MESSAGE,
 } from 'src/utils/plaidBankFeedsApi';
 import type { PromptTotpFn } from 'src/utils/plaidBankFeedsApi';
 
@@ -59,23 +58,17 @@ export async function syncCloudStatementFiles(
   totpRequired?: boolean;
 }> {
   const q = itemId ? `?item_id=${encodeURIComponent(itemId)}` : '';
-  const promptTotp =
-    opts?.promptTotp ??
-    (async () =>
-      promptPlaidMfaTotp(
-        t`Enter your LiveBooks Cloud authenticator or backup code to sync bank statements.`
-      ));
   const res = await livebooksCloudRequestWithStepUp({
     method: 'POST',
     path: `/api/v1/books/${bookId}/plaid/statement_files/sync${q}`,
     body: {},
-    promptTotp,
+    promptTotp: opts?.promptTotp,
   });
   if (res.totpRequired) {
     return {
       ok: false,
       data: res.data,
-      error: t`Authenticator code required.`,
+      error: MFA_BROWSER_STEP_UP_MESSAGE,
       totpRequired: true,
     };
   }

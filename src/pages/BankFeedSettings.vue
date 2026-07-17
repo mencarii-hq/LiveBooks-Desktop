@@ -1774,7 +1774,6 @@ export default defineComponent({
         const { linkToken, error: tokenErr, mfaNotConfigured } =
           await requestPlaidLinkTokenWithStepUp(bookId, {
             itemId,
-            promptTotp: () => this.plaidLinkPromptTotp(),
           });
         if (mfaNotConfigured) {
           showToast({
@@ -1797,8 +1796,7 @@ export default defineComponent({
           onSuccess: async (publicToken) => {
             const ex = await exchangePlaidPublicTokenWithStepUp(
               bookId,
-              publicToken,
-              { promptTotp: () => this.plaidLinkPromptTotp() }
+              publicToken
             );
             if (ex.mfaNotConfigured) {
               openLivebooksCloudAccountSecurity();
