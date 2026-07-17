@@ -1,10 +1,20 @@
 /**
  * Skip ESLint for paths ignored by .eslintrc.js (spec files, vite.config.ts,
- * and Vue files under src/components). Prettier still runs.
+ * Vue under src/components, and generated locales). Prettier still runs on
+ * hand-written sources only — not src/generated (JSON.stringify output).
  */
+function isGenerated(f) {
+  return f.includes('/src/generated/') || f.includes('\\src\\generated\\');
+}
+
 export default {
   '*.{ts,vue}': (filenames) => {
-    const eslintTargets = filenames.filter((f) => {
+    const sourceFiles = filenames.filter((f) => !isGenerated(f));
+    if (!sourceFiles.length) {
+      return [];
+    }
+
+    const eslintTargets = sourceFiles.filter((f) => {
       if (f.endsWith('.spec.ts') || f.endsWith('vite.config.ts')) {
         return false;
       }
@@ -22,7 +32,7 @@ export default {
       );
     }
     cmds.push(
-      `prettier --write ${filenames.map((f) => JSON.stringify(f)).join(' ')}`
+      `prettier --write ${sourceFiles.map((f) => JSON.stringify(f)).join(' ')}`
     );
     return cmds;
   },

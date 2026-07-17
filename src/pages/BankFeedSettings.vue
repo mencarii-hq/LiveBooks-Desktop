@@ -28,9 +28,36 @@
       </div>
       <p class="text-sm text-gray-600 dark:text-gray-300 mb-4 max-w-5xl">
         {{
-          t`Map each Plaid bank account to a ledger account. Each ledger account can only be linked to one Plaid sub-account — accounts already in use are shown as disabled in the dropdown. Disconnect Feed pauses automatic imports for that sub-account (mapping stays visible but disabled until you reactivate). Disconnecting the last sub-account removes the whole institution from Plaid until you connect the bank again. Use Reactivate feed to turn imports back on for a paused sub-account. Use Reconnect bank when Plaid requires login again for the whole link.`
+          t`Map each Plaid account to one ledger account. A ledger account can only be linked once — already-used accounts are disabled in the dropdown.`
         }}
       </p>
+      <ul
+        class="
+          text-sm text-gray-600
+          dark:text-gray-300
+          mb-4
+          max-w-5xl
+          list-disc
+          ps-5
+          space-y-1
+        "
+      >
+        <li>
+          {{
+            t`Disconnect Feed pauses imports for that account. The mapping stays; use Reactivate feed to resume.`
+          }}
+        </li>
+        <li>
+          {{
+            t`Disconnecting the last account for a bank removes the whole Plaid connection until you connect again.`
+          }}
+        </li>
+        <li>
+          {{
+            t`Reconnect bank when Plaid needs you to sign in again for that institution.`
+          }}
+        </li>
+      </ul>
 
       <div
         class="
@@ -47,7 +74,7 @@
         "
       >
         {{
-          t`Important: your ledger lives in this company file on this computer only. Using the same LiveBooks Cloud login on another computer without the same database will show different books. Keep one canonical copy of your company file, or migrate it intentionally before switching machines.`
+          t`Your ledger lives in this company file on this computer. The same Cloud login on another machine without that file shows different books — keep one canonical copy, or migrate it before switching.`
         }}
       </div>
 
@@ -71,9 +98,16 @@
             @change="togglePlaidAutoStage"
           />
           <span class="text-gray-700 dark:text-gray-200">
-            {{
-              t`Automatically stage new Plaid batches into Bank Account Activity (For Review). If you turn this off, open each account and use Pull bank feed. Categories are never posted automatically.`
-            }}
+            <span class="block">
+              {{
+                t`Auto-stage new Plaid batches into Bank Account Activity (For Review).`
+              }}
+            </span>
+            <span class="block mt-1 text-gray-600 dark:text-gray-300">
+              {{
+                t`Off: open each account and use Pull bank feed. Categories never post automatically.`
+              }}
+            </span>
           </span>
         </label>
       </div>

@@ -5,7 +5,19 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import prettier from 'prettier';
 import { parseCSV } from '../../utils/csvParser';
+
+const prettierOpts = {
+  parser: 'typescript',
+  semi: true,
+  singleQuote: true,
+  trailingComma: 'es5',
+};
+
+function formatTs(source) {
+  return prettier.format(source, prettierOpts);
+}
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(dirname, '..', '..');
@@ -56,11 +68,15 @@ function main() {
     const body = readCsvBody(path.join(translationsDir, file));
     const map = csvToLanguageMap(body);
     const outFile = path.join(localesDir, `${code}.ts`);
-    const contents = `${header}const languageMap: LanguageMap = ${JSON.stringify(map, null, 2)};\n\nexport default languageMap;\n`;
+    const contents = formatTs(
+      `${header}const languageMap: LanguageMap = ${JSON.stringify(map, null, 2)};\n\nexport default languageMap;\n`
+    );
     fs.writeFileSync(outFile, contents, 'utf-8');
   }
 
-  const indexHeader = `/* eslint-disable */\n/* Auto-generated — do not edit. */\n\nexport const bundledLocaleCodes = ${JSON.stringify(codes.sort(), null, 2)} as const;\n`;
+  const indexHeader = formatTs(
+    `/* eslint-disable */\n/* Auto-generated — do not edit. */\n\nexport const bundledLocaleCodes = ${JSON.stringify(codes.sort(), null, 2)} as const;\n`
+  );
   fs.writeFileSync(path.join(localesDir, 'index.ts'), indexHeader, 'utf-8');
 
   const legacyMonolith = path.join(

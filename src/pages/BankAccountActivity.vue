@@ -246,7 +246,7 @@
           "
         >
           {{
-            t`Imported bank lines land in For Review first. Nothing posts to income or expense categories until you click Add or Match. If you turned off automatic staging in Bank Feed Settings, use Pull bank feed here.`
+            t`Imported lines land in For Review. Nothing posts until you Add or Match. If auto-staging is off in Bank Feed Settings, use Pull bank feed.`
           }}
         </div>
 

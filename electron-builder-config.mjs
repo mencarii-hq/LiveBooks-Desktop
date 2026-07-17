@@ -70,9 +70,11 @@ const liveBooksConfig = {
         arch: ['arm64'],
       },
     ],
-    notarize: {
-      teamId: process.env.APPLE_TEAM_ID || '',
-    },
+    // Only when APPLE_TEAM_ID is set (CI / sourced .env.publish). Empty
+    // teamId still triggers notarytool and fails with confusing 401s.
+    notarize: process.env.APPLE_TEAM_ID
+      ? { teamId: process.env.APPLE_TEAM_ID }
+      : false,
     hardenedRuntime: true, // Required for macOS notarization + Gatekeeper
     gatekeeperAssess: false,
     darkModeSupport: false,

@@ -32,7 +32,23 @@ const rawArgs = yargs(hideBin(process.argv))
 
 const argv = rawArgs.argv;
 if (argv.nosign) {
-  process.env['CSC_IDENTITY_AUTO_DISCOVERY'] = false;
+  // .env / shell may still carry publish signing vars; clear them so
+  // electron-builder cannot pick CSC_NAME or attempt notarization.
+  process.env.CSC_IDENTITY_AUTO_DISCOVERY = 'false';
+  for (const key of [
+    'CSC_NAME',
+    'CSC_LINK',
+    'CSC_KEY_PASSWORD',
+    'APPLE_ID',
+    'APPLE_APP_SPECIFIC_PASSWORD',
+    'APPLE_APP_PASSWORD',
+    'APPLE_TEAM_ID',
+  ]) {
+    delete process.env[key];
+  }
+  if (liveBooksConfig.mac) {
+    liveBooksConfig.mac.notarize = false;
+  }
   // Skip winCodeSign/rcedit on local unsigned Windows builds (symlink privilege issue).
   liveBooksConfig.win = {
     ...liveBooksConfig.win,
