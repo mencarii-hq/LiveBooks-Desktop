@@ -51,7 +51,7 @@ LiveBooks is **local-first**. Customer ledgers live in a **plaintext SQLite file
 ### Plaid and MFA (Pro)
 
 - Bank feed credentials and Plaid access tokens live only on **LiveBooks Cloud**, encrypted at rest (Lockbox / Active Record encryption). The desktop never stores Plaid secrets.
-- Linking banks and other sensitive cloud actions require **LiveBooks Pro** and **TOTP MFA** on the cloud account. Desktop opens the system browser to `/account/security/step_up` when the 30-minute verification window expires; it does not collect TOTP in the Electron UI. This protects cloud-held Plaid tokens and subscription state — not a local SQLCipher key (application-layer ledger encryption is not used).
+- Linking banks and other sensitive cloud actions require **LiveBooks Pro** and **TOTP MFA** on the cloud account. Desktop opens the system browser to `/account/security/step_up` when step-up is required; it does not collect TOTP in the Electron UI. After verification, bank-feed access lasts until desktop cloud sign-out (or revoke-all). This protects cloud-held Plaid tokens and subscription state — not a local SQLCipher key (application-layer ledger encryption is not used).
 - Signing out of LiveBooks Cloud on desktop clears MFA-paused UI state and stops background bank-feed polling until the user signs in again.
 
 ### HTTPS enforcement

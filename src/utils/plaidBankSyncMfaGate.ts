@@ -2,7 +2,7 @@ import { readonly, ref } from 'vue';
 
 /**
  * When true, background Plaid feed polling should pause until the user
- * completes MFA step-up (30-minute cloud window expired).
+ * completes MFA step-up in the browser (cleared on verify or cloud sign-out).
  */
 const bankSyncMfaPaused = ref(false);
 

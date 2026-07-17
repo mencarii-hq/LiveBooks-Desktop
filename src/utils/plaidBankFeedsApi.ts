@@ -175,7 +175,7 @@ export async function fetchPlaidFeeds(
   };
 }
 
-/** Fetches Plaid feed metadata; opens browser MFA step-up when the 30-minute window expired. */
+/** Fetches Plaid feed metadata; opens browser MFA step-up when verification is required. */
 export async function fetchPlaidFeedsWithStepUp(
   bookId: string,
   options?: { ifNoneMatch?: string; promptTotp?: MfaStepUpPrompt }
