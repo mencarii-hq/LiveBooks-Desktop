@@ -14,7 +14,6 @@
     "
     style="height: 28px"
   >
-    <Fb class="ms-2" />
     <p v-if="companyName && dbPath" class="mx-auto text-sm">
       {{ companyName }} - {{ dbPath }}
     </p>
@@ -64,11 +63,8 @@
 </template>
 
 <script>
-import Fb from './Icons/18/fb.vue';
-
 export default {
   name: 'WindowsTitleBar',
-  components: { Fb },
   props: {
     dbPath: String,
     companyName: String,

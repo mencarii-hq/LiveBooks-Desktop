@@ -33,6 +33,12 @@ const rawArgs = yargs(hideBin(process.argv))
 const argv = rawArgs.argv;
 if (argv.nosign) {
   process.env['CSC_IDENTITY_AUTO_DISCOVERY'] = false;
+  // Skip winCodeSign/rcedit on local unsigned Windows builds (symlink privilege issue).
+  liveBooksConfig.win = {
+    ...liveBooksConfig.win,
+    signAndEditExecutable: false,
+    signDlls: false,
+  };
 }
 
 updatePaths();
@@ -50,7 +56,7 @@ function generateBundledTranslations() {
   const result = spawnSync(
     'npx',
     ['tsx', 'build/scripts/generateBundledTranslations.mjs'],
-    { cwd: root, stdio: 'inherit', shell: false }
+    { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' }
   );
   if (result.status !== 0) {
     console.error('generateBundledTranslations failed');
