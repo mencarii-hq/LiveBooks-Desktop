@@ -258,8 +258,9 @@ export class Main {
 
   /**
    * Inject a Content-Security-Policy response header for every renderer fetch so that:
-   *   - scripts can only come from our own bundle (`'self'` / `app:` / dev Vite host) and `cdn.plaid.com`
-   *   - frames can only come from `*.plaid.com` (Plaid Link drives bank OAuth via iframes)
+   *   - scripts can only come from our own bundle (`'self'` / `app:` / dev Vite host),
+   *     `cdn.plaid.com`, and Google reCAPTCHA (Plaid Link bot check in production)
+   *   - frames can come from `*.plaid.com` / `*.plaid.io` and Google reCAPTCHA hosts
    *   - network calls are limited to our own bundle, our cloud origin, and `*.plaid.com`
    * Idempotent: only attaches the listener once.
    */
@@ -273,16 +274,16 @@ export class Main {
       return;
     }
     // Vue 3 + Tailwind in our build inline styles; strict 'self' would break the UI.
-    // We keep style/script local to our bundle and only allow Plaid CDN as a remote
-    // origin. 'unsafe-inline' is scoped to styles only (Vue scoped styles).
+    // Plaid production Link often embeds Google reCAPTCHA; without those hosts the
+    // challenge UI stays on skeleton placeholders forever.
     const directives = [
       "default-src 'self' app:",
-      "script-src 'self' app: 'unsafe-inline' 'unsafe-eval' https://cdn.plaid.com",
-      "style-src 'self' app: 'unsafe-inline'",
-      "img-src 'self' app: data: blob: https://*.plaid.com",
+      "script-src 'self' app: 'unsafe-inline' 'unsafe-eval' https://cdn.plaid.com https://www.google.com https://www.gstatic.com",
+      "style-src 'self' app: 'unsafe-inline' https://www.gstatic.com",
+      "img-src 'self' app: data: blob: https://*.plaid.com https://www.gstatic.com https://www.google.com",
       "font-src 'self' app: data:",
       "connect-src 'self' app: http://127.0.0.1:* http://localhost:* https://*.plaid.com https:",
-      "frame-src 'self' https://*.plaid.com https://*.plaid.io",
+      "frame-src 'self' https://*.plaid.com https://*.plaid.io https://www.google.com https://www.gstatic.com https://recaptcha.google.com",
       "worker-src 'self' app: blob:",
       "object-src 'none'",
       "base-uri 'self'",
