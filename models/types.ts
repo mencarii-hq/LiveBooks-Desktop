@@ -16,6 +16,8 @@ export enum ModelNameEnum {
   Address = 'Address',
   BankStatement = 'BankStatement',
   BankStatementLine = 'BankStatementLine',
+  Reconciliation = 'Reconciliation',
+  ReconciliationLine = 'ReconciliationLine',
   Batch = 'Batch',
   BatchSeries = 'BatchSeries',
   Color = 'Color',

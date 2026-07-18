@@ -4,6 +4,8 @@ import AccountingSettings from './app/AccountingSettings.json';
 import Address from './app/Address.json';
 import BankStatement from './app/BankStatement.json';
 import BankStatementLine from './app/BankStatementLine.json';
+import Reconciliation from './app/Reconciliation.json';
+import ReconciliationLine from './app/ReconciliationLine.json';
 import Batch from './app/Batch.json';
 import BatchSeries from './app/BatchSeries.json';
 import Color from './app/Color.json';
@@ -146,6 +148,8 @@ export const appSchemas: Schema[] | SchemaStub[] = [
 
   BankStatement as Schema,
   BankStatementLine as Schema,
+  Reconciliation as Schema,
+  ReconciliationLine as Schema,
 
   Invoice as Schema,
   ItemEnquiry as Schema,

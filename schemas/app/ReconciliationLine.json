@@ -1,0 +1,22 @@
+{
+  "name": "ReconciliationLine",
+  "label": "Reconciliation Line",
+  "isChild": true,
+  "fields": [
+    {
+      "fieldname": "ledgerEntry",
+      "label": "Ledger entry",
+      "fieldtype": "Link",
+      "target": "AccountingLedgerEntry",
+      "required": true
+    },
+    {
+      "fieldname": "cleared",
+      "label": "Cleared",
+      "fieldtype": "Check",
+      "default": true,
+      "description": "Checked in the reconcile workbench for this session."
+    }
+  ],
+  "tableFields": ["ledgerEntry", "cleared"]
+}

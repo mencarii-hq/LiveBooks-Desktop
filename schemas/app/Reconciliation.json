@@ -1,0 +1,72 @@
+{
+  "name": "Reconciliation",
+  "label": "Reconciliation",
+  "naming": "uuid",
+  "isSubmittable": false,
+  "fields": [
+    {
+      "fieldname": "name",
+      "label": "No.",
+      "fieldtype": "Data",
+      "required": true,
+      "readOnly": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "bankAccount",
+      "label": "Bank account",
+      "fieldtype": "Link",
+      "target": "Account",
+      "required": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "statementDate",
+      "label": "Statement ending date",
+      "fieldtype": "Date",
+      "required": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "beginningBalance",
+      "label": "Beginning balance",
+      "fieldtype": "Float",
+      "required": true,
+      "default": 0,
+      "section": "Default"
+    },
+    {
+      "fieldname": "endingBalance",
+      "label": "Ending balance",
+      "fieldtype": "Float",
+      "required": true,
+      "default": 0,
+      "section": "Default"
+    },
+    {
+      "fieldname": "status",
+      "label": "Status",
+      "fieldtype": "Select",
+      "default": "draft",
+      "options": [
+        { "value": "draft", "label": "Draft" },
+        { "value": "closed", "label": "Closed" }
+      ],
+      "section": "Default"
+    },
+    {
+      "fieldname": "closedAt",
+      "label": "Closed at",
+      "fieldtype": "Datetime",
+      "section": "Default"
+    },
+    {
+      "fieldname": "lines",
+      "label": "Lines",
+      "fieldtype": "Table",
+      "target": "ReconciliationLine",
+      "section": "Lines"
+    }
+  ],
+  "keywordFields": ["name", "bankAccount"]
+}

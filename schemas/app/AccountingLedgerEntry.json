@@ -82,6 +82,28 @@
       "target": "AccountingLedgerEntry",
       "readOnly": true,
       "section": "Reference"
+    },
+    {
+      "fieldname": "cleared",
+      "label": "Cleared",
+      "fieldtype": "Check",
+      "default": false,
+      "section": "Reconcile",
+      "description": "Set when a bank-feed line is confirmed (Add/Match). Pre-checks the reconcile workbench."
+    },
+    {
+      "fieldname": "reconciled",
+      "label": "Reconciled",
+      "fieldtype": "Check",
+      "default": false,
+      "section": "Reconcile",
+      "description": "Set when Finish Reconcile includes this entry. Source of truth for reconcile lock / warn-and-allow."
+    },
+    {
+      "fieldname": "reconciledOn",
+      "label": "Reconciled on",
+      "fieldtype": "Datetime",
+      "section": "Reconcile"
     }
   ],
   "quickEditFields": [
@@ -93,6 +115,8 @@
     "referenceType",
     "referenceName",
     "reverted",
-    "reverts"
+    "reverts",
+    "cleared",
+    "reconciled"
   ]
 }
