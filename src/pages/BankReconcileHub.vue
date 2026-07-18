@@ -139,6 +139,12 @@
                   >
                     {{ row.statusLabel }}
                   </span>
+                  <span
+                    v-if="row.discrepancy"
+                    class="block mt-1 text-xs text-rose-700 dark:text-rose-300"
+                  >
+                    {{ t`Beginning balance may be off` }}
+                  </span>
                 </td>
               </tr>
             </tbody>
@@ -174,7 +180,11 @@ import { ModelNameEnum } from 'models/types';
 import { AccountTypeEnum } from 'models/baseModels/Account/types';
 import { isCredit } from 'models/helpers';
 import { routeTo } from 'src/utils/ui';
-import { lastReconcileFor, readDraft } from 'src/utils/reconcileStore';
+import {
+  draftInProgress,
+  hasBeginningBalanceDiscrepancy,
+  lastReconcileFor,
+} from 'src/utils/reconcileStore';
 import {
   feedItemById,
   loadPlaidAccountMaps,
@@ -198,6 +208,7 @@ type HubRow = {
   lastStatementBalanceLabel: string;
   statusLabel: string;
   statusPillClass: string;
+  discrepancy: boolean;
 };
 
 type InstitutionTable = {
@@ -205,23 +216,6 @@ type InstitutionTable = {
   caption: string;
   rows: HubRow[];
 };
-
-function reconcileDraftInProgress(account: string): boolean {
-  const d = readDraft(account);
-  if (!d) {
-    return false;
-  }
-  if (d.toDate) {
-    return true;
-  }
-  if (d.endingBalance != null && typeof d.endingBalance === 'number') {
-    return true;
-  }
-  if (d.checked && Object.keys(d.checked).length > 0) {
-    return true;
-  }
-  return false;
-}
 
 function primaryPlaidMap(
   chartAccount: string,
@@ -302,7 +296,8 @@ export default defineComponent({
           };
         }
 
-        const rows: HubRow[] = reconcilable.map((b) => {
+        const rows: HubRow[] = [];
+        for (const b of reconcilable) {
           const totalsRow = totalsByAccount[b.name];
           let ledgerVal = 0;
           if (totalsRow) {
@@ -313,11 +308,16 @@ export default defineComponent({
               ledgerVal = totalCredit - totalDebit;
             }
           }
-          const closed = lastReconcileFor(b.name);
-          const inProgress = reconcileDraftInProgress(b.name);
+          const closed = await lastReconcileFor(b.name);
+          const inProgress = await draftInProgress(b.name);
+          const discrepancy = await hasBeginningBalanceDiscrepancy(b.name);
           let statusLabel: string;
           let statusPillClass: string;
-          if (inProgress) {
+          if (discrepancy) {
+            statusLabel = t`Discrepancy`;
+            statusPillClass =
+              'bg-rose-100 text-rose-900 dark:bg-rose-900/40 dark:text-rose-100';
+          } else if (inProgress) {
             statusLabel = t`In progress`;
             statusPillClass =
               'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100';
@@ -355,7 +355,7 @@ export default defineComponent({
             bankAccountLabel = accountDisplayName(b);
           }
 
-          return {
+          rows.push({
             name: b.name,
             bankAccountLabel,
             ledgerAccountLabel: accountDisplayName(b),
@@ -371,8 +371,9 @@ export default defineComponent({
               : t`—`,
             statusLabel,
             statusPillClass,
-          };
-        });
+            discrepancy,
+          });
+        }
 
         const bucket: Record<
           string,

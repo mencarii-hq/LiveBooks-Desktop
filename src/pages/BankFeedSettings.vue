@@ -709,6 +709,7 @@ import {
   reopenAckedPlaidImportBatches,
   type PlaidFeedItemRow,
 } from 'src/utils/plaidBankFeedsApi';
+import { refreshFeedsNow } from 'src/utils/plaidBackgroundSync';
 import {
   fetchPlaidLinkedAccounts,
   formatPlaidAccountLabel as formatPlaidLinkedRowLabel,
@@ -903,7 +904,11 @@ export default defineComponent({
           isGroup: false,
           disabled: false,
         },
-      })) as { name: string; rootType?: string }[];
+      })) as {
+        name: string;
+        accountName?: string;
+        rootType?: string;
+      }[];
     },
     async loadTotalsByAccount() {
       try {
@@ -1748,7 +1753,8 @@ export default defineComponent({
         limit: 1,
       })) as { name: string }[];
       try {
-        if (existing.length > 0) {
+        const isNewMap = existing.length === 0;
+        if (!isNewMap) {
           const doc = await fyo.doc.getDoc(
             ModelNameEnum.PlaidBankAccountMap,
             existing[0].name
@@ -1783,6 +1789,39 @@ export default defineComponent({
             type: 'warning',
             message: en.error ?? t`The cloud could not resume automatic imports for this account (use Refresh for this institution).`,
           });
+        }
+        // Reopen recently acked batches so previously-unmapped account history
+        // can re-deliver (unmapped rows were excluded then acked).
+        if (isNewMap && this.bookId) {
+          const reopen = await reopenAckedPlaidImportBatches(
+            this.bookId,
+            itemId,
+            { days: 90, promptTotp: () => this.plaidMfaPromptTotp() }
+          );
+          if (reopen.ok) {
+            if ((reopen.reopenedCount ?? 0) > 0) {
+              showToast({
+                type: 'success',
+                message: t`Reopened ${reopen.reopenedCount} bank feed batch(es) so history can catch up.`,
+                duration: 'long',
+              });
+              void refreshFeedsNow();
+            } else {
+              showToast({
+                type: 'warning',
+                message: t`No stored batches left to re-fetch for this account. Recent history may be incomplete — upload a CSV/OFX if you need older transactions.`,
+                duration: 'long',
+              });
+            }
+          } else if (!reopen.totpRequired) {
+            showToast({
+              type: 'warning',
+              message:
+                reopen.error ??
+                t`Could not re-fetch prior bank batches. Upload a CSV/OFX if history is missing.`,
+              duration: 'long',
+            });
+          }
         }
       } catch (e) {
         showToast({
@@ -1930,8 +1969,13 @@ export default defineComponent({
       const name = this.manualForm.accountName.trim();
       this.manualNameError = '';
       try {
-        const exists = await fyo.db.exists(ModelNameEnum.Account, name);
-        if (exists) {
+        // Accounts use UUID `name`; the display label is `accountName`.
+        const dupes = (await fyo.db.getAll(ModelNameEnum.Account, {
+          fields: ['name'],
+          filters: { accountName: name },
+          limit: 1,
+        })) as { name: string }[];
+        if (dupes.length) {
           this.manualNameError = t`An account with this name already exists.`;
           return;
         }
@@ -1951,21 +1995,27 @@ export default defineComponent({
           rootType,
           fallbacks
         );
+        if (!parentAccount) {
+          throw new Error(
+            t`Couldn't find a parent account in the chart of accounts. Add a Bank Accounts (or Liability) group first.`
+          );
+        }
         const accountDoc = fyo.doc.getNewDoc(ModelNameEnum.Account, {
           name,
-          parentAccount: parentAccount ?? undefined,
+          accountName: name,
+          parentAccount,
           isGroup: false,
           rootType,
           accountType: AccountTypeEnum.Bank,
         });
         await accountDoc.sync();
-        createdAccountName = name;
+        createdAccountName = String(accountDoc.name ?? name);
 
         const balance = this.manualBalanceFloat ?? 0;
         if (balance !== 0) {
           try {
             await this.postOpeningEntry({
-              accountName: name,
+              accountName: createdAccountName,
               kind: this.manualForm.kind,
               amount: Math.abs(balance),
               isNegative: balance < 0,
@@ -1986,26 +2036,38 @@ export default defineComponent({
         });
         this.manualPanelOpen = false;
         await this.loadManualSection();
-        this.openManualActivity(name);
+        this.openManualActivity(createdAccountName);
       } catch (e) {
+        const detail = (e as Error).message?.trim();
         showToast({
           type: 'error',
           message: createdAccountName
-            ? (e as Error).message
-            : t`Couldn't save the bank account. Please try again.`,
+            ? detail || t`Couldn't finish setting up the bank account.`
+            : detail
+              ? t`Couldn't save the bank account: ${detail}`
+              : t`Couldn't save the bank account. Please try again.`,
         });
       } finally {
         this.manualSaving = false;
       }
     },
     async resolveAccountParent(
-      rootType: 'Asset' | 'Liability',
+      rootType: 'Asset' | 'Liability' | 'Equity',
       preferredNames: string[]
     ): Promise<string | null> {
       for (const candidate of preferredNames) {
         try {
-          const ok = fyo.db.exists(ModelNameEnum.Account, candidate);
-          if (ok) {
+          // Prefer lookup by display label (accountName); UUID books no longer
+          // use human-readable Account.name.
+          const byLabel = (await fyo.db.getAll(ModelNameEnum.Account, {
+            fields: ['name'],
+            filters: { accountName: candidate, isGroup: true },
+            limit: 1,
+          })) as { name: string }[];
+          if (byLabel.length) {
+            return byLabel[0].name;
+          }
+          if (await fyo.db.exists(ModelNameEnum.Account, candidate)) {
             return candidate;
           }
         } catch {
@@ -2028,12 +2090,13 @@ export default defineComponent({
     },
     async resolveOpeningEquityAccount(): Promise<string> {
       try {
-        const ok = await fyo.db.exists(
-          ModelNameEnum.Account,
-          OPENING_BALANCE_EQUITY_NAME
-        );
-        if (ok) {
-          return OPENING_BALANCE_EQUITY_NAME;
+        const byLabel = (await fyo.db.getAll(ModelNameEnum.Account, {
+          fields: ['name'],
+          filters: { accountName: OPENING_BALANCE_EQUITY_NAME },
+          limit: 1,
+        })) as { name: string }[];
+        if (byLabel.length) {
+          return byLabel[0].name;
         }
       } catch {
         // Fall through.
@@ -2064,7 +2127,7 @@ export default defineComponent({
         accountType: AccountTypeEnum.Equity,
       });
       await created.sync();
-      return OPENING_BALANCE_EQUITY_NAME;
+      return String(created.name ?? OPENING_BALANCE_EQUITY_NAME);
     },
     async postOpeningEntry(opts: {
       accountName: string;

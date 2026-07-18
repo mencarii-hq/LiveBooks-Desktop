@@ -214,28 +214,30 @@ watch([showSidebar, sidebarWidthPct], () => {
         <PlaidBankSyncMfaBanner @verified="onPlaidMfaVerified" />
         <PlaidSyncStatusBanner />
       </div>
-      <router-view v-slot="{ Component }">
-        <keep-alive>
-          <component
-            :is="Component"
-            :key="$route.path"
-            :dark-mode="darkMode"
-            class="flex-1 min-h-0"
-          />
-        </keep-alive>
-      </router-view>
-
-      <router-view v-slot="{ Component, route }" name="edit">
-        <Transition name="quickedit">
-          <div v-if="route?.query?.edit">
+      <div class="flex flex-1 min-h-0 overflow-hidden">
+        <router-view v-slot="{ Component }">
+          <keep-alive>
             <component
               :is="Component"
-              :key="route.query.schemaName + route.query.name"
+              :key="$route.path"
               :dark-mode="darkMode"
+              class="flex-1 min-h-0 min-w-0"
             />
-          </div>
-        </Transition>
-      </router-view>
+          </keep-alive>
+        </router-view>
+
+        <router-view v-slot="{ Component, route }" name="edit">
+          <Transition name="quickedit">
+            <div v-if="route?.query?.edit" class="h-full shrink-0">
+              <component
+                :is="Component"
+                :key="route.query.schemaName + route.query.name"
+                :dark-mode="darkMode"
+              />
+            </div>
+          </Transition>
+        </router-view>
+      </div>
     </div>
 
     <button

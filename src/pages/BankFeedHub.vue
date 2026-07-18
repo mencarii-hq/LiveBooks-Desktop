@@ -223,6 +223,7 @@ import {
   fetchImportBatchPayload,
   fetchPendingImportBatches,
   fetchPlaidFeedsWithStepUp,
+  reopenAckedPlaidImportBatches,
   type ImportBatchListRow,
   type PlaidFeedItemRow,
 } from 'src/utils/plaidBankFeedsApi';
@@ -476,7 +477,11 @@ export default defineComponent({
             isGroup: false,
             disabled: false,
           },
-        })) as { name: string; rootType?: string }[];
+        })) as {
+          name: string;
+          accountName?: string;
+          rootType?: string;
+        }[];
         this.chartBankAccounts = rows;
         const totals = await fyo.db.getTotalCreditAndDebit();
         const map: Record<string, { totalDebit: number; totalCredit: number }> =
@@ -679,17 +684,29 @@ export default defineComponent({
         return '—';
       }
       const k = this.selKey(this.expandedItemId, tx.account_id);
-      return this.resolvedChartByPlaid[k] ?? this.msgNotMapped();
+      const chartName = this.resolvedChartByPlaid[k];
+      if (!chartName) {
+        return this.msgNotMapped();
+      }
+      const coa = this.ledgerByName[chartName];
+      return accountDisplayName({
+        name: chartName,
+        accountName: coa?.accountName,
+      });
     },
     async loadChartBankAccountsForMaps() {
       this.chartBankAccounts = (await fyo.db.getAll(ModelNameEnum.Account, {
-        fields: ['name', 'rootType'],
+        fields: ['name', 'accountName', 'rootType'],
         filters: {
           accountType: AccountTypeEnum.Bank,
           isGroup: false,
           disabled: false,
         },
-      })) as { name: string; rootType?: string }[];
+      })) as {
+        name: string;
+        accountName?: string;
+        rootType?: string;
+      }[];
     },
     async hydrateMappingsForItem(itemId: string) {
       const maps = (await fyo.db.getAll(ModelNameEnum.PlaidBankAccountMap, {
@@ -822,7 +839,8 @@ export default defineComponent({
         limit: 1,
       })) as { name: string }[];
       try {
-        if (existing.length > 0) {
+        const isNewMap = existing.length === 0;
+        if (!isNewMap) {
           const doc = await fyo.doc.getDoc(
             ModelNameEnum.PlaidBankAccountMap,
             existing[0].name
@@ -844,6 +862,29 @@ export default defineComponent({
         };
         this.plaidMapsFlat = await loadPlaidAccountMaps();
         showToast({ type: 'success', message: t`Mapping saved.` });
+        if (isNewMap && this.bookId) {
+          const reopen = await reopenAckedPlaidImportBatches(
+            this.bookId,
+            itemId,
+            { days: 90, promptTotp: () => promptPlaidMfaTotp() }
+          );
+          if (reopen.ok) {
+            if ((reopen.reopenedCount ?? 0) > 0) {
+              showToast({
+                type: 'success',
+                message: t`Reopened ${reopen.reopenedCount} bank feed batch(es) so history can catch up.`,
+                duration: 'long',
+              });
+              void refreshFeedsNow();
+            } else {
+              showToast({
+                type: 'warning',
+                message: t`No stored batches left to re-fetch for this account. Recent history may be incomplete — upload a CSV/OFX if you need older transactions.`,
+                duration: 'long',
+              });
+            }
+          }
+        }
       } catch (e) {
         showToast({
           type: 'error',

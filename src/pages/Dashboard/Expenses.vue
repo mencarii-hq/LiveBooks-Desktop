@@ -55,9 +55,11 @@
 
 <script lang="ts">
 import { truncate } from 'lodash';
+import { ModelNameEnum } from 'models/types';
 import { fyo } from 'src/initFyo';
 import { uicolors } from 'src/utils/colors';
 import { getDatesAndPeriodList } from 'src/utils/misc';
+import { accountDisplayName } from 'utils/accountDisplay';
 import { defineComponent } from 'vue';
 import DonutChart from '../../components/Charts/DonutChart.vue';
 import DashboardChartBase from './BaseDashboardChart.vue';
@@ -119,6 +121,17 @@ export default defineComponent({
         fromDate.toISO(),
         toDate.toISO()
       );
+      const accountIds = topExpenses.map((e) => e.account).filter(Boolean);
+      const labelById: Record<string, string> = {};
+      if (accountIds.length) {
+        const rows = (await fyo.db.getAll(ModelNameEnum.Account, {
+          fields: ['name', 'accountName'],
+          filters: { name: ['in', accountIds] },
+        })) as { name: string; accountName?: string }[];
+        for (const row of rows) {
+          labelById[row.name] = accountDisplayName(row);
+        }
+      }
       const shades = [
         { class: 'bg-pink-500', hex: uicolors.pink['500'] },
         { class: 'bg-pink-400', hex: uicolors.pink['400'] },
@@ -142,7 +155,7 @@ export default defineComponent({
         .filter((e) => e.total > 0)
         .map((d, i) => {
           return {
-            account: d.account,
+            account: labelById[d.account] ?? d.account,
             total: d.total,
             color: { color: shades[i].hex, darkColor: darkshades[i].hex },
             class: { class: shades[i].class, darkClass: darkshades[i].class },

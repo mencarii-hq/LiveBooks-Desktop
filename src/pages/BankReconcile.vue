@@ -1,6 +1,14 @@
 <template>
   <div class="flex flex-col h-full overflow-hidden">
     <PageHeader :title="`${t`Reconcile`} ${accountTitle}`">
+      <Button
+        v-if="hasClosedReconcile"
+        type="secondary"
+        class="me-2"
+        @click="reopenReconcile"
+      >
+        {{ t`Reopen` }}
+      </Button>
       <Button type="secondary" class="me-2" @click="saveForLater">
         {{ t`Save for Later` }}
       </Button>
@@ -17,6 +25,23 @@
       "
     >
       <div class="p-4 max-w-6xl mx-auto space-y-4">
+        <div
+          v-if="beginningBalanceDiscrepancy"
+          class="
+            rounded-lg
+            border border-amber-300
+            bg-amber-50
+            dark:bg-amber-950/40 dark:border-amber-700
+            px-3
+            py-2
+            text-sm text-amber-950
+            dark:text-amber-100
+          "
+        >
+          {{
+            t`Beginning balance does not match your last closed reconciliation. A reconciled transaction may have been edited or deleted.`
+          }}
+        </div>
         <p class="text-sm text-gray-600 dark:text-gray-300">
           {{
             t`Enter your statement details, then match withdrawals to Money out and deposits to Money in—the same layout as most bank PDFs.`
@@ -568,17 +593,19 @@ import { t } from 'fyo';
 import { fyo } from 'src/initFyo';
 import { ModelNameEnum } from 'models/types';
 import { isCredit } from 'models/helpers';
-import { showToast } from 'src/utils/interactive';
-import { routeTo } from 'src/utils/ui';
 import {
-  appendClosed,
-  clearDraft,
+  finishReconcile,
+  hasBeginningBalanceDiscrepancy,
   lastReconcileFor,
   readDraft,
   reconciledEntryNamesFor,
+  reopenLatestReconciliation,
   writeDraft,
 } from 'src/utils/reconcileStore';
+import { showDialog, showToast } from 'src/utils/interactive';
+import { routeTo } from 'src/utils/ui';
 import { loadManualFeedStatements } from 'src/utils/bankFeedHelpers';
+import { accountDisplayName } from 'utils/accountDisplay';
 import { defineComponent } from 'vue';
 
 type AleRow = {
@@ -597,6 +624,7 @@ type EntryRow = {
   referenceShort: string;
   signed: number;
   isBankEntry: boolean;
+  cleared: boolean;
 };
 
 function asNumber(v: unknown): number {
@@ -664,6 +692,8 @@ export default defineComponent({
 
       draftRestoreApplied: false,
       bootstrapping: false as boolean,
+      beginningBalanceDiscrepancy: false as boolean,
+      hasClosedReconcile: false as boolean,
     };
   },
   computed: {
@@ -740,7 +770,7 @@ export default defineComponent({
       if (this.bootstrapping) {
         return;
       }
-      this.persistDraft();
+      void this.persistDraft();
       void this.refreshUnreviewed();
       void this.loadEntries();
     },
@@ -748,7 +778,7 @@ export default defineComponent({
       if (this.bootstrapping) {
         return;
       }
-      this.persistDraft();
+      void this.persistDraft();
     },
     checked: {
       deep: true,
@@ -756,7 +786,7 @@ export default defineComponent({
         if (this.bootstrapping) {
           return;
         }
-        this.persistDraft();
+        void this.persistDraft();
       },
     },
   },
@@ -796,24 +826,28 @@ export default defineComponent({
 
       try {
         const acc = (await fyo.db.getAll(ModelNameEnum.Account, {
-          fields: ['name', 'rootType'],
+          fields: ['name', 'accountName', 'rootType'],
           filters: { name: this.accountName },
-        })) as { name: string; rootType?: string }[];
+        })) as { name: string; accountName?: string; rootType?: string }[];
         if (!acc.length) {
           this.loadError = t`Account not found.`;
           return;
         }
-        this.accountTitle = acc[0].name;
+        this.accountTitle = accountDisplayName(acc[0]);
         this.accountRootType = acc[0].rootType;
       } catch (e) {
         this.loadError = (e as Error).message;
         return;
       }
 
-      const last = lastReconcileFor(this.accountName);
+      const last = await lastReconcileFor(this.accountName);
       this.beginningBalance = last?.endingBalance ?? 0;
+      this.hasClosedReconcile = !!last;
+      this.beginningBalanceDiscrepancy = await hasBeginningBalanceDiscrepancy(
+        this.accountName
+      );
 
-      const draft = readDraft(this.accountName);
+      const draft = await readDraft(this.accountName);
       if (draft?.toDate) {
         this.statementEndingDate = draft.toDate;
       }
@@ -885,6 +919,7 @@ export default defineComponent({
               'credit',
               'referenceType',
               'referenceName',
+              'cleared',
             ],
             filters,
             orderBy: 'date',
@@ -901,7 +936,12 @@ export default defineComponent({
           referenceName: String(r.referenceName ?? ''),
         }));
 
-        const reconciledNames = reconciledEntryNamesFor(this.accountName);
+        const clearedByName = new Map<string, boolean>();
+        for (const r of rawEntries) {
+          clearedByName.set(String(r.name ?? ''), !!r.cleared);
+        }
+
+        const reconciledNames = await reconciledEntryNamesFor(this.accountName);
         const open = ales.filter((a) => !reconciledNames.has(a.name));
 
         const jeNames = Array.from(
@@ -949,6 +989,7 @@ export default defineComponent({
             referenceShort,
             signed,
             isBankEntry: je?.entryType === 'Bank Entry',
+            cleared: clearedByName.get(a.name) === true,
           };
         });
         this.entries = rows;
@@ -956,7 +997,7 @@ export default defineComponent({
         if (!this.draftRestoreApplied) {
           const next: Record<string, boolean> = {};
           for (const r of rows) {
-            if (r.isBankEntry) {
+            if (r.isBankEntry || r.cleared) {
               next[r.name] = true;
             }
           }
@@ -966,7 +1007,7 @@ export default defineComponent({
           for (const r of rows) {
             if (this.checked[r.name]) {
               next[r.name] = true;
-            } else if (r.isBankEntry) {
+            } else if (r.isBankEntry || r.cleared) {
               next[r.name] = true;
             }
           }
@@ -992,19 +1033,19 @@ export default defineComponent({
     toggleChecked(name: string) {
       this.checked = { ...this.checked, [name]: !this.checked[name] };
     },
-    persistDraft() {
+    async persistDraft() {
       if (!this.accountName) {
         return;
       }
-      writeDraft(this.accountName, {
+      await writeDraft(this.accountName, {
         toDate: this.statementEndingDate || undefined,
         endingBalance:
           this.endingBalanceInput == null ? null : this.endingBalanceInput,
         checked: { ...this.checked },
       });
     },
-    saveForLater() {
-      this.persistDraft();
+    async saveForLater() {
+      await this.persistDraft();
       showToast({
         type: 'success',
         message: t`Saved for later. Pick up where you left off any time.`,
@@ -1012,27 +1053,63 @@ export default defineComponent({
       });
       void routeTo('/reconcile');
     },
-    finishReconcile() {
+    async finishReconcile() {
       if (!this.canFinish) {
         return;
       }
       const checkedNames = Object.keys(this.checked).filter(
         (k) => this.checked[k]
       );
-      appendClosed(this.accountName, {
-        toDate: this.statementEndingDate,
-        endingBalance: Number(this.endingBalanceInput ?? 0),
-        beginningBalance: this.beginningBalance,
-        closedAt: new Date().toISOString(),
-        ledgerEntryNames: checkedNames,
-      });
-      clearDraft(this.accountName);
+      try {
+        await finishReconcile({
+          account: this.accountName,
+          toDate: this.statementEndingDate,
+          endingBalance: Number(this.endingBalanceInput ?? 0),
+          beginningBalance: this.beginningBalance,
+          ledgerEntryNames: checkedNames,
+        });
+        showToast({
+          type: 'success',
+          message: t`Reconciled ${checkedNames.length} transactions for ${this.accountTitle}.`,
+          duration: 'short',
+        });
+        void routeTo('/reconcile');
+      } catch (e) {
+        showToast({
+          type: 'error',
+          message: (e as Error).message || t`Failed to finish reconcile.`,
+          duration: 'long',
+        });
+      }
+    },
+    async reopenReconcile() {
+      const ok = (await showDialog({
+        title: t`Reopen reconciliation?`,
+        detail: t`This will unlock the last closed period so you can change cleared transactions. Continue?`,
+        type: 'warning',
+        buttons: [
+          { label: t`Reopen`, action: () => true, isPrimary: true },
+          { label: t`Cancel`, action: () => false, isEscape: true },
+        ],
+      })) as boolean;
+      if (!ok) {
+        return;
+      }
+      const result = await reopenLatestReconciliation(this.accountName);
+      if (!result.ok) {
+        showToast({
+          type: 'error',
+          message: result.error,
+          duration: 'long',
+        });
+        return;
+      }
       showToast({
         type: 'success',
-        message: t`Reconciled ${checkedNames.length} transactions for ${this.accountName}.`,
+        message: t`Reconciliation reopened.`,
         duration: 'short',
       });
-      void routeTo('/reconcile');
+      await this.bootstrap();
     },
     resetAddRow() {
       this.addRow = {

@@ -154,7 +154,9 @@
             <tbody>
               <tr class="border-b dark:border-gray-800 last:border-0">
                 <td class="p-3 text-start font-medium">
-                  {{ summaryBankAccountName || accountTitle }}
+                  {{
+                    summaryBankAccountName || ledgerAccountLabel || accountTitle
+                  }}
                 </td>
                 <td class="p-3 text-start tabular-nums">
                   {{ summaryBankBalanceLabel ?? t`—` }}
@@ -633,7 +635,7 @@
         <div v-else-if="activeTab === 'reviewed'">
           <p class="text-sm text-gray-600 dark:text-gray-300 mb-4 max-w-3xl">
             {{
-              t`History of cleared transactions. Click Undo to send a row back to For Review. Reconciled rows are locked.`
+              t`History of cleared transactions. Click Undo to send a row back to For Review. If a row is already reconciled, you'll be warned before it can throw off your beginning balance.`
             }}
           </p>
           <div v-if="manualLoading" class="text-sm text-gray-600">
@@ -698,15 +700,7 @@
                 <td class="p-2 border-b dark:border-gray-800 whitespace-nowrap">
                   <Button
                     type="secondary"
-                    :disabled="
-                      manualPendingRowKey === manualLineKey(line) ||
-                      line.statementStatus === 'Closed'
-                    "
-                    :title="
-                      line.statementStatus === 'Closed'
-                        ? t`This statement is reconciled. Reopen the reconciliation to undo.`
-                        : ''
-                    "
+                    :disabled="manualPendingRowKey === manualLineKey(line)"
                     @click="undoManualLine(line)"
                   >
                     {{ t`Undo` }}
@@ -761,29 +755,7 @@
                 </td>
                 <td class="p-2 border-b text-xs align-top">
                   <span
-                    v-if="line.isPending"
-                    class="
-                      inline-block
-                      me-1
-                      mb-1
-                      px-1.5
-                      py-0.5
-                      rounded
-                      bg-amber-100
-                      text-amber-900
-                      dark:bg-amber-900/40 dark:text-amber-100
-                      text-[10px]
-                      font-medium
-                      uppercase
-                    "
-                    :title="
-                      t`Pending at your bank. It'll move into For Review once your bank posts it.`
-                    "
-                  >
-                    {{ t`Pending at bank` }}
-                  </span>
-                  <span
-                    v-else-if="line.ignoreReason === 'plaid_removed'"
+                    v-if="line.ignoreReason === 'plaid_removed'"
                     class="
                       inline-block
                       me-1
@@ -804,24 +776,16 @@
                   >
                     {{ t`Plaid removed` }}
                   </span>
-                  <span>{{
-                    line.isPending
-                      ? t`Awaiting posting`
-                      : line.ignoreReason || '—'
-                  }}</span>
+                  <span>{{ line.ignoreReason || '—' }}</span>
                 </td>
                 <td class="p-2 border-b whitespace-nowrap">
                   <Button
-                    v-if="!line.isPending"
                     type="secondary"
                     :disabled="manualPendingRowKey === manualLineKey(line)"
                     @click="restoreManualLine(line)"
                   >
                     {{ t`Restore` }}
                   </Button>
-                  <span v-else class="text-xs text-gray-500 dark:text-gray-400">
-                    {{ t`—` }}
-                  </span>
                 </td>
               </tr>
             </tbody>
@@ -836,7 +800,7 @@
 import Button from 'src/components/Button.vue';
 import PageHeader from 'src/components/PageHeader.vue';
 import { t } from 'fyo';
-import { showToast } from 'src/utils/interactive';
+import { showDialog, showToast } from 'src/utils/interactive';
 import {
   LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
   openLivebooksCloudMfaStepUp,
@@ -879,6 +843,7 @@ import {
   undoLineMatch,
   type ReconcileCandidate,
 } from 'src/utils/bankLineActions';
+import { bankPayeeKey } from 'src/utils/bankPayeeKey';
 import { fyo } from 'src/initFyo';
 import { ModelNameEnum } from 'models/types';
 import { AccountTypeEnum } from 'models/baseModels/Account/types';
@@ -969,7 +934,10 @@ export default defineComponent({
       return this.manualLines.filter((l) => l.matchStatus === 'matched');
     },
     manualLinesExcluded(): ManualFeedLine[] {
-      return this.manualLines.filter((l) => l.matchStatus === 'ignored');
+      // Hide Plaid pending from Excluded — pending is bank state, not a user exclude.
+      return this.manualLines.filter(
+        (l) => l.matchStatus === 'ignored' && !l.isPending
+      );
     },
     reviewBadgeCount(): number {
       return this.manualLinesForReview.length;
@@ -1043,15 +1011,15 @@ export default defineComponent({
     },
     async loadLedgerAccountLabel() {
       try {
-        const accountName = (await fyo.db.getValue(
-          ModelNameEnum.Account,
-          this.accountTitle,
-          'accountName'
-        )) as string | undefined;
-        this.ledgerAccountLabel = accountDisplayName({
-          name: this.accountTitle,
-          accountName,
-        });
+        const rows = (await fyo.db.getAll(ModelNameEnum.Account, {
+          fields: ['name', 'accountName'],
+          filters: { name: this.accountTitle },
+          limit: 1,
+        })) as { name: string; accountName?: string }[];
+        const row = rows[0];
+        this.ledgerAccountLabel = row
+          ? accountDisplayName(row)
+          : this.accountTitle;
       } catch {
         this.ledgerAccountLabel = this.accountTitle;
       }
@@ -1178,12 +1146,68 @@ export default defineComponent({
           return b.date.localeCompare(a.date);
         });
         this.manualLines = lines;
+        await this.applyRememberedCategories();
       } catch (e) {
         this.manualError =
           (e as Error).message || t`Couldn't load transactions.`;
       } finally {
         this.manualLoading = false;
       }
+    },
+    async applyRememberedCategories() {
+      const memory = await this.buildCategoryMemory();
+      if (!Object.keys(memory).length) {
+        return;
+      }
+      const next = { ...this.categorySelections };
+      for (const line of this.manualLinesForReview) {
+        const key = this.manualLineKey(line);
+        if (next[key]) {
+          continue;
+        }
+        const payee = bankPayeeKey(line.description);
+        if (payee && memory[payee]) {
+          next[key] = memory[payee];
+        }
+      }
+      this.categorySelections = next;
+    },
+    async buildCategoryMemory(): Promise<Record<string, string>> {
+      const memory: Record<string, string> = {};
+      const matched = this.manualLines
+        .filter(
+          (l) =>
+            l.matchStatus === 'matched' &&
+            l.matchedReferenceType === ModelNameEnum.JournalEntry &&
+            l.matchedReferenceName
+        )
+        .slice()
+        .sort((a, b) => b.date.localeCompare(a.date));
+
+      for (const line of matched) {
+        const payee = bankPayeeKey(line.description);
+        if (!payee || memory[payee]) {
+          continue;
+        }
+        try {
+          const je = await fyo.doc.getDoc(
+            ModelNameEnum.JournalEntry,
+            line.matchedReferenceName
+          );
+          const accounts = (je.accounts ?? []) as Array<{
+            account?: string;
+          }>;
+          const category = accounts
+            .map((a) => String(a.account ?? ''))
+            .find((a) => a && a !== this.accountTitle);
+          if (category) {
+            memory[payee] = category;
+          }
+        } catch {
+          // skip missing JE
+        }
+      }
+      return memory;
     },
     async refreshCandidates() {
       const next: Record<string, ReconcileCandidate | null> = {};
@@ -1292,6 +1316,7 @@ export default defineComponent({
       try {
         const result = await linkLineToReference({
           line,
+          bankAccount: this.accountTitle,
           refType: cand.referenceType,
           refName: cand.referenceName,
         });
@@ -1372,12 +1397,32 @@ export default defineComponent({
       }
       this.manualPendingRowKey = key;
       try {
-        const result = await undoLineMatch(line);
+        let result = await undoLineMatch(line, {
+          bankAccount: this.accountTitle,
+        });
+        if (!result.ok && result.locked) {
+          const proceed = (await showDialog({
+            title: t`Reconciled transaction`,
+            detail: t`This transaction is reconciled; changing it will throw off your beginning balance.`,
+            type: 'warning',
+            buttons: [
+              { label: t`Proceed`, action: () => true, isPrimary: true },
+              { label: t`Cancel`, action: () => false, isEscape: true },
+            ],
+          })) as boolean;
+          if (!proceed) {
+            return;
+          }
+          result = await undoLineMatch(line, {
+            bankAccount: this.accountTitle,
+            force: true,
+          });
+        }
         if (!result.ok) {
           showToast({
             type: 'error',
             message: result.error,
-            duration: result.locked ? 'long' : 'short',
+            duration: 'short',
           });
           return;
         }
@@ -1638,7 +1683,10 @@ export default defineComponent({
         feedItem?.last_sync_at != null
           ? this.formatActivityLocalTimestamp(feedItem.last_sync_at)
           : null;
-      let bankName = this.accountTitle;
+      let bankName =
+        this.ledgerAccountLabel ||
+        m0.plaidDisplayLabel?.trim() ||
+        this.accountTitle;
       let bankBal: string | null = null;
       try {
         const { accounts } = await fetchPlaidLinkedAccounts(
