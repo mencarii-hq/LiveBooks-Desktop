@@ -5,15 +5,18 @@
  *   - linkLineToReference: matches a line to an existing Payment/JournalEntry (no new ledger doc).
  *   - undoLineMatch: voids/cancels the underlying doc and reverts the line to `unmatched`.
  *
- * Reconcile lock: until a real Reconciliation model exists we treat
- * `BankStatement.status === 'Closed'` as the lock; the caller is expected to check this
- * before calling `undoLineMatch`.
+ * Reconcile lock: keys off AccountingLedgerEntry.reconciled (warn-and-allow at the UI layer).
+ * Pass `force: true` after the user confirms the warn dialog.
  */
 
 import { fyo } from 'src/initFyo';
 import { ModelNameEnum } from 'models/types';
 import type { Doc } from 'fyo/model/doc';
 import type { ManualFeedLine } from 'src/utils/bankFeedHelpers';
+import {
+  matchedLineIsReconciled,
+  setClearedForReference,
+} from 'src/utils/reconcileStore';
 
 export type CategorizeOutcome =
   | { ok: true; journalEntryName: string }
@@ -105,6 +108,14 @@ export async function categorizeAndAddLine(opts: {
     const synced = await jv.sync();
     await synced.submit();
 
+    const jeName = synced.name ?? jv.name ?? '';
+    await setClearedForReference(
+      opts.bankAccount,
+      ModelNameEnum.JournalEntry,
+      jeName,
+      true
+    );
+
     const stmt = await getStatementDoc(opts.line);
     const target = findLineDoc(stmt, opts.line);
     if (!target) {
@@ -116,12 +127,12 @@ export async function categorizeAndAddLine(opts: {
     }
     target.matchStatus = 'matched';
     target.matchedReferenceType = ModelNameEnum.JournalEntry;
-    target.matchedReferenceName = synced.name ?? jv.name ?? '';
+    target.matchedReferenceName = jeName;
     target.ignoreReason = '';
     await stmt.sync();
     return {
       ok: true,
-      journalEntryName: target.matchedReferenceName as string,
+      journalEntryName: jeName,
     };
   } catch (e) {
     return {
@@ -133,6 +144,7 @@ export async function categorizeAndAddLine(opts: {
 
 export async function linkLineToReference(opts: {
   line: ManualFeedLine;
+  bankAccount: string;
   refType: string;
   refName: string;
 }): Promise<LinkOutcome> {
@@ -147,6 +159,12 @@ export async function linkLineToReference(opts: {
     target.matchedReferenceName = opts.refName;
     target.ignoreReason = '';
     await stmt.sync();
+    await setClearedForReference(
+      opts.bankAccount,
+      opts.refType,
+      opts.refName,
+      true
+    );
     return { ok: true };
   } catch (e) {
     return { ok: false, error: (e as Error).message || 'Failed to link.' };
@@ -186,27 +204,35 @@ export async function setLineStatus(opts: {
 
 /**
  * Reverts a matched line: voids/cancels the linked JournalEntry/Payment and
- * sets the line back to `unmatched`. Refuses if the parent statement is `Closed`
- * (our reconcile-lock proxy until a Reconciliation model exists).
+ * sets the line back to `unmatched`. If linked ALEs are reconciled, returns
+ * locked unless `force: true` (after warn-and-allow).
  */
 export async function undoLineMatch(
-  line: ManualFeedLine
+  line: ManualFeedLine,
+  opts?: { force?: boolean; bankAccount?: string }
 ): Promise<UndoOutcome> {
-  if (line.statementStatus === 'Closed') {
-    return {
-      ok: false,
-      locked: true,
-      error:
-        'This statement is reconciled. Reopen the reconciliation before undoing.',
-    };
-  }
   if (line.matchStatus !== 'matched') {
-    // Treat as success — already in target state.
     return { ok: true };
   }
+  const bankAccount = opts?.bankAccount ?? '';
+  const refType = line.matchedReferenceType;
+  const refName = line.matchedReferenceName;
+  if (bankAccount && refType && refName && !opts?.force) {
+    const reconciled = await matchedLineIsReconciled(
+      bankAccount,
+      refType,
+      refName
+    );
+    if (reconciled) {
+      return {
+        ok: false,
+        locked: true,
+        error:
+          'This transaction is reconciled; changing it will throw off your beginning balance.',
+      };
+    }
+  }
   try {
-    const refType = line.matchedReferenceType;
-    const refName = line.matchedReferenceName;
     if (refType && refName) {
       try {
         const refDoc = await fyo.doc.getDoc(refType, refName);
@@ -216,8 +242,14 @@ export async function undoLineMatch(
           await refDoc.delete();
         }
       } catch {
-        // Underlying doc already gone or cannot be cancelled — fall through and
-        // still flip the bank line so the user is unblocked.
+        // Underlying doc already gone — still flip the bank line.
+      }
+      if (bankAccount) {
+        try {
+          await setClearedForReference(bankAccount, refType, refName, false);
+        } catch {
+          // ignore
+        }
       }
     }
     const stmt = await getStatementDoc(line);
@@ -258,15 +290,10 @@ export async function findExactMatchCandidate(
           bankAccount: string,
           date: string,
           amount: number,
-          limit: number
+          windowDays?: number
         ) => Promise<ReconcileCandidate[]>;
       }
-    ).getBankReconcileCandidates(
-      bankAccount,
-      line.date,
-      Math.abs(line.amountFloat),
-      1
-    );
+    ).getBankReconcileCandidates(bankAccount, line.date, line.amountFloat, 3);
     return candidates[0] ?? null;
   } catch {
     return null;

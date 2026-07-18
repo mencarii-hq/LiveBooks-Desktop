@@ -503,6 +503,8 @@ export class BespokeQueries {
 
     const refTypes = [ModelNameEnum.Payment, ModelNameEnum.JournalEntry];
 
+    // Exclude refs already linked by a matched BankStatementLine so one JE/Payment
+    // cannot be suggested for two feed lines (soft match refs live on the line).
     return (await db.knex!(ModelNameEnum.AccountingLedgerEntry)
       .select('referenceType', 'referenceName', 'date', 'debit', 'credit')
       .where({ account: bankAccount, reverted: false })
@@ -511,6 +513,14 @@ export class BespokeQueries {
       .whereRaw('abs(cast(debit as real) - cast(credit as real) - ?) < 0.02', [
         lineAmount,
       ])
+      .whereRaw(
+        `not exists (
+          select 1 from "BankStatementLine" bsl
+          where bsl."matchStatus" = 'matched'
+            and bsl."matchedReferenceType" = "AccountingLedgerEntry"."referenceType"
+            and bsl."matchedReferenceName" = "AccountingLedgerEntry"."referenceName"
+        )`
+      )
       .orderBy('date', 'asc')
       .limit(40)) as {
       referenceType: string;

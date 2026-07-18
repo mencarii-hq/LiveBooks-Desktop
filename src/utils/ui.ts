@@ -28,6 +28,7 @@ import { SelectFileOptions } from 'utils/types';
 import { RouteLocationRaw } from 'vue-router';
 import { evaluateHidden } from './doc';
 import { showDialog, showToast } from './interactive';
+import { referenceHasReconciledAles } from './reconcileStore';
 import { showSidebar } from './refs';
 import {
   ActionGroup,
@@ -87,6 +88,25 @@ export async function deleteDocWithPrompt(doc: Doc) {
   let detail = t`This action is permanent.`;
   if (doc.isTransactional && doc.isSubmitted) {
     detail = t`This action is permanent and will delete associated ledger entries.`;
+  }
+
+  if (
+    doc.isTransactional &&
+    doc.name &&
+    (await referenceHasReconciledAles(doc.schemaName, doc.name))
+  ) {
+    const proceed = (await showDialog({
+      title: t`Reconciled transaction`,
+      detail: t`This transaction is reconciled; changing it will throw off your beginning balance.`,
+      type: 'warning',
+      buttons: [
+        { label: t`Proceed`, action: () => true, isPrimary: true },
+        { label: t`Cancel`, action: () => false, isEscape: true },
+      ],
+    })) as boolean;
+    if (!proceed) {
+      return false;
+    }
   }
 
   return (await showDialog({
@@ -157,6 +177,25 @@ export async function cancelDocWithPrompt(doc: Doc) {
       detail = t`This action is permanent and will cancel the following payments: ${paymentList.join(
         ', '
       )}`;
+    }
+  }
+
+  if (
+    doc.isTransactional &&
+    doc.name &&
+    (await referenceHasReconciledAles(doc.schemaName, doc.name))
+  ) {
+    const proceed = (await showDialog({
+      title: t`Reconciled transaction`,
+      detail: t`This transaction is reconciled; changing it will throw off your beginning balance.`,
+      type: 'warning',
+      buttons: [
+        { label: t`Proceed`, action: () => true, isPrimary: true },
+        { label: t`Cancel`, action: () => false, isEscape: true },
+      ],
+    })) as boolean;
+    if (!proceed) {
+      return false;
     }
   }
 
