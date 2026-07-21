@@ -75,7 +75,7 @@ The bundle id and product name are the single source of truth in [`build/signing
 
 `electron-builder-config.mjs` imports the constants directly and the main process mirrors them in [`main/frozenSigningIdentity.ts`](main/frozenSigningIdentity.ts). [`main/tests/testFrozenSigningIdentity.spec.ts`](main/tests/testFrozenSigningIdentity.spec.ts) enforces that the two copies never drift. Packaged builds boot through `assertFrozenSigningIdentityForPackagedBuild()`, which throws (and the app exits) if a binary somehow shipped with a different `productName` or macOS bundle id than the frozen contract.
 
-The publish workflow ([`.github/workflows/publish.yml`](.github/workflows/publish.yml)) fails fast if signing secrets are missing — an unsigned official build with the frozen `productName`/`appId` would invalidate shipped users' token keychain slots.
+The publish workflows ([`publish-mac.yml`](.github/workflows/publish-mac.yml), [`publish-windows.yml`](.github/workflows/publish-windows.yml)) fail fast if signing secrets are missing — an unsigned official build with the frozen `productName`/`appId` would invalidate shipped users' token keychain slots.
 
 #### QA matrix (run before each GA-grade release)
 

@@ -1,0 +1,138 @@
+name: Publish with codesign (Windows)
+
+on: workflow_dispatch
+
+# contents: electron-builder GitHub release upload
+# id-token: Azure OIDC login for Windows Artifact Signing (no client secret)
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  build-windows:
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.18.1'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Checkout Books
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          corepack enable
+          corepack prepare yarn@1.22.22 --activate
+          yarn
+
+      - name: Set Error Log Creds
+        env:
+          ERR_LOG_KEY: ${{ secrets.ERR_LOG_KEY }}
+          ERR_LOG_URL: ${{ secrets.ERR_LOG_URL }}
+          ERR_LOG_SECRET: ${{ secrets.ERR_LOG_SECRET }}
+          TELEMETRY_URL: ${{ secrets.TELEMETRY_URL }}
+        run: |
+          # MVP: remote error/telemetry logging is optional. Missing secrets ship
+          # an empty log_creds.txt; runtime disables sendBeacon until configured.
+          missing=""
+          for var in ERR_LOG_KEY ERR_LOG_SECRET ERR_LOG_URL TELEMETRY_URL; do
+            if [ -z "${!var}" ]; then
+              missing="$missing $var"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::warning::Error/telemetry log secrets missing:$missing — publishing without remote logging."
+            : > log_creds.txt
+            exit 0
+          fi
+          case "$ERR_LOG_URL" in
+            https://*) ;;
+            *)
+              echo "::error::ERR_LOG_URL must be an https:// URL (got non-https value)."
+              exit 1
+              ;;
+          esac
+          case "$TELEMETRY_URL" in
+            https://*) ;;
+            *)
+              echo "::error::TELEMETRY_URL must be an https:// URL (got non-https value)."
+              exit 1
+              ;;
+          esac
+          # Quoted printf keeps empty/special values from shifting fields in log_creds.txt
+          printf '%s\n' "$ERR_LOG_KEY" > log_creds.txt
+          printf '%s\n' "$ERR_LOG_SECRET" >> log_creds.txt
+          printf '%s\n' "$ERR_LOG_URL" >> log_creds.txt
+          printf '%s\n' "$TELEMETRY_URL" >> log_creds.txt
+          if [ "$(grep -c . log_creds.txt)" -ne 4 ]; then
+            echo "::error::log_creds.txt must contain exactly 4 nonempty lines."
+            exit 1
+          fi
+
+      # Refuse to publish an unsigned Windows build.
+      # An unsigned NSIS installer under the frozen productName + appId would
+      # invalidate every Windows user's DPAPI-wrapped token slot on first launch.
+      - name: Assert Azure Artifact Signing secrets are present
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          missing=""
+          for var in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID; do
+            if [ -z "${!var}" ]; then
+              missing="$missing $var"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Azure Artifact Signing secrets missing:$missing"
+            echo "::error::Refusing to publish unsigned Windows build (signing identity freeze)."
+            exit 1
+          fi
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          enable-AzPSSession: true
+
+      # Artifact Signing client (signtool dlib / Trusted Signing PS) needs .NET 8.
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Run build
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          # Dummy secret: electron-builder 26 refuses to start Azure signing without
+          # AZURE_CLIENT_SECRET|CERT|USERNAME even when azure/login OIDC already
+          # authenticated the runner. ExcludeEnvironmentCredential in
+          # azureSignOptions makes Invoke-TrustedSigning use the az CLI session.
+          AZURE_CLIENT_SECRET: unused-oidc-via-azure-login
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LIVEBOOKS_CLOUD_ORIGIN: ${{ secrets.LIVEBOOKS_CLOUD_ORIGIN }}
+          VITE_LIVEBOOKS_CLOUD_ORIGIN: ${{ secrets.LIVEBOOKS_CLOUD_ORIGIN }}
+        run: yarn build --win --publish always
+
+      - name: Tar files
+        run: tar -cvf dist-windows.tar dist_electron
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-windows
+          path: dist-windows.tar

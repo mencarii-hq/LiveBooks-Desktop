@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 # Windows-only smoke package. Mac unsigned builds hit Gatekeeper and aren't
-# useful for QA — use Publish with codesign for signed/notarized Mac.
+# useful for QA — use Publish with codesign (Mac) for signed/notarized Mac.
 # Native modules cannot be cross-compiled; keep this on windows-2022.
 jobs:
   setup_and_build:

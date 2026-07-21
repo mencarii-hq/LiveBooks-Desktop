@@ -70,11 +70,9 @@ const liveBooksConfig = {
         arch: ['arm64'],
       },
     ],
-    // Only when APPLE_TEAM_ID is set (CI / sourced .env.publish). Empty
-    // teamId still triggers notarytool and fails with confusing 401s.
-    notarize: process.env.APPLE_TEAM_ID
-      ? { teamId: process.env.APPLE_TEAM_ID }
-      : false,
+    // electron-builder 26: notarize is boolean only. Team ID / Apple ID come
+    // from APPLE_TEAM_ID + APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD (CI / .env).
+    notarize: Boolean(process.env.APPLE_TEAM_ID),
     hardenedRuntime: true, // Required for macOS notarization + Gatekeeper
     gatekeeperAssess: false,
     darkModeSupport: false,
@@ -93,6 +91,12 @@ const liveBooksConfig = {
       endpoint: 'https://eus.codesigning.azure.net/',
       codeSigningAccountName: 'Mencarii',
       certificateProfileName: 'LiveBooksDesktop',
+      // electron-builder preflight requires AZURE_CLIENT_SECRET|CERT|USERNAME, but
+      // GitHub OIDC uses azure/login (Azure CLI). Skip EnvironmentCredential so
+      // Invoke-TrustedSigning uses the az session. Pair with a dummy
+      // AZURE_CLIENT_SECRET in publish-windows.yml to pass the preflight check.
+      // See: https://github.com/electron-userland/electron-builder/issues/9623
+      ExcludeEnvironmentCredential: true,
     },
     artifactName: '${productName}-v${version}-windows-${arch}.${ext}',
     // MVP: omit signExts so only exe/installer are signed (eb 26 dropped signDlls).

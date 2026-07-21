@@ -6,7 +6,8 @@ Accounting built on **[Frappe Books](https://github.com/frappe/books)**, repacka
 
 [GitHub release (latest by date)](https://github.com/Mencarii/LiveBooks-Desktop/releases)  
 Platforms  
-[Publish](https://github.com/Mencarii/LiveBooks-Desktop/actions/workflows/publish.yml)
+[Publish Mac](https://github.com/Mencarii/LiveBooks-Desktop/actions/workflows/publish-mac.yml)
+[Publish Windows](https://github.com/Mencarii/LiveBooks-Desktop/actions/workflows/publish-windows.yml)
 
 [Releases](https://github.com/Mencarii/LiveBooks-Desktop/releases) · [Contributing](.github/CONTRIBUTING.md) · [Upstream: Frappe Books](https://github.com/frappe/books)
 
@@ -107,7 +108,7 @@ By default this targets your current OS and architecture. For other targets, see
 
 ### LiveBooks Cloud (release and CI)
 
-- **API origin:** Set **`LIVEBOOKS_CLOUD_ORIGIN`** and **`VITE_LIVEBOOKS_CLOUD_ORIGIN`** to the same production base URL (no trailing slash) when producing binaries for end users. The [Publish](.github/workflows/publish.yml) workflow passes both from repository secret **`LIVEBOOKS_CLOUD_ORIGIN`**; if that secret is unset, the build still defaults to `http://127.0.0.1:3000` (suitable for local packaging only).
+- **API origin:** Set **`LIVEBOOKS_CLOUD_ORIGIN`** and **`VITE_LIVEBOOKS_CLOUD_ORIGIN`** to the same production base URL (no trailing slash) when producing binaries for end users. The [Publish Mac](.github/workflows/publish-mac.yml) / [Publish Windows](.github/workflows/publish-windows.yml) workflows pass both from repository secret **`LIVEBOOKS_CLOUD_ORIGIN`**; if that secret is unset, the build still defaults to `http://127.0.0.1:3000` (suitable for local packaging only).
 - **Auto-updates:** Prerelease channels are **off** by default (`electron-updater`). For internal QA builds that should consume GitHub prereleases, set environment variable **`LIVEBOOKS_UPDATER_ALLOW_PRERELEASE=1`** (or `true`) when launching the app or when wrapping the packaged binary.
 - **Session security:** See **Security posture** above. In **packaged** builds, refresh tokens are **not** written in plaintext when `safeStorage` is unavailable — you re-authenticate each launch. **Dev** (`yarn dev`) may use plaintext token fallback so contributors are not blocked.
 - **Day-1 verification:** `yarn test:day1` runs automated checks; pre-GA signing QA is in [`docs/signing-qa-runbook.md`](docs/signing-qa-runbook.md).
