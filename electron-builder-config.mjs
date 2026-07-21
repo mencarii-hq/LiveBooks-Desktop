@@ -99,13 +99,10 @@ const liveBooksConfig = {
     // Later: signExts: ['.dll'] to harden (more Azure signatures per release).
     icon: 'build/icon.ico',
     publish: ['github'],
+    // MVP: installer only. Re-add portable later if no-install / USB use cases appear.
     target: [
       {
         target: 'nsis',
-        arch: ['x64'],
-      },
-      {
-        target: 'portable',
         arch: ['x64'],
       },
     ],
