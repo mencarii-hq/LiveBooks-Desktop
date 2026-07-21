@@ -5,7 +5,7 @@ Use this checklist before each GA-grade release. It implements the matrix in [`S
 **Prerequisites**
 
 - Staging Apple Developer ID + notarization credentials in CI (or local export matching `publish.yml`)
-- Windows Authenticode cert (`WIN_CSC_LINK`) for staging
+- Windows Azure Artifact Signing (OIDC secrets `AZURE_CLIENT_ID` / `AZURE_TENANT_ID` / `AZURE_SUBSCRIPTION_ID`) for staging
 - A company file (`.books`) created on the build under test
 
 ---

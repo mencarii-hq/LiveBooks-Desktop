@@ -86,7 +86,14 @@ const liveBooksConfig = {
     publish: ['github'],
   },
   win: {
-    publisherName: 'LiveBooks',
+    // Personal Azure Artifact Signing identity (IV). Must match certificate CN.
+    // Business/OV subject can replace this once that validation completes.
+    azureSignOptions: {
+      publisherName: 'Yanchung Cheng',
+      endpoint: 'https://eus.codesigning.azure.net/',
+      codeSigningAccountName: 'Mencarii',
+      certificateProfileName: 'LiveBooksDesktop',
+    },
     artifactName: '${productName}-v${version}-windows-${arch}.${ext}',
     signDlls: true,
     icon: 'build/icon.ico',

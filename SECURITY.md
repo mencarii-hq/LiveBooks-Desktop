@@ -66,12 +66,12 @@ LiveBooks is **local-first**. Customer ledgers live in a **plaintext SQLite file
 
 The bundle id and product name are the single source of truth in [`build/signingIdentity.mjs`](build/signingIdentity.mjs):
 
-| Field                                        | Frozen value                                                                                |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| macOS `CFBundleIdentifier` / Windows `appId` | `io.livebooks.desktop`                                                                      |
-| `productName`                                | `LiveBooks Desktop`                                                                         |
-| macOS notarization team id                   | provided via the `APPLE_TEAM_ID` CI secret; pinned to the LiveBooks Apple Developer account |
-| Windows Authenticode certificate             | provided via the `WIN_CSC_LINK` CI secret                                                   |
+| Field                                         | Frozen value                                                                                            |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| macOS `CFBundleIdentifier` / Windows `appId`  | `io.livebooks.desktop`                                                                                  |
+| `productName`                                 | `LiveBooks Desktop`                                                                                     |
+| macOS notarization team id                    | provided via the `APPLE_TEAM_ID` CI secret; pinned to the LiveBooks Apple Developer account             |
+| Windows Authenticode (Azure Artifact Signing) | CI OIDC via `AZURE_CLIENT_ID` / `AZURE_TENANT_ID` / `AZURE_SUBSCRIPTION_ID`; publisher `Yanchung Cheng` |
 
 `electron-builder-config.mjs` imports the constants directly and the main process mirrors them in [`main/frozenSigningIdentity.ts`](main/frozenSigningIdentity.ts). [`main/tests/testFrozenSigningIdentity.spec.ts`](main/tests/testFrozenSigningIdentity.spec.ts) enforces that the two copies never drift. Packaged builds boot through `assertFrozenSigningIdentityForPackagedBuild()`, which throws (and the app exits) if a binary somehow shipped with a different `productName` or macOS bundle id than the frozen contract.
 
