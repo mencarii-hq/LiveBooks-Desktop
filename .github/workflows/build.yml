@@ -6,27 +6,12 @@ on:
       - '**.md'
   workflow_dispatch:
 
-# Native modules (better-sqlite3) cannot be cross-compiled by node-gyp.
-# Build each OS on a matching runner — never -mw on a single host.
+# Windows-only smoke package. Mac unsigned builds hit Gatekeeper and aren't
+# useful for QA — use Publish with codesign for signed/notarized Mac.
+# Native modules cannot be cross-compiled; keep this on windows-2022.
 jobs:
   setup_and_build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-latest
-            build_args: --mac --arm64
-            artifact_name: unsigned-mac-arm64
-            # dmg is the usual install path; zip is the electron-builder fallback archive
-            artifact_glob: |
-              dist_electron/bundled/*.dmg
-              dist_electron/bundled/*.zip
-          - os: windows-2022
-            build_args: --win
-            artifact_name: unsigned-windows-x64
-            artifact_glob: |
-              dist_electron/bundled/*.exe
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-2022
     defaults:
       run:
         shell: bash
@@ -63,12 +48,13 @@ jobs:
             echo "::error::LIVEBOOKS_CLOUD_ORIGIN secret is unset; refusing to bake localhost into a CI test build."
             exit 1
           fi
-          yarn build ${{ matrix.build_args }} --nosign --publish never
+          yarn build --win --nosign --publish never
 
       - name: Upload unsigned installers
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: ${{ matrix.artifact_glob }}
+          name: unsigned-windows-x64
+          path: |
+            dist_electron/bundled/*.exe
           if-no-files-found: error
           retention-days: 14
