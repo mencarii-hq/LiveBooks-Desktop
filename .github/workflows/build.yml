@@ -55,7 +55,15 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           APPLE_NOTARIZE: 0
-        run: yarn build ${{ matrix.build_args }} --nosign --publish never
+          # Same prod API origin as Publish so unsigned smoke builds aren't stuck on localhost.
+          LIVEBOOKS_CLOUD_ORIGIN: ${{ secrets.LIVEBOOKS_CLOUD_ORIGIN }}
+          VITE_LIVEBOOKS_CLOUD_ORIGIN: ${{ secrets.LIVEBOOKS_CLOUD_ORIGIN }}
+        run: |
+          if [ -z "$LIVEBOOKS_CLOUD_ORIGIN" ]; then
+            echo "::error::LIVEBOOKS_CLOUD_ORIGIN secret is unset; refusing to bake localhost into a CI test build."
+            exit 1
+          fi
+          yarn build ${{ matrix.build_args }} --nosign --publish never
 
       - name: Upload unsigned installers
         uses: actions/upload-artifact@v4
