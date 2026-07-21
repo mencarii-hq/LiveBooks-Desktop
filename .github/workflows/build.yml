@@ -6,9 +6,23 @@ on:
       - '**.md'
   workflow_dispatch:
 
+# Native modules (better-sqlite3) cannot be cross-compiled by node-gyp.
+# Build each OS on a matching runner — never -mw on a single host.
 jobs:
   setup_and_build:
-    runs-on: macos-15-intel
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            build_args: --mac --arm64
+          - os: windows-2022
+            build_args: --win
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - name: Setup node
         uses: actions/setup-node@v4
@@ -33,4 +47,4 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           APPLE_NOTARIZE: 0
-        run: yarn build -mw --publish never
+        run: yarn build ${{ matrix.build_args }} --nosign --publish never

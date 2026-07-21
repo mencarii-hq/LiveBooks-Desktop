@@ -50,11 +50,23 @@ if (argv.nosign) {
     liveBooksConfig.mac.notarize = false;
   }
   // Skip winCodeSign/rcedit on local unsigned Windows builds (symlink privilege issue).
+  // electron-builder 26 dropped signDlls; omit azureSignOptions so CI smoke builds
+  // never call Artifact Signing.
+  const { azureSignOptions: _azure, signDlls: _dlls, ...winRest } =
+    liveBooksConfig.win || {};
   liveBooksConfig.win = {
-    ...liveBooksConfig.win,
+    ...winRest,
     signAndEditExecutable: false,
-    signDlls: false,
   };
+  for (const key of [
+    'AZURE_CLIENT_ID',
+    'AZURE_TENANT_ID',
+    'AZURE_CLIENT_SECRET',
+    'WIN_CSC_LINK',
+    'WIN_CSC_KEY_PASSWORD',
+  ]) {
+    delete process.env[key];
+  }
 }
 
 updatePaths();
