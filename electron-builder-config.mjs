@@ -95,9 +95,8 @@ const liveBooksConfig = {
       certificateProfileName: 'LiveBooksDesktop',
     },
     artifactName: '${productName}-v${version}-windows-${arch}.${ext}',
-    // MVP: sign the app/installer only. Re-enable once market is proven —
-    // each DLL is a separate Azure Artifact Signing billable signature.
-    signDlls: false,
+    // MVP: omit signExts so only exe/installer are signed (eb 26 dropped signDlls).
+    // Later: signExts: ['.dll'] to harden (more Azure signatures per release).
     icon: 'build/icon.ico',
     publish: ['github'],
     target: [
