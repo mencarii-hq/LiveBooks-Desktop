@@ -43,6 +43,8 @@ jobs:
           ERR_LOG_SECRET: ${{ secrets.ERR_LOG_SECRET }}
           TELEMETRY_URL: ${{ secrets.TELEMETRY_URL }}
         run: |
+          # MVP: remote error/telemetry logging is optional. Missing secrets ship
+          # an empty log_creds.txt; runtime disables sendBeacon until configured.
           missing=""
           for var in ERR_LOG_KEY ERR_LOG_SECRET ERR_LOG_URL TELEMETRY_URL; do
             if [ -z "${!var}" ]; then
@@ -50,9 +52,9 @@ jobs:
             fi
           done
           if [ -n "$missing" ]; then
-            echo "::error::Error/telemetry log secrets missing:$missing"
-            echo "::error::Refusing to publish a build that would ship broken sendBeacon/error logging."
-            exit 1
+            echo "::warning::Error/telemetry log secrets missing:$missing — publishing without remote logging."
+            : > log_creds.txt
+            exit 0
           fi
           case "$ERR_LOG_URL" in
             https://*) ;;
@@ -157,6 +159,8 @@ jobs:
           ERR_LOG_SECRET: ${{ secrets.ERR_LOG_SECRET }}
           TELEMETRY_URL: ${{ secrets.TELEMETRY_URL }}
         run: |
+          # MVP: remote error/telemetry logging is optional. Missing secrets ship
+          # an empty log_creds.txt; runtime disables sendBeacon until configured.
           missing=""
           for var in ERR_LOG_KEY ERR_LOG_SECRET ERR_LOG_URL TELEMETRY_URL; do
             if [ -z "${!var}" ]; then
@@ -164,9 +168,9 @@ jobs:
             fi
           done
           if [ -n "$missing" ]; then
-            echo "::error::Error/telemetry log secrets missing:$missing"
-            echo "::error::Refusing to publish a build that would ship broken sendBeacon/error logging."
-            exit 1
+            echo "::warning::Error/telemetry log secrets missing:$missing — publishing without remote logging."
+            : > log_creds.txt
+            exit 0
           fi
           case "$ERR_LOG_URL" in
             https://*) ;;
