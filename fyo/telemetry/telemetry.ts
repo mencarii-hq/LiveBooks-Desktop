@@ -89,14 +89,14 @@ export class TelemetryManager {
     this.#sendBeacon(Verb.Opened, 'app');
   }
 
-  #sendBeacon(verb: Verb, noun: Noun, more?: Record<string, unknown>) {
+  #sendBeacon(verb: Verb, noun: Noun, more?: Record<string, unknown>): boolean {
     if (
       !this.hasCreds ||
       !this.fyo.store.telemetryEnabled ||
       this.fyo.store.skipTelemetryLogging ||
       ignoreList.includes(noun)
     ) {
-      return;
+      return false;
     }
 
     const telemetryData: Telemetry = this.#getTelemtryData(verb, noun, more);
@@ -106,10 +106,35 @@ export class TelemetryManager {
     });
 
     try {
-      navigator.sendBeacon(this.#url, data);
+      return navigator.sendBeacon(this.#url, data);
     } catch {
       // Invalid or non-HTTP(S) beacon targets throw in Chromium/Electron.
+      return false;
     }
+  }
+
+  /**
+   * Phase 0: one-shot anonymous install signal after first company create.
+   * Flag-after-success — only set firstLaunchPingSent when the beacon queues.
+   * Retries on later launches until success (or stays unset while telemetry is off).
+   */
+  async maybeSendFirstCompanyCreatePing(): Promise<boolean> {
+    // Only after first company create recorded firstLaunchAt — never for upgrades/opens.
+    if (!this.fyo.config.get('firstLaunchAt')) {
+      return false;
+    }
+    if (this.fyo.config.get('firstLaunchPingSent')) {
+      return true;
+    }
+
+    await this.#setCreds();
+    const queued = this.#sendBeacon(Verb.Opened, 'app', {
+      event: 'first_desk_open',
+    });
+    if (queued) {
+      this.fyo.config.set('firstLaunchPingSent', true);
+    }
+    return queued;
   }
 
   async #setCreds() {

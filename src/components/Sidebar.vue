@@ -98,12 +98,11 @@
     <!-- Report Issue and DB Switcher -->
     <div class="window-no-drag flex flex-col gap-2 py-2 px-4">
       <hr class="dark:border-gray-800" />
-      <!-- <button
+      <button
         class="
           flex
           text-sm text-white
-          hover:text-white
-          hover:bg-green-800
+          hover:text-white hover:bg-green-800
           rounded
           gap-1
           items-center
@@ -111,13 +110,14 @@
           -mx-1
           px-1
         "
-        @click="openDocumentation"
+        type="button"
+        @click="giveFeedback"
       >
-        <feather-icon name="help-circle" class="h-4 w-4 flex-shrink-0" />
+        <feather-icon name="message-circle" class="h-4 w-4 flex-shrink-0" />
         <p>
-          {{ t`Help` }}
+          {{ t`Give feedback` }}
         </p>
-      </button> -->
+      </button>
 
       <button
         class="
@@ -340,6 +340,7 @@ import { docsPathRef } from 'src/utils/refs';
 import { getSidebarConfig } from 'src/utils/sidebarConfig';
 import { SidebarConfig, SidebarItem, SidebarRoot } from 'src/utils/types';
 import { routeTo, toggleSidebar } from 'src/utils/ui';
+import { openFeedbackSurvey } from 'src/utils/feedbackSurvey';
 import { livebooksDesktopDisplayName } from 'utils/livebooksAppEnv';
 import { defineComponent, inject } from 'vue';
 import router from '../router';
@@ -526,6 +527,10 @@ export default defineComponent({
     routeTo,
     reportIssue,
     toggleSidebar,
+    openFeedbackSurvey,
+    giveFeedback() {
+      openFeedbackSurvey(fyo);
+    },
     openDocumentation() {
       ipc.openLink('https://docs.frappe.io/' + docsPathRef.value);
     },

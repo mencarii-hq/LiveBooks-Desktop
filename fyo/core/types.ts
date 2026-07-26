@@ -66,6 +66,12 @@ export type ConfigMap = {
   livebooksCloudKeyEscrowedAt?: string;
   /** last seen server subscription_changed_at (ISO timestamp). */
   livebooksCloudSubscriptionChangedAt?: string | null;
+  /** Phase 0: wall-clock ISO time of first company create (survey 48h prompt). */
+  firstLaunchAt?: string;
+  /** Phase 0: mothership first_desk_open ping queued successfully. */
+  firstLaunchPingSent?: boolean;
+  /** Phase 0: feedback survey prompt dismissed forever (or opened). */
+  feedbackSurveyDismissed?: boolean;
 };
 
 export interface ConfigFile {

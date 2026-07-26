@@ -40,8 +40,7 @@
       "placeholder": "Select Country",
       "section": "Locale",
       "required": true,
-      "default": "United States",
-      "hidden": true
+      "default": "United States"
     },
     {
       "fieldname": "currency",
@@ -51,7 +50,7 @@
       "section": "Locale",
       "required": true,
       "default": "USD",
-      "hidden": true
+      "readOnly": true
     },
     {
       "fieldname": "bankName",
@@ -95,7 +94,9 @@
   ],
   "quickEditFields": [
     "fullname",
+    "country",
     "bankName",
+    "currency",
     "chartOfAccounts",
     "fiscalYearStart",
     "fiscalYearEnd"

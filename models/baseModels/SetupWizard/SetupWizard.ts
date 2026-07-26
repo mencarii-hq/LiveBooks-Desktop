@@ -55,12 +55,6 @@ export function getCOAList() {
   ];
 }
 
-function getLiveBooksSetupCoAList() {
-  return getCOAList().filter(
-    ({ countryCode }) => !countryCode || countryCode === 'us'
-  );
-}
-
 export class SetupWizard extends Doc {
   fiscalYearEnd?: Date;
   fiscalYearStart?: Date;
@@ -133,7 +127,7 @@ export class SetupWizard extends Doc {
         );
 
         if (currency === undefined) {
-          return currencyList[0].name;
+          return currencyList[0]?.name;
         }
 
         return currency.name;
@@ -152,7 +146,7 @@ export class SetupWizard extends Doc {
         if (!code) {
           return;
         }
-        const coaList = getLiveBooksSetupCoAList();
+        const coaList = getCOAList();
         const coa = coaList.find(({ countryCode }) => countryCode === code);
         return coa?.name ?? coaList[0].name;
       },
@@ -165,8 +159,9 @@ export class SetupWizard extends Doc {
   };
 
   static lists: ListsMap = {
-    country: () => ['United States'],
-    currency: () => ['USD'],
-    chartOfAccounts: () => getLiveBooksSetupCoAList().map(({ name }) => name),
+    country: () => Object.keys(getCountryInfo()),
+    // Single company currency only (from country). Multi-currency invoicing stays locked.
+    currency: () => [...new Set(getCurrencyList().map(({ name }) => name))],
+    chartOfAccounts: () => getCOAList().map(({ name }) => name),
   };
 }

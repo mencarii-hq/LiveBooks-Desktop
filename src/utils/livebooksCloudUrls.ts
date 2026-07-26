@@ -40,3 +40,8 @@ export function livebooksCloudAccountSecurityUrl(): string {
 export function livebooksCloudMfaStepUpUrl(): string {
   return `${getLivebooksCloudOrigin()}/account/security/step_up`;
 }
+
+/** Stable survey entry — cloud 302s to the Google Form (Phase 0). */
+export function livebooksCloudFeedbackUrl(): string {
+  return `${getLivebooksCloudOrigin()}/feedback`;
+}

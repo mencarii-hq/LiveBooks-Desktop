@@ -87,6 +87,10 @@ import {
   waitForNextPaint,
 } from './bootSplash';
 import { runWhenIdle } from './utils/runWhenIdle';
+import {
+  ensureFirstLaunchAt,
+  maybePromptFeedbackSurvey,
+} from './utils/feedbackSurvey';
 
 enum Screen {
   Desk = 'Desk',
@@ -242,6 +246,12 @@ export default defineComponent({
       runWhenIdle(() => {
         void this.setSearcher();
       });
+      runWhenIdle(() => {
+        void maybePromptFeedbackSurvey(fyo);
+      });
+      runWhenIdle(() => {
+        void fyo.telemetry.maybeSendFirstCompanyCreatePing();
+      });
     },
     newDatabase() {
       this.activeScreen = Screen.SetupWizard;
@@ -292,7 +302,10 @@ export default defineComponent({
         const filePath = await ipc.getDbDefaultPath(companyName);
         await setupInstance(filePath, setupWizardOptions, fyo);
         fyo.config.set('lastSelectedFilePath', filePath);
+        ensureFirstLaunchAt(fyo);
         await this.setDesk(filePath);
+        // Ping is scheduled from setDesk (idle retry). Do not await a second
+        // send here — that raced the idle callback and could double-fire.
       } catch (error) {
         if (wizard) {
           wizard.loading = false;
