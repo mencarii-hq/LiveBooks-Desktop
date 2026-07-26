@@ -1,7 +1,7 @@
 {
   "name": "livebooks-desktop",
   "productName": "LiveBooks Desktop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "LiveBooks Desktop — accounting for US small business (Frappe Books fork)",
   "author": {
     "name": "LiveBooks",
