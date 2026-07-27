@@ -28,7 +28,8 @@ export class ExchangeRateUnavailableError extends ValidationError {
 }
 
 export class NotFoundError extends BaseError {
-  constructor(message: string, shouldStore = true) {
+  /** Default false: missing docs / link misses are expected UX, not crashes. */
+  constructor(message: string, shouldStore = false) {
     super(404, message, shouldStore);
     this.name = 'NotFoundError';
   }

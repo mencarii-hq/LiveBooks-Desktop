@@ -95,7 +95,7 @@ export class DocHandler {
     schema ??= this.fyo.schemaMap[schemaName];
 
     if (schema === undefined) {
-      throw new NotFoundError(`Schema not found for ${schemaName}`);
+      throw new NotFoundError(`Schema not found for ${schemaName}`, true);
     }
 
     const doc = new Model!(schema, data, this.fyo, isRawValueMap);

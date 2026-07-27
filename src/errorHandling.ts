@@ -10,9 +10,40 @@ import { getErrorMessage, stringifyCircular } from './utils';
 import type { DialogOptions, ToastOptions } from './utils/types';
 import { ModelNameEnum } from 'models/types';
 
+/** User-facing / expected errors — never ship to mothership. */
+const TRIVIAL_ERROR_NAMES = new Set([
+  'ValidationError',
+  'MandatoryError',
+  'LinkValidationError',
+  'DuplicateEntryError',
+  'NotImplemented',
+  'ValueError',
+  'ConflictError',
+  'InvalidFieldError',
+  'ExchangeRateUnavailableError',
+]);
+
 function shouldNotStore(error: Error) {
-  const shouldLog = (error as BaseError).shouldStore ?? true;
-  return !shouldLog;
+  const base = error as BaseError;
+  if (base.shouldStore === false) {
+    return true;
+  }
+
+  if (TRIVIAL_ERROR_NAMES.has(error.name)) {
+    return true;
+  }
+
+  // Doc / link lookup misses (autocomplete typing, stale link values).
+  if (error.name === 'NotFoundError' && /^Not Found:\s/.test(error.message)) {
+    return true;
+  }
+
+  // Explicit shouldStore: true wins for everything else (e.g. missing schema).
+  if (base.shouldStore === true) {
+    return false;
+  }
+
+  return false;
 }
 
 export async function sendError(errorLogObj: ErrorLog) {

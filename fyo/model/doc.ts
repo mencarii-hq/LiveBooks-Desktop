@@ -633,7 +633,10 @@ export class Doc extends Observable<DocValue | Doc[]> {
       await this._syncValues(data);
       await this.loadLinks();
     } else {
-      throw new NotFoundError(`Not Found: ${this.schemaName} ${this.name}`);
+      throw new NotFoundError(
+        `Not Found: ${this.schemaName} ${this.name}`,
+        false
+      );
     }
 
     this._setDirty(false);

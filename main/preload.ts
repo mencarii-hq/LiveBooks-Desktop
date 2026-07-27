@@ -204,6 +204,13 @@ const ipc = {
     await ipcRenderer.invoke(IPC_ACTIONS.SEND_ERROR, body);
   },
 
+  async sendDesktopEvent(body: Record<string, unknown>) {
+    return (await ipcRenderer.invoke(
+      IPC_ACTIONS.SEND_DESKTOP_EVENT,
+      body
+    )) as boolean;
+  },
+
   async getLivebooksCloudSession() {
     return (await ipcRenderer.invoke(
       IPC_ACTIONS.GET_LIVEBOOKS_CLOUD_SESSION

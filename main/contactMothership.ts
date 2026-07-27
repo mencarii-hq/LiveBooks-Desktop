@@ -1,89 +1,116 @@
-import { app } from 'electron';
-import fs from 'fs';
 import fetch from 'node-fetch';
-import path from 'path';
 import { Creds } from 'utils/types';
 import { rendererLog } from './helpers';
+import { getLivebooksCloudOriginMain } from './livebooksCloudBridge';
 import type { Main } from 'main';
 
-/** Avoid spamming the terminal when many errors call getUrlAndTokenString in dev. */
-let warnedMissingRemoteLogCreds = false;
+const DESKTOP_EVENTS_PATH = '/api/v1/desktop_events';
+const MAX_BODY_BYTES = 4096;
 
+function truncate(value: unknown, max: number): string {
+  const s = value == null ? '' : String(value);
+  return s.length <= max ? s : s.slice(0, max);
+}
+
+/**
+ * Telemetry + error ingest URLs from LIVEBOOKS_CLOUD_ORIGIN.
+ * No shared secrets — public rate-limited cloud endpoint.
+ */
 export function getUrlAndTokenString(): Creds {
-  const inProduction = app.isPackaged;
   const empty: Creds = { errorLogUrl: '', telemetryUrl: '', tokenString: '' };
-  let errLogCredsPath = path.join(
-    process.resourcesPath,
-    '../creds/log_creds.txt'
-  );
-  if (!fs.existsSync(errLogCredsPath)) {
-    errLogCredsPath = path.join(__dirname, '..', '..', 'log_creds.txt');
-  }
-
-  if (!fs.existsSync(errLogCredsPath)) {
-    if (!inProduction && !warnedMissingRemoteLogCreds) {
-      warnedMissingRemoteLogCreds = true;
-      // eslint-disable-next-line no-console
-      console.log(
-        `${errLogCredsPath} is missing; remote error/telemetry logging is disabled (expected in local dev).`
-      );
-    }
-    return empty;
-  }
-
-  let apiKey: string | undefined;
-  let apiSecret: string | undefined;
-  let errorLogUrl: string | undefined;
-  let telemetryUrl: string | undefined;
+  let origin: string;
   try {
-    [apiKey, apiSecret, errorLogUrl, telemetryUrl] = fs
-      .readFileSync(errLogCredsPath, 'utf-8')
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((f) => f.length);
-  } catch (err) {
-    if (!inProduction) {
-      // eslint-disable-next-line no-console
-      console.log(`logging error using creds at: ${errLogCredsPath} failed`);
-      // eslint-disable-next-line no-console
-      console.log(err);
-    }
+    origin = getLivebooksCloudOriginMain();
+  } catch {
     return empty;
   }
 
-  if (!apiKey || !apiSecret || !errorLogUrl || !telemetryUrl) {
+  if (!origin || !/^https?:\/\//i.test(origin)) {
     return empty;
   }
 
-  const encodedErrorLogUrl = encodeURI(errorLogUrl);
-  const encodedTelemetryUrl = encodeURI(telemetryUrl);
-  const isHttpUrl = (url: string) => /^https?:\/\//i.test(url);
-
-  // sendBeacon / fetch only accept HTTP(S); bad lines in log_creds must not reach the renderer.
-  if (!isHttpUrl(encodedErrorLogUrl) || !isHttpUrl(encodedTelemetryUrl)) {
-    return empty;
-  }
-
+  const url = `${origin}${DESKTOP_EVENTS_PATH}`;
   return {
-    errorLogUrl: encodedErrorLogUrl,
-    telemetryUrl: encodedTelemetryUrl,
-    tokenString: `token ${apiKey}:${apiSecret}`,
+    errorLogUrl: url,
+    telemetryUrl: url,
+    // Kept for Creds shape / older callers; cloud ingest needs no Authorization.
+    tokenString: '',
   };
 }
 
+/** POST JSON to /api/v1/desktop_events; true only on 2xx. */
+export async function postDesktopEvent(
+  body: Record<string, unknown>,
+  main?: Main
+): Promise<boolean> {
+  const { telemetryUrl } = getUrlAndTokenString();
+  if (!telemetryUrl) {
+    return false;
+  }
+
+  const serialized = JSON.stringify(body);
+  if (serialized.length > MAX_BODY_BYTES) {
+    return false;
+  }
+
+  try {
+    const response = await fetch(telemetryUrl, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: serialized,
+    });
+    return response.ok;
+  } catch (err) {
+    if (main) {
+      rendererLog(main, err);
+    }
+    return false;
+  }
+}
+
 export async function sendError(body: string, main: Main) {
-  const { errorLogUrl, tokenString } = getUrlAndTokenString();
-  if (!errorLogUrl || !tokenString) {
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(body) as Record<string, unknown>;
+  } catch {
     return;
   }
 
-  const headers = {
-    Authorization: tokenString,
-    Accept: 'application/json',
-    'Content-Type': 'application/json',
+  const payload = {
+    kind: 'error',
+    event: 'desktop_error',
+    device_id: truncate(parsed.device_id, 128),
+    instance_id: truncate(parsed.instance_id, 128),
+    book_id: truncate(parsed.book_id, 36),
+    app_version: truncate(parsed.version, 64),
+    platform: truncate(parsed.platform, 64),
+    payload: {
+      error_name: truncate(parsed.error_name, 256),
+      message: truncate(parsed.message, 1024),
+      stack: truncate(parsed.stack, 2048),
+      language: truncate(parsed.language, 64),
+      instance_id: truncate(parsed.instance_id, 128),
+      open_count: parsed.open_count,
+      country_code: truncate(parsed.country_code, 16),
+      more: truncate(parsed.more, 512),
+    },
   };
 
-  await fetch(errorLogUrl, { method: 'POST', headers, body }).catch((err) => {
-    rendererLog(main, err);
-  });
+  let serialized = JSON.stringify(payload);
+  if (serialized.length > MAX_BODY_BYTES) {
+    payload.payload.stack = truncate(payload.payload.stack, 512);
+    payload.payload.more = '';
+    serialized = JSON.stringify(payload);
+    if (serialized.length > MAX_BODY_BYTES) {
+      return;
+    }
+  }
+
+  await postDesktopEvent(
+    JSON.parse(serialized) as Record<string, unknown>,
+    main
+  );
 }

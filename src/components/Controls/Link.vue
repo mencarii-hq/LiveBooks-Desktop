@@ -48,8 +48,13 @@ export default {
         return (this.linkValue = value);
       }
 
-      const linkDoc = await this.doc?.loadAndGetLink(fieldname);
-      this.linkValue = linkDoc?.get(linkDisplayField) ?? '';
+      try {
+        const linkDoc = await this.doc?.loadAndGetLink(fieldname);
+        this.linkValue = linkDoc?.get(linkDisplayField) ?? '';
+      } catch {
+        // Missing / partial link targets are expected while typing.
+        this.linkValue = value || '';
+      }
     },
     getTargetSchemaName() {
       return this.df.target;

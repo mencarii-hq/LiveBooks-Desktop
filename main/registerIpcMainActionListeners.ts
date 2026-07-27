@@ -30,7 +30,11 @@ import {
 } from './livebooksCloudBridge';
 import { checkForAppUpdates } from './registerAutoUpdaterListeners';
 import { IPC_ACTIONS } from '../utils/messages';
-import { getUrlAndTokenString, sendError } from './contactMothership';
+import {
+  getUrlAndTokenString,
+  postDesktopEvent,
+  sendError,
+} from './contactMothership';
 import { getLanguageMap } from './getLanguageMap';
 import { getTemplates } from './getPrintTemplates';
 import { printHtmlDocument } from './printHtmlDocument';
@@ -240,6 +244,13 @@ export default function registerIpcMainActionListeners(main: Main) {
   ipcMain.handle(IPC_ACTIONS.SEND_ERROR, async (_, bodyJson: string) => {
     await sendError(bodyJson, main);
   });
+
+  ipcMain.handle(
+    IPC_ACTIONS.SEND_DESKTOP_EVENT,
+    async (_, body: Record<string, unknown>) => {
+      return await postDesktopEvent(body, main);
+    }
+  );
 
   ipcMain.handle(IPC_ACTIONS.CHECK_FOR_UPDATES, async () => {
     // Once per session for company-open; the 6h poll uses checkForAppUpdates directly.

@@ -306,7 +306,7 @@ export default class DatabaseCore extends DatabaseBase {
   ): Promise<FieldValueMap[]> {
     const schema = this.schemaMap[schemaName] as Schema;
     if (schema === undefined) {
-      throw new NotFoundError(`schema ${schemaName} not found`);
+      throw new NotFoundError(`schema ${schemaName} not found`, true);
     }
 
     const hasCreated = !!schema.fields.find((f) => f.fieldname === 'created');

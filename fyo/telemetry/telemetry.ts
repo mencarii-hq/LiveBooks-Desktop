@@ -1,11 +1,10 @@
 import { Fyo } from 'fyo';
 import { Noun, Telemetry, Verb } from './types';
-import { ModelNameEnum } from 'models/types';
 
 /**
  * # Telemetry
- * Used to check if people are using Books or not. All logging
- * happens using navigator.sendBeacon
+ * Used to check if people are using Books or not. Phase 0 only ships
+ * first_desk_open (confirmed POST) and leaves general activity logging local.
  *
  * ## `start`
  * Used to initialize state. It should be called before any logging and after an
@@ -27,14 +26,8 @@ import { ModelNameEnum } from 'models/types';
  *      the app is hidden.
  */
 
-const ignoreList: string[] = [
-  ModelNameEnum.AccountingLedgerEntry,
-  ModelNameEnum.StockLedgerEntry,
-];
-
 export class TelemetryManager {
   #url = '';
-  #token = '';
   #started = false;
   fyo: Fyo;
 
@@ -43,7 +36,7 @@ export class TelemetryManager {
   }
 
   get hasCreds() {
-    return this.#isHttpUrl(this.#url) && !!this.#token;
+    return this.#isHttpUrl(this.#url);
   }
 
   #isHttpUrl(url: string) {
@@ -90,32 +83,17 @@ export class TelemetryManager {
   }
 
   #sendBeacon(verb: Verb, noun: Noun, more?: Record<string, unknown>): boolean {
-    if (
-      !this.hasCreds ||
-      !this.fyo.store.telemetryEnabled ||
-      this.fyo.store.skipTelemetryLogging ||
-      ignoreList.includes(noun)
-    ) {
-      return false;
-    }
-
-    const telemetryData: Telemetry = this.#getTelemtryData(verb, noun, more);
-    const data = JSON.stringify({
-      token: this.#token,
-      telemetryData,
-    });
-
-    try {
-      return navigator.sendBeacon(this.#url, data);
-    } catch {
-      // Invalid or non-HTTP(S) beacon targets throw in Chromium/Electron.
-      return false;
-    }
+    // Phase 0: do not ship general activity beacons (opened/resumed/doc CRUD, etc.).
+    // Install signal uses maybeSendFirstCompanyCreatePing (confirmed main-process POST).
+    void verb;
+    void noun;
+    void more;
+    return false;
   }
 
   /**
    * Phase 0: one-shot anonymous install signal after first company create.
-   * Flag-after-success — only set firstLaunchPingSent when the beacon queues.
+   * Flag only after main-process POST returns 2xx (not sendBeacon queue).
    * Retries on later launches until success (or stays unset while telemetry is off).
    */
   async maybeSendFirstCompanyCreatePing(): Promise<boolean> {
@@ -127,14 +105,54 @@ export class TelemetryManager {
       return true;
     }
 
+    if (
+      !this.fyo.store.telemetryEnabled ||
+      this.fyo.store.skipTelemetryLogging
+    ) {
+      return false;
+    }
+
     await this.#setCreds();
-    const queued = this.#sendBeacon(Verb.Opened, 'app', {
+    if (!this.hasCreds) {
+      return false;
+    }
+
+    const telemetryData = this.#getTelemtryData(Verb.Opened, 'app', {
       event: 'first_desk_open',
     });
-    if (queued) {
+    const body = {
+      kind: 'telemetry',
+      event: 'first_desk_open',
+      device_id: telemetryData.deviceId,
+      instance_id: telemetryData.instanceId,
+      app_version: telemetryData.version,
+      platform: telemetryData.platform,
+      payload: {
+        country: telemetryData.country,
+        language: telemetryData.language,
+        instanceId: telemetryData.instanceId,
+        openCount: telemetryData.openCount,
+        timestamp: telemetryData.timestamp,
+        verb: telemetryData.verb,
+        noun: telemetryData.noun,
+        more: telemetryData.more,
+      },
+    };
+
+    if (JSON.stringify(body).length > 4096) {
+      return false;
+    }
+
+    let ok = false;
+    try {
+      ok = await ipc.sendDesktopEvent(body);
+    } catch {
+      ok = false;
+    }
+    if (ok) {
       this.fyo.config.set('firstLaunchPingSent', true);
     }
-    return queued;
+    return ok;
   }
 
   async #setCreds() {
@@ -142,9 +160,8 @@ export class TelemetryManager {
       return;
     }
 
-    const { telemetryUrl, tokenString } = await this.fyo.auth.getCreds();
+    const { telemetryUrl } = await this.fyo.auth.getCreds();
     this.#url = this.#isHttpUrl(telemetryUrl) ? telemetryUrl : '';
-    this.#token = this.#url ? tokenString : '';
   }
 
   #getTelemtryData(

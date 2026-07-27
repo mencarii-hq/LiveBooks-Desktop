@@ -31,6 +31,7 @@ export enum IPC_ACTIONS {
   SAVE_DATA = 'save-data',
   SHOW_ERROR = 'show-error',
   SEND_ERROR = 'send-error',
+  SEND_DESKTOP_EVENT = 'send-desktop-event',
   GET_LANGUAGE_MAP = 'get-language-map',
   CHECK_FOR_UPDATES = 'check-for-updates',
   CHECK_DB_ACCESS = 'check-db-access',
