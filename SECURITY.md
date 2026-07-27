@@ -44,9 +44,10 @@ LiveBooks is **local-first**. Customer ledgers live in a **plaintext SQLite file
 - LiveBooks Cloud issues **short-lived access JWTs** (~15 minutes) and **refresh tokens** (default **30 days**, configurable via `jwt.refresh_ttl_days` on the server). Refresh rotation revokes the presented row; reuse of a revoked refresh revokes all active refresh rows for that user.
 - Refresh and access tokens are stored encrypted via Electron [`safeStorage`](https://www.electronjs.org/docs/latest/api/safe-storage) (macOS Keychain / Windows DPAPI) under `livebooksCloud{Access,Refresh}Token_encrypted`. See [`utils/secureTokenStore.ts`](utils/secureTokenStore.ts).
 - When `safeStorage` is **unavailable** (e.g. Linux without a configured Secret Service):
-  - **Packaged builds** refuse to write tokens in plaintext. The user re-authenticates each launch.
+  - **Packaged builds** refuse to write tokens in plaintext. Cloud connect cannot establish a lasting session until a keyring is available.
   - **Dev/unpackaged builds** allow plaintext fallback so contributors aren't blocked.
-- Settings surfaces a "Secure storage unavailable" badge whenever the store is degraded.
+- Manage Cloud surfaces a "Secure storage unavailable" warning whenever the store is degraded (install/unlock GNOME Keyring or KWallet on Linux).
+- **Linux AppImage** ships **unsigned** in MVP — distribute only via this repo's GitHub Releases; do not treat third-party mirrors as authentic.
 
 ### Plaid and MFA (Pro)
 

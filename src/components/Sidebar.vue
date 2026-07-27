@@ -292,6 +292,27 @@
               t`Sign in on the web to link this computer to LiveBooks Cloud. Keep this app open while you connect.`
             }}
           </p>
+          <p
+            v-if="secureStorageDegraded"
+            class="
+              text-sm text-amber-800
+              dark:text-amber-200
+              bg-amber-50
+              dark:bg-amber-950/40
+              border border-amber-200
+              dark:border-amber-800
+              rounded
+              px-3
+              py-2
+              whitespace-normal
+              break-words
+            "
+            role="status"
+          >
+            {{
+              t`Secure storage is unavailable on this computer. Install or unlock a desktop keyring (GNOME Keyring or KWallet) to connect LiveBooks Cloud. Without it, this app cannot keep a Cloud session.`
+            }}
+          </p>
         </div>
         <div class="flex flex-col gap-2 min-w-0">
           <Button
@@ -377,6 +398,7 @@ export default defineComponent({
       livebooksCloudSignedIn: false,
       livebooksCloudReachable: null as boolean | null,
       livebooksCloudSubscriptionStatus: null as string | null,
+      secureStorageDegraded: false,
       showLivebooksCloudModal: false,
       livebooksCloudReachabilityDebounce: null as ReturnType<
         typeof setTimeout
@@ -395,6 +417,7 @@ export default defineComponent({
       livebooksCloudSignedIn: boolean;
       livebooksCloudReachable: boolean | null;
       livebooksCloudSubscriptionStatus: string | null;
+      secureStorageDegraded: boolean;
       showLivebooksCloudModal: boolean;
       livebooksCloudReachabilityDebounce: ReturnType<typeof setTimeout> | null;
       livebooksCloudReachabilityInterval: ReturnType<
@@ -545,8 +568,10 @@ export default defineComponent({
       this.livebooksCloudSubscriptionStatus = s.status;
     },
     async refreshLivebooksCloudSignedIn() {
-      const { signedIn } = await getLivebooksCloudSessionSummary();
+      const { signedIn, secureStorageDegraded } =
+        await getLivebooksCloudSessionSummary();
       this.livebooksCloudSignedIn = signedIn;
+      this.secureStorageDegraded = !!secureStorageDegraded;
       if (!signedIn) {
         this.applyLivebooksSubscriptionSnapshot(getLivebooksSubscriptionSnapshot());
         return;

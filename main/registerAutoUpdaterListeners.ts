@@ -2,7 +2,30 @@ import { app, dialog } from 'electron';
 import { autoUpdater, UpdateInfo } from 'electron-updater';
 import { emitMainProcessError } from '../backend/helpers';
 import { Main } from '../main';
+import { resolveUpdaterCheckIntervalMs } from '../utils/livebooksFeatureFlags';
 import { isNetworkError } from './helpers';
+
+let updateCheckInFlight = false;
+
+/** Shared by the company-open IPC path and the 6h poll. */
+export async function checkForAppUpdates(main: Main): Promise<void> {
+  if (main.isDevelopment || !main.updaterEnabled || updateCheckInFlight) {
+    return;
+  }
+
+  updateCheckInFlight = true;
+  try {
+    await autoUpdater.checkForUpdates();
+  } catch (error) {
+    if (isNetworkError(error as Error)) {
+      return;
+    }
+
+    emitMainProcessError(error);
+  } finally {
+    updateCheckInFlight = false;
+  }
+}
 
 export default function registerAutoUpdaterListeners(main: Main) {
   autoUpdater.autoDownload = false;
@@ -14,10 +37,6 @@ export default function registerAutoUpdaterListeners(main: Main) {
   autoUpdater.autoInstallOnAppQuit = true;
 
   autoUpdater.on('error', (error) => {
-    if (!main.checkedForUpdate) {
-      main.checkedForUpdate = true;
-    }
-
     if (isNetworkError(error)) {
       return;
     }
@@ -66,4 +85,11 @@ export default function registerAutoUpdaterListeners(main: Main) {
 
     autoUpdater.quitAndInstall();
   });
+
+  if (!main.isDevelopment && main.updaterEnabled) {
+    const intervalMs = resolveUpdaterCheckIntervalMs();
+    setInterval(() => {
+      void checkForAppUpdates(main);
+    }, intervalMs);
+  }
 }

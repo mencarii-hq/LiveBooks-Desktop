@@ -207,7 +207,7 @@ const ipc = {
   async getLivebooksCloudSession() {
     return (await ipcRenderer.invoke(
       IPC_ACTIONS.GET_LIVEBOOKS_CLOUD_SESSION
-    )) as { signedIn: boolean };
+    )) as { signedIn: boolean; secureStorageDegraded: boolean };
   },
 
   async clearLivebooksCloudSession() {

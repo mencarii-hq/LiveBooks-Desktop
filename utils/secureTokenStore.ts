@@ -8,9 +8,9 @@
  *   * If +safeStorage+ is unavailable AND the app is packaged, we REFUSE
  *     to write a plaintext fallback. Persisting refresh tokens in
  *     plaintext on disk is a permanent leak we won't accept in production
- *     just to spare the user a re-authentication. Instead, the user must
- *     re-authenticate each launch and Settings shows a "Secure storage
- *     unavailable" warning badge in Settings.
+ *     just to spare the user a re-authentication. Cloud connect cannot keep
+ *     a session until encryption is available; Manage Cloud shows a
+ *     "Secure storage unavailable" warning.
  *
  *   * In dev / unpackaged builds plaintext fallback is allowed so
  *     contributors aren't blocked when running the app without code
@@ -101,9 +101,8 @@ export function setSecureToken(key: TokenKey, value: string): void {
 
   if (!plaintextFallbackAllowed()) {
     // in packaged builds without OS keychain support,
-    // skip persistence entirely. The user will be prompted to sign in
-    // again on next launch; that is preferable to a plaintext token on
-    // disk. Settings surfaces the warning badge.
+    // skip persistence entirely. Cloud session cannot be established
+    // until encryption is available. Manage Cloud surfaces the warning.
     config.delete(encryptedKey(key));
     config.delete(key);
     return;
@@ -130,7 +129,7 @@ export function hasSecureToken(key: TokenKey): boolean {
 
 /**
  * True when refresh-token persistence is silently degraded — used by the
- * Settings UI to show the "Secure storage unavailable" badge. Returns
+ * Manage Cloud UI to show the "Secure storage unavailable" warning. Returns
  * false in dev because plaintext fallback is allowed there.
  */
 export function isSecureStorageDegraded(): boolean {

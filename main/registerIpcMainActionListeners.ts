@@ -8,7 +8,6 @@ import {
 } from 'electron';
 import fetch from 'node-fetch';
 import { fetchWithCloudBackoff } from './cloudApiFetchWithBackoff';
-import { autoUpdater } from 'electron-updater';
 import { constants } from 'fs';
 import fs from 'fs-extra';
 import path from 'path';
@@ -16,11 +15,11 @@ import { isRendererDenylistedCloudPath } from 'utils/cloudApiDenylist';
 import {
   getSecureToken,
   hasSecureToken,
+  isSecureStorageDegraded,
   setSecureToken,
 } from 'utils/secureTokenStore';
 import { SelectFileOptions, SelectFileReturn } from 'utils/types';
 import databaseManager from '../backend/database/manager';
-import { emitMainProcessError } from '../backend/helpers';
 import { Main } from '../main';
 import { DatabaseMethod } from '../utils/db/types';
 import {
@@ -29,6 +28,7 @@ import {
   getLivebooksCloudOriginMain,
   isLivebooksCloudSignedIn,
 } from './livebooksCloudBridge';
+import { checkForAppUpdates } from './registerAutoUpdaterListeners';
 import { IPC_ACTIONS } from '../utils/messages';
 import { getUrlAndTokenString, sendError } from './contactMothership';
 import { getLanguageMap } from './getLanguageMap';
@@ -37,7 +37,6 @@ import { printHtmlDocument } from './printHtmlDocument';
 import {
   getConfigFilesWithModified,
   getErrorHandledReponse,
-  isNetworkError,
   setAndGetCleanedConfigFiles,
 } from './helpers';
 import { saveHtmlAsPdf } from './saveHtmlAsPdf';
@@ -243,19 +242,12 @@ export default function registerIpcMainActionListeners(main: Main) {
   });
 
   ipcMain.handle(IPC_ACTIONS.CHECK_FOR_UPDATES, async () => {
+    // Once per session for company-open; the 6h poll uses checkForAppUpdates directly.
     if (main.isDevelopment || main.checkedForUpdate || !main.updaterEnabled) {
       return;
     }
 
-    try {
-      await autoUpdater.checkForUpdates();
-    } catch (error) {
-      if (isNetworkError(error as Error)) {
-        return;
-      }
-
-      emitMainProcessError(error);
-    }
+    await checkForAppUpdates(main);
     main.checkedForUpdate = true;
   });
 
@@ -346,7 +338,13 @@ export default function registerIpcMainActionListeners(main: Main) {
   });
 
   ipcMain.handle(IPC_ACTIONS.GET_LIVEBOOKS_CLOUD_SESSION, () => {
-    return { signedIn: isLivebooksCloudSignedIn() };
+    return {
+      signedIn: isLivebooksCloudSignedIn(),
+      // Linux-only UX: Mac Keychain / Windows DPAPI cover other platforms.
+      // Packaged Linux without GNOME Keyring / KWallet cannot keep a Cloud session.
+      secureStorageDegraded:
+        process.platform === 'linux' && isSecureStorageDegraded(),
+    };
   });
 
   ipcMain.handle(IPC_ACTIONS.CLEAR_LIVEBOOKS_CLOUD_SESSION, async () => {

@@ -12,6 +12,7 @@ import {
 
 export async function getLivebooksCloudSessionSummary(): Promise<{
   signedIn: boolean;
+  secureStorageDegraded: boolean;
 }> {
   return await ipc.getLivebooksCloudSession();
 }
