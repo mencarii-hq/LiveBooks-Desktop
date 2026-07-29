@@ -1,4 +1,4 @@
-name: Publish with codesign (Mac Apple Silicon)
+name: Publish with codesign (arm mac)
 
 on: workflow_dispatch
 

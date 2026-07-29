@@ -1,4 +1,4 @@
-name: Publish with codesign (Mac Intel)
+name: Publish with codesign (intel mac)
 
 on: workflow_dispatch
 
