@@ -1,14 +1,14 @@
-name: Publish with codesign (Mac Apple Silicon)
+name: Publish with codesign (Mac Intel)
 
 on: workflow_dispatch
 
 # contents: electron-builder GitHub release upload
-# Separate from Intel Mac — re-run one arch without rebuilding the other.
+# Separate from Apple Silicon — re-run one arch without rebuilding the other.
 permissions:
   contents: write
 
 jobs:
-  build-macos-arm:
+  build-macos-x64:
     runs-on: macos-latest
     steps:
       - name: Setup node
@@ -64,13 +64,13 @@ jobs:
           # Official releases: set repository secret to production API origin (no trailing slash).
           LIVEBOOKS_CLOUD_ORIGIN: ${{ secrets.LIVEBOOKS_CLOUD_ORIGIN }}
           VITE_LIVEBOOKS_CLOUD_ORIGIN: ${{ secrets.LIVEBOOKS_CLOUD_ORIGIN }}
-        run: yarn build --mac --arm64 --publish always
+        run: yarn build --mac --x64 --publish always
 
       - name: Tar files
-        run: tar -cvf dist-macOS-arm.tar dist_electron
+        run: tar -cvf dist-macOS-x64.tar dist_electron
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist-macOS-arm
-          path: dist-macOS-arm.tar
+          name: dist-macOS-x64
+          path: dist-macOS-x64.tar
