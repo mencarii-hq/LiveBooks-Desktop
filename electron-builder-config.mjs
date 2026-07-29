@@ -62,11 +62,10 @@ const liveBooksConfig = {
     artifactName: '${productName}-v${version}-mac-${arch}.${ext}',
     category: 'public.app-category.finance',
     icon: 'build/LiveBooks.icns',
-    // MVP: Apple Silicon only. Re-add x64 when Intel Mac demand appears.
     target: [
       {
         target: 'default',
-        arch: ['arm64'],
+        arch: ['arm64', 'x64'],
       },
     ],
     // electron-builder 26: notarize is boolean only. Team ID / Apple ID come

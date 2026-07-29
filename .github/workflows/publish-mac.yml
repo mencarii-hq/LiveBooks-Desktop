@@ -6,10 +6,8 @@ on: workflow_dispatch
 permissions:
   contents: write
 
-# MVP: macOS Apple Silicon only. Re-add Intel when demand justifies it.
-
 jobs:
-  build-macos-arm:
+  build-macos:
     runs-on: macos-latest
     steps:
       - name: Setup node
@@ -65,13 +63,13 @@ jobs:
           # Official releases: set repository secret to production API origin (no trailing slash).
           LIVEBOOKS_CLOUD_ORIGIN: ${{ secrets.LIVEBOOKS_CLOUD_ORIGIN }}
           VITE_LIVEBOOKS_CLOUD_ORIGIN: ${{ secrets.LIVEBOOKS_CLOUD_ORIGIN }}
-        run: yarn build --mac --arm64 --publish always
+        run: yarn build --mac --arm64 --x64 --publish always
 
       - name: Tar files
-        run: tar -cvf dist-macOS-arm.tar dist_electron
+        run: tar -cvf dist-macOS.tar dist_electron
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist-macOS-arm
-          path: dist-macOS-arm.tar
+          name: dist-macOS
+          path: dist-macOS.tar
