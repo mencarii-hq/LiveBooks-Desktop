@@ -117,14 +117,14 @@ async function reconnectTo(filePath: string, label: string): Promise<boolean> {
     return true;
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error(`Save As: failed to reconnect to ${label}`, error);
+    console.error(`Move: failed to reconnect to ${label}`, error);
     try {
       if (fyo.db.isConnected && fyo.db.dbPath === filePath) {
         await fyo.db.close();
       }
     } catch (closeError) {
       // eslint-disable-next-line no-console
-      console.error('Save As: close after failed reconnect', closeError);
+      console.error('Move: close after failed reconnect', closeError);
     }
     await showDialog({
       title: t`Reconnect failed`,
@@ -136,17 +136,17 @@ async function reconnectTo(filePath: string, label: string): Promise<boolean> {
 }
 
 /**
- * Save As (move): copy DB trio, keep instanceId, update config + lastSelectedFilePath,
- * archive old file, reconnect. Never re-runs SetupWizard.
+ * Move company file: copy DB trio, keep instanceId, update config + lastSelectedFilePath,
+ * archive old file, reconnect. Never re-runs SetupWizard. Not a duplicate/Save As.
  */
-export async function saveCompanyAs(
+export async function moveCompanyFile(
   sourcePath?: string
 ): Promise<string | null> {
   const currentPath = sourcePath || fyo.db.dbPath;
   if (!currentPath || currentPath === ':memory:') {
     await showDialog({
-      title: t`Cannot Save As`,
-      detail: t`Save As is not available for an in-memory company.`,
+      title: t`Cannot Move`,
+      detail: t`Move is not available for an in-memory company.`,
       type: 'error',
     });
     return null;
@@ -177,7 +177,7 @@ export async function saveCompanyAs(
   }
 
   const archiveChoice = await showDialog({
-    title: t`Save As`,
+    title: t`Move Company File`,
     detail: t`The company file will move to the new location. The old file will be archived so two copies do not share the same company id.`,
     type: 'warning',
     buttons: [
@@ -222,7 +222,7 @@ export async function saveCompanyAs(
         } catch (cleanupError) {
           // eslint-disable-next-line no-console
           console.error(
-            'Save As: cleanup of incomplete copy failed',
+            'Move: cleanup of incomplete copy failed',
             cleanupError
           );
         }
@@ -247,16 +247,13 @@ export async function saveCompanyAs(
         }
       } catch (closeError) {
         // eslint-disable-next-line no-console
-        console.error('Save As: close before cleanup', closeError);
+        console.error('Move: close before cleanup', closeError);
       }
       try {
         await deleteDbTrio(filePath);
       } catch (cleanupError) {
         // eslint-disable-next-line no-console
-        console.error(
-          'Save As: cleanup of incomplete copy failed',
-          cleanupError
-        );
+        console.error('Move: cleanup of incomplete copy failed', cleanupError);
       }
       if (wasOpen) {
         await reconnectTo(currentPath, 'original location');
@@ -275,9 +272,9 @@ export async function saveCompanyAs(
     await archiveOldCompanyFile(currentPath);
   } catch (archiveError) {
     // eslint-disable-next-line no-console
-    console.error('Save As: archive of old file failed', archiveError);
+    console.error('Move: archive of old file failed', archiveError);
     await showDialog({
-      title: t`Saved with warning`,
+      title: t`Moved with warning`,
       detail: t`Company file moved to ${filePath}, but the old file could not be archived. Remove or rename it manually so two copies do not share the same company id.`,
       type: 'warning',
     });
@@ -285,7 +282,7 @@ export async function saveCompanyAs(
   }
 
   await showDialog({
-    title: t`Saved`,
+    title: t`Moved`,
     detail: t`Company file moved to ${filePath}`,
     type: 'info',
   });

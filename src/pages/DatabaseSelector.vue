@@ -191,41 +191,9 @@
               {{ truncate(file.dbPath) }}
             </p>
           </div>
-          <button
-            class="
-              ms-auto
-              px-2
-              h-8
-              text-xs text-gray-600
-              dark:text-gray-400
-              hover:text-green-700
-              dark:hover:text-green-300
-              hover:bg-gray-100
-              dark:hover:bg-gray-800
-              rounded
-            "
-            :title="t`Save As…`"
-            @click.stop="() => saveAsCompany(file)"
-          >
-            {{ t`Save As…` }}
-          </button>
-          <button
-            class="
-              p-2
-              hover:bg-red-200
-              dark:hover:bg-red-900 dark:hover:bg-opacity-40
-              rounded-full
-              w-8
-              h-8
-              text-gray-600
-              dark:text-gray-400
-              hover:text-red-400
-              dark:hover:text-red-200
-            "
-            @click.stop="() => deleteDb(i)"
-          >
-            <feather-icon name="x" class="w-4 h-4" />
-          </button>
+          <div class="ms-auto flex-shrink-0" @click.stop>
+            <DropdownWithActions :actions="companyFileActions(file)" />
+          </div>
         </div>
       </div>
       <hr v-if="files?.length" class="dark:border-gray-800" />
@@ -278,6 +246,63 @@
       :message="creationMessage"
     />
 
+    <!-- Hard delete confirmation: type company name -->
+    <Modal :open-modal="!!deleteTarget" @closemodal="closeDeleteConfirm">
+      <div class="p-4 text-gray-900 dark:text-gray-100 w-form">
+        <h2 class="text-xl font-semibold select-none">
+          {{ t`Delete ${deleteTarget?.companyName}?` }}
+        </h2>
+        <p class="text-base mt-2">
+          {{
+            t`This permanently deletes the company file from disk. It cannot be undone.`
+          }}
+        </p>
+        <p
+          class="
+            text-sm text-gray-600
+            dark:text-gray-400
+            mt-2
+            break-all
+            select-text
+          "
+        >
+          {{ deleteTarget?.dbPath }}
+        </p>
+        <p class="text-sm text-red-600 dark:text-red-400 mt-4">
+          {{ t`Type "${deleteTarget?.companyName}" to confirm.` }}
+        </p>
+        <input
+          v-model="deleteConfirmName"
+          type="text"
+          class="
+            mt-2
+            w-full
+            bg-gray-100
+            dark:bg-gray-875
+            focus:bg-gray-200
+            dark:focus:bg-gray-890
+            rounded-md
+            px-2
+            py-1.5
+            outline-none
+            text-base
+          "
+          :placeholder="deleteTarget?.companyName"
+          @keydown.enter="confirmDelete"
+        />
+        <div class="flex justify-between mt-6">
+          <Button @click="closeDeleteConfirm">{{ t`Cancel` }}</Button>
+          <Button
+            type="primary"
+            :disabled="!canConfirmDelete"
+            @click="confirmDelete"
+          >
+            {{ t`Delete Permanently` }}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+
     <!-- Base Count Selection when Dev -->
     <Modal :open-modal="openModal" @closemodal="openModal = false">
       <div class="p-4 text-gray-900 dark:text-gray-100 w-form">
@@ -329,16 +354,17 @@ import { t } from 'fyo';
 import { Verb } from 'fyo/telemetry/types';
 import { DateTime } from 'luxon';
 import Button from 'src/components/Button.vue';
+import DropdownWithActions from 'src/components/DropdownWithActions.vue';
 import FeatherIcon from 'src/components/FeatherIcon.vue';
 import Loading from 'src/components/Loading.vue';
 import Modal from 'src/components/Modal.vue';
 import { fyo } from 'src/initFyo';
 import { handleErrorWithDialog } from 'src/errorHandling';
-import { showDialog, showToast } from 'src/utils/interactive';
+import { showToast } from 'src/utils/interactive';
 import { updateConfigFiles } from 'src/utils/misc';
 import { purgeCloudPlaidItemsForInstance } from 'src/utils/livebooksCloudBook';
 import { deleteDb, getSavePath, getSelectedFilePath } from 'src/utils/ui';
-import { saveCompanyAs } from 'src/utils/companyDb';
+import { moveCompanyFile } from 'src/utils/companyDb';
 import type { ConfigFilesWithModified } from 'utils/types';
 import { defineComponent } from 'vue';
 
@@ -349,6 +375,7 @@ export default defineComponent({
     FeatherIcon,
     Modal,
     Button,
+    DropdownWithActions,
   },
   emits: ['file-selected', 'new-database'],
   data() {
@@ -362,6 +389,8 @@ export default defineComponent({
       creatingDemo: false,
       loadingDatabase: false,
       files: [],
+      deleteTarget: null,
+      deleteConfirmName: '',
     } as {
       showDemoCompany: boolean;
       openModal: boolean;
@@ -371,7 +400,18 @@ export default defineComponent({
       creatingDemo: boolean;
       loadingDatabase: boolean;
       files: ConfigFilesWithModified[];
+      deleteTarget: ConfigFilesWithModified | null;
+      deleteConfirmName: string;
     };
+  },
+  computed: {
+    canConfirmDelete(): boolean {
+      const target = this.deleteTarget;
+      if (!target) {
+        return false;
+      }
+      return this.deleteConfirmName.trim() === target.companyName;
+    },
   },
   async mounted() {
     await this.setFiles();
@@ -392,47 +432,55 @@ export default defineComponent({
     formatDate(isoDate: string) {
       return DateTime.fromISO(isoDate).toRelative();
     },
-    async saveAsCompany(file: { dbPath: string }) {
-      const newPath = await saveCompanyAs(file.dbPath);
-      if (newPath) {
-        await this.setFiles();
-      }
+    companyFileActions(file: ConfigFilesWithModified) {
+      return [
+        {
+          label: t`Move to`,
+          action: async () => {
+            const newPath = await moveCompanyFile(file.dbPath);
+            if (newPath) {
+              await this.setFiles();
+            }
+          },
+        },
+        {
+          label: t`Delete`,
+          component: {
+            template:
+              '<span class="text-red-600 dark:text-red-400">{{ t`Delete` }}</span>',
+          },
+          action: () => {
+            this.openDeleteConfirm(file);
+          },
+        },
+      ];
     },
-    async deleteDb(i: number) {
-      const file = this.files[i];
-      const setFiles = this.setFiles.bind(this);
+    openDeleteConfirm(file: ConfigFilesWithModified) {
+      this.deleteTarget = file;
+      this.deleteConfirmName = '';
+    },
+    closeDeleteConfirm() {
+      this.deleteTarget = null;
+      this.deleteConfirmName = '';
+    },
+    async confirmDelete() {
+      if (!this.canConfirmDelete || !this.deleteTarget) {
+        return;
+      }
+      const file = this.deleteTarget;
+      this.closeDeleteConfirm();
 
-      await showDialog({
-        title: t`Delete ${file.companyName}?`,
-        detail: t`Database file: ${file.dbPath}`,
-        type: 'warning',
-        buttons: [
-          {
-            label: this.t`Yes`,
-            async action() {
-              const purge = await purgeCloudPlaidItemsForInstance(file.id);
-              if (!purge.ok && !purge.skipped) {
-                showToast({
-                  message:
-                    purge.error ??
-                    t`Could not disconnect bank feeds in LiveBooks Cloud. The local company file will still be deleted.`,
-                  type: 'warning',
-                });
-              }
-              await deleteDb(file.dbPath);
-              await setFiles();
-            },
-            isPrimary: true,
-          },
-          {
-            label: this.t`No`,
-            action() {
-              return null;
-            },
-            isEscape: true,
-          },
-        ],
-      });
+      const purge = await purgeCloudPlaidItemsForInstance(file.id);
+      if (!purge.ok && !purge.skipped) {
+        showToast({
+          message:
+            purge.error ??
+            t`Could not disconnect bank feeds in LiveBooks Cloud. The local company file will still be deleted.`,
+          type: 'warning',
+        });
+      }
+      await deleteDb(file.dbPath);
+      await this.setFiles();
     },
     async createDemo() {
       if (!fyo.store.isDevelopment) {
