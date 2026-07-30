@@ -1,285 +1,180 @@
 <template>
   <div class="flex flex-col overflow-y-hidden h-full">
-    <PageHeader :title="t`Register`">
-      <Button @click="showWriteForm = !showWriteForm">
-        {{ showWriteForm ? t`Hide form` : t`Write entry` }}
+    <PageHeader :title="t`Cheque Register`">
+      <Button ref="exportButton" :icon="false" @click="openExportModal = true">
+        {{ t`Export` }}
       </Button>
-      <Button @click="memorizeCurrent">{{ t`Memorize…` }}</Button>
+      <FilterDropdown
+        :schema-name="ModelNameEnum.AccountingLedgerEntry"
+        @change="applyFilter"
+      />
+      <Button
+        type="primary"
+        :icon="true"
+        :padding="false"
+        class="px-3"
+        :disabled="!bankAccount"
+        @click="goWriteEntry"
+      >
+        <feather-icon name="plus" class="w-4 h-4" />
+      </Button>
     </PageHeader>
 
-    <div
-      class="
-        flex-1
-        overflow-y-auto overflow-x-hidden
-        custom-scroll custom-scroll-thumb1
-        p-4
-      "
-    >
-      <div class="flex flex-wrap items-end gap-4 mb-4">
-        <label class="flex flex-col gap-1 text-sm min-w-[16rem]">
-          <span class="text-gray-600 dark:text-gray-400">{{
-            t`Bank account`
-          }}</span>
-          <select
-            v-model="bankAccount"
-            class="
-              border
-              dark:border-gray-700
-              rounded
-              px-2
-              py-1.5
-              bg-white
-              dark:bg-gray-900
-              text-gray-900
-              dark:text-gray-100
-            "
-            @change="onBankChange"
-          >
-            <option disabled value="">{{ t`Select account` }}</option>
-            <option v-for="a in bankAccounts" :key="a.name" :value="a.name">
-              {{ a.accountName || a.name }}
-            </option>
-          </select>
-        </label>
+    <div class="text-base flex flex-col overflow-hidden flex-1">
+      <div class="grid grid-cols-5 gap-4 p-4 border-b dark:border-gray-800">
+        <FormControl
+          :border="true"
+          size="small"
+          :show-label="true"
+          :df="bankAccountField"
+          :value="bankAccount"
+          @change="onBankAccountChange"
+        />
       </div>
 
-      <!-- Write entry -->
-      <div
-        v-if="showWriteForm"
-        class="
-          mb-6
-          p-4
-          border border-gray-200
-          dark:border-gray-700
-          rounded-lg
-          bg-white
-          dark:bg-gray-900
-          max-w-3xl
-        "
-      >
-        <h2 class="text-base font-semibold mb-3 dark:text-gray-100">
-          {{ t`Write entry` }}
-        </h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <label class="flex flex-col gap-1 text-sm">
-            <span class="text-gray-600 dark:text-gray-400">{{ t`Date` }}</span>
-            <input
-              v-model="form.date"
-              type="date"
+      <div class="flex flex-col overflow-hidden px-4 flex-1">
+        <div
+          v-if="!bankAccount"
+          class="text-sm text-gray-600 dark:text-gray-400 py-4"
+        >
+          {{ t`Select a bank account to view the register.` }}
+        </div>
+        <div
+          v-else-if="loading"
+          class="text-sm text-gray-600 dark:text-gray-400 py-4"
+        >
+          {{ t`Loading…` }}
+        </div>
+        <template v-else>
+          <div class="flex items-center">
+            <div
               class="
-                border
-                dark:border-gray-700
-                rounded
-                px-2
-                py-1.5
-                bg-white
-                dark:bg-gray-900
-              "
-            />
-          </label>
-          <label class="flex flex-col gap-1 text-sm">
-            <span class="text-gray-600 dark:text-gray-400">{{ t`Payee` }}</span>
-            <input
-              v-model="form.party"
-              list="register-party-list"
-              class="
-                border
-                dark:border-gray-700
-                rounded
-                px-2
-                py-1.5
-                bg-white
-                dark:bg-gray-900
-              "
-              :placeholder="t`Payee`"
-            />
-            <datalist id="register-party-list">
-              <option v-for="p in parties" :key="p" :value="p" />
-            </datalist>
-          </label>
-          <label class="flex flex-col gap-1 text-sm">
-            <span class="text-gray-600 dark:text-gray-400">{{
-              t`Category`
-            }}</span>
-            <select
-              v-model="form.categoryAccount"
-              class="
-                border
-                dark:border-gray-700
-                rounded
-                px-2
-                py-1.5
-                bg-white
-                dark:bg-gray-900
+                w-8
+                text-start
+                me-2
+                text-gray-700
+                dark:text-gray-400
+                h-row
+                flex
+                items-center
               "
             >
-              <option disabled value="">{{ t`Select category` }}</option>
-              <option
-                v-for="a in categoryAccounts"
-                :key="a.name"
-                :value="a.name"
+              #
+            </div>
+            <Row
+              class="flex-1 text-gray-700 dark:text-gray-400 h-row-mid"
+              :column-count="7"
+              gap="1rem"
+            >
+              <div class="cell-header">{{ t`Date` }}</div>
+              <div class="cell-header">{{ t`Payee` }}</div>
+              <div class="cell-header">{{ t`Category` }}</div>
+              <div class="cell-header">{{ t`Memo` }}</div>
+              <div class="cell-header ms-auto">{{ t`Payment` }}</div>
+              <div class="cell-header ms-auto">{{ t`Deposit` }}</div>
+              <div class="cell-header ms-auto pe-4">{{ t`Balance` }}</div>
+            </Row>
+          </div>
+          <hr class="dark:border-gray-800" />
+
+          <div
+            v-if="!rows.length"
+            class="p-4 text-gray-600 dark:text-gray-400 text-sm"
+          >
+            {{ t`No entries yet.` }}
+          </div>
+          <div
+            v-else
+            class="
+              overflow-y-auto
+              dark:dark-scroll
+              custom-scroll custom-scroll-thumb1
+              flex-1
+            "
+          >
+            <div v-for="(row, i) in rows" :key="row.key">
+              <div
+                class="
+                  flex
+                  hover:bg-gray-50
+                  dark:hover:bg-gray-850
+                  items-center
+                "
               >
-                {{ a.accountName || a.name }}
-              </option>
-            </select>
-          </label>
-          <label class="flex flex-col gap-1 text-sm">
-            <span class="text-gray-600 dark:text-gray-400">{{
-              t`Amount`
-            }}</span>
-            <input
-              v-model.number="form.amount"
-              type="number"
-              min="0.01"
-              step="0.01"
-              class="
-                border
-                dark:border-gray-700
-                rounded
-                px-2
-                py-1.5
-                bg-white
-                dark:bg-gray-900
-              "
-            />
-          </label>
-          <label class="flex flex-col gap-1 text-sm">
-            <span class="text-gray-600 dark:text-gray-400">{{
-              t`Entry type`
-            }}</span>
-            <select
-              v-model="form.paymentType"
-              class="
-                border
-                dark:border-gray-700
-                rounded
-                px-2
-                py-1.5
-                bg-white
-                dark:bg-gray-900
-              "
-            >
-              <option value="Pay">{{ t`Payment` }}</option>
-              <option value="Receive">{{ t`Deposit` }}</option>
-            </select>
-          </label>
-          <label class="flex flex-col gap-1 text-sm">
-            <span class="text-gray-600 dark:text-gray-400">{{ t`Memo` }}</span>
-            <input
-              v-model="form.memo"
-              type="text"
-              class="
-                border
-                dark:border-gray-700
-                rounded
-                px-2
-                py-1.5
-                bg-white
-                dark:bg-gray-900
-              "
-            />
-          </label>
-        </div>
-        <div class="mt-4 flex gap-2">
-          <Button type="primary" :disabled="saving" @click="submitEntry">
-            {{ saving ? t`Saving…` : t`Save entry` }}
-          </Button>
-        </div>
-        <p v-if="formError" class="mt-2 text-sm text-red-600">
-          {{ formError }}
-        </p>
+                <div
+                  class="
+                    w-8
+                    text-start
+                    me-2
+                    text-gray-700
+                    dark:text-gray-400
+                    h-row
+                    flex
+                    items-center
+                  "
+                >
+                  {{ i + 1 }}
+                </div>
+                <Row
+                  gap="1rem"
+                  class="
+                    cursor-pointer
+                    text-gray-900
+                    dark:text-gray-300
+                    flex-1
+                    h-row-mid
+                  "
+                  :column-count="7"
+                  @click="openRow(row)"
+                >
+                  <div class="cell-body">{{ row.date }}</div>
+                  <div class="cell-body">{{ row.payee }}</div>
+                  <div class="cell-body">{{ row.category }}</div>
+                  <div class="cell-body">{{ row.memo }}</div>
+                  <div class="cell-body ms-auto tabular-nums">
+                    {{ row.payment }}
+                  </div>
+                  <div class="cell-body ms-auto tabular-nums">
+                    {{ row.deposit }}
+                  </div>
+                  <div class="cell-body ms-auto tabular-nums pe-4">
+                    {{ row.balance }}
+                  </div>
+                </Row>
+              </div>
+              <hr v-if="i !== rows.length - 1" class="dark:border-gray-800" />
+            </div>
+          </div>
+        </template>
       </div>
-
-      <div v-if="!bankAccount" class="text-sm text-gray-600 dark:text-gray-400">
-        {{ t`Select a bank account to view the register.` }}
-      </div>
-      <div v-else-if="loading" class="text-sm text-gray-600 dark:text-gray-400">
-        {{ t`Loading…` }}
-      </div>
-      <table
-        v-else
-        class="
-          min-w-full
-          text-sm text-start
-          border border-gray-200
-          dark:border-gray-700
-          rounded-lg
-          overflow-hidden
-        "
-      >
-        <thead class="bg-gray-50 dark:bg-gray-800 text-xs uppercase">
-          <tr>
-            <th class="text-start p-3 border-b dark:border-gray-700">
-              {{ t`Date` }}
-            </th>
-            <th class="text-start p-3 border-b dark:border-gray-700">
-              {{ t`Payee` }}
-            </th>
-            <th class="text-start p-3 border-b dark:border-gray-700">
-              {{ t`Category` }}
-            </th>
-            <th class="text-start p-3 border-b dark:border-gray-700">
-              {{ t`Memo` }}
-            </th>
-            <th class="text-end p-3 border-b dark:border-gray-700">
-              {{ t`Payment` }}
-            </th>
-            <th class="text-end p-3 border-b dark:border-gray-700">
-              {{ t`Deposit` }}
-            </th>
-            <th class="text-end p-3 border-b dark:border-gray-700">
-              {{ t`Balance` }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="!rows.length">
-            <td
-              colspan="7"
-              class="p-4 text-gray-600 dark:text-gray-400 text-sm"
-            >
-              {{ t`No entries yet.` }}
-            </td>
-          </tr>
-          <tr
-            v-for="row in rows"
-            :key="row.key"
-            class="
-              cursor-pointer
-              border-b
-              dark:border-gray-800
-              hover:bg-gray-50
-              dark:hover:bg-gray-800/80
-            "
-            @click="openRow(row)"
-          >
-            <td class="p-3">{{ row.date }}</td>
-            <td class="p-3">{{ row.payee }}</td>
-            <td class="p-3">{{ row.category }}</td>
-            <td class="p-3">{{ row.memo }}</td>
-            <td class="p-3 text-end tabular-nums">{{ row.payment }}</td>
-            <td class="p-3 text-end tabular-nums">{{ row.deposit }}</td>
-            <td class="p-3 text-end tabular-nums">{{ row.balance }}</td>
-          </tr>
-        </tbody>
-      </table>
     </div>
+
+    <Modal :open-modal="openExportModal" @closemodal="openExportModal = false">
+      <ExportWizard
+        class="w-form"
+        :schema-name="ModelNameEnum.AccountingLedgerEntry"
+        :title="t`Cheque Register`"
+        :list-filters="exportFilters"
+      />
+    </Modal>
   </div>
 </template>
 
 <script lang="ts">
-import { DateTime } from 'luxon';
 import { ModelNameEnum } from 'models/types';
 import { AccountTypeEnum } from 'models/baseModels/Account/types';
+import { Field } from 'schemas/types';
 import Button from 'src/components/Button.vue';
+import ExportWizard from 'src/components/ExportWizard.vue';
+import FilterDropdown from 'src/components/FilterDropdown.vue';
+import FormControl from 'src/components/Controls/FormControl.vue';
+import Modal from 'src/components/Modal.vue';
 import PageHeader from 'src/components/PageHeader.vue';
+import Row from 'src/components/Row.vue';
 import { fyo } from 'src/initFyo';
 import { handleErrorWithDialog } from 'src/errorHandling';
-import {
-  createRegisterPayment,
-  memorizeRegisterFields,
-} from 'src/utils/memorizedTransactions';
 import { routeTo } from 'src/utils/ui';
+import { QueryFilter } from 'utils/db/types';
 import { defineComponent } from 'vue';
 
 type AccountOpt = { name: string; accountName?: string };
@@ -299,32 +194,53 @@ const LAST_BANK_KEY = 'livebooks-register-bank-account';
 
 export default defineComponent({
   name: 'BankRegister',
-  components: { PageHeader, Button },
+  components: {
+    PageHeader,
+    Button,
+    Row,
+    FilterDropdown,
+    Modal,
+    ExportWizard,
+    FormControl,
+  },
   data() {
     return {
+      ModelNameEnum,
       bankAccount: '',
       bankAccounts: [] as AccountOpt[],
-      categoryAccounts: [] as AccountOpt[],
-      parties: [] as string[],
+      accountNameById: {} as Record<string, string>,
+      listFilters: {} as QueryFilter,
       rows: [] as RegisterRow[],
       loading: false,
-      saving: false,
-      showWriteForm: true,
-      formError: '',
-      form: {
-        date: DateTime.now().toISODate() || '',
-        party: '',
-        categoryAccount: '',
-        amount: 0,
-        paymentType: 'Pay' as 'Pay' | 'Receive',
-        memo: '',
-      },
+      openExportModal: false,
     };
+  },
+  computed: {
+    bankAccountField(): Field {
+      return {
+        fieldtype: 'Link',
+        target: 'Account',
+        fieldname: 'bankAccount',
+        label: this.t`Bank account`,
+        placeholder: this.t`Bank account`,
+        filters: {
+          isGroup: false,
+          accountType: ['in', [AccountTypeEnum.Bank, AccountTypeEnum.Cash]],
+        },
+      } as Field;
+    },
+    exportFilters(): QueryFilter {
+      if (!this.bankAccount) return { ...this.listFilters, reverted: false };
+      return {
+        ...this.listFilters,
+        account: this.bankAccount,
+        reverted: false,
+      };
+    },
   },
   async mounted() {
     try {
       await this.loadAccounts();
-      await this.loadParties();
       const saved = localStorage.getItem(LAST_BANK_KEY);
       if (saved && this.bankAccounts.some((a) => a.name === saved)) {
         this.bankAccount = saved;
@@ -337,6 +253,10 @@ export default defineComponent({
     }
   },
   methods: {
+    accountLabel(id?: string) {
+      if (!id) return '';
+      return this.accountNameById[id] || id;
+    },
     async loadAccounts() {
       const banks = (await fyo.db.getAll(ModelNameEnum.Account, {
         filters: {
@@ -349,31 +269,36 @@ export default defineComponent({
       })) as AccountOpt[];
       this.bankAccounts = banks;
 
-      const cats = (await fyo.db.getAll(ModelNameEnum.Account, {
+      const accounts = (await fyo.db.getAll(ModelNameEnum.Account, {
         filters: { isGroup: false },
-        fields: ['name', 'accountName', 'accountType'],
+        fields: ['name', 'accountName'],
         orderBy: 'accountName',
         order: 'asc',
-      })) as (AccountOpt & { accountType?: string })[];
-      this.categoryAccounts = cats.filter(
-        (a) =>
-          a.accountType !== AccountTypeEnum.Bank &&
-          a.accountType !== AccountTypeEnum.Cash &&
-          a.accountType !== AccountTypeEnum.Receivable &&
-          a.accountType !== AccountTypeEnum.Payable
-      );
+      })) as AccountOpt[];
+      const nameById: Record<string, string> = {};
+      for (const a of accounts) {
+        nameById[a.name] = a.accountName || a.name;
+      }
+      this.accountNameById = nameById;
     },
-    async loadParties() {
-      const rows = (await fyo.db.getAll(ModelNameEnum.Party, {
-        fields: ['name'],
-        orderBy: 'name',
-        order: 'asc',
-      })) as { name: string }[];
-      this.parties = rows.map((r) => r.name);
+    applyFilter(filters: QueryFilter) {
+      this.listFilters = filters ?? {};
+      void this.loadRows();
     },
-    async onBankChange() {
-      localStorage.setItem(LAST_BANK_KEY, this.bankAccount);
+    async onBankAccountChange(value: string | null) {
+      this.bankAccount = value || '';
+      if (this.bankAccount) {
+        localStorage.setItem(LAST_BANK_KEY, this.bankAccount);
+      }
       await this.loadRows();
+    },
+    async goWriteEntry() {
+      if (!this.bankAccount) return;
+      localStorage.setItem(LAST_BANK_KEY, this.bankAccount);
+      await routeTo({
+        path: '/bank-register/write',
+        query: { account: this.bankAccount },
+      });
     },
     async loadRows() {
       if (!this.bankAccount) {
@@ -382,8 +307,12 @@ export default defineComponent({
       }
       this.loading = true;
       try {
+        // Bank picker owns account; Filter can add party/date/etc.
+        const restFilters = { ...this.listFilters };
+        delete restFilters.account;
         const ales = (await fyo.db.getAll(ModelNameEnum.AccountingLedgerEntry, {
           filters: {
+            ...restFilters,
             account: this.bankAccount,
             reverted: false,
           },
@@ -409,7 +338,6 @@ export default defineComponent({
           referenceName?: string;
         }[];
 
-        // Exclude cancelled Payments
         const paymentNames = [
           ...new Set(
             ales
@@ -425,7 +353,6 @@ export default defineComponent({
         >();
 
         if (paymentNames.length) {
-          // One bulk query for cancelled + memo/category (avoids N+1 getDoc)
           const pays = (await fyo.db.getAll(ModelNameEnum.Payment, {
             filters: { name: ['in', paymentNames] },
             fields: [
@@ -453,12 +380,11 @@ export default defineComponent({
               cancelled.add(p.name);
               continue;
             }
-            const category =
+            const categoryId =
               p.paymentType === 'Pay' ? p.paymentAccount : p.account;
             paymentMap.set(p.name, {
-              // Prefer memo; fall back to referenceId for any early register entries
               memo: p.memo || p.referenceId || '',
-              category: category || '',
+              category: this.accountLabel(categoryId),
               party: p.party || '',
             });
           }
@@ -505,7 +431,6 @@ export default defineComponent({
                 : undefined,
           });
         }
-        // Newest first for register feel
         this.rows = rows.reverse();
       } catch (error) {
         // eslint-disable-next-line no-console
@@ -516,65 +441,6 @@ export default defineComponent({
         this.loading = false;
       }
     },
-    async submitEntry() {
-      this.formError = '';
-      if (!this.bankAccount) {
-        this.formError = this.t`Select a bank account.`;
-        return;
-      }
-      if (!this.form.party?.trim()) {
-        this.formError = this.t`Payee is required.`;
-        return;
-      }
-      if (!this.form.categoryAccount) {
-        this.formError = this.t`Category is required.`;
-        return;
-      }
-      if (!(this.form.amount > 0)) {
-        this.formError = this.t`Amount must be greater than 0.`;
-        return;
-      }
-      this.saving = true;
-      try {
-        await createRegisterPayment(fyo, {
-          date: this.form.date,
-          party: this.form.party.trim(),
-          categoryAccount: this.form.categoryAccount,
-          bankAccount: this.bankAccount,
-          amount: this.form.amount,
-          paymentType: this.form.paymentType,
-          memo: this.form.memo,
-        });
-        this.form.amount = 0;
-        this.form.memo = '';
-        await this.loadParties();
-        await this.loadRows();
-      } catch (error) {
-        await handleErrorWithDialog(error);
-        this.formError = error instanceof Error ? error.message : String(error);
-      } finally {
-        this.saving = false;
-      }
-    },
-    async memorizeCurrent() {
-      if (!this.bankAccount) {
-        this.formError = this.t`Select a bank account.`;
-        return;
-      }
-      try {
-        await memorizeRegisterFields(fyo, {
-          date: this.form.date,
-          party: this.form.party.trim(),
-          categoryAccount: this.form.categoryAccount,
-          bankAccount: this.bankAccount,
-          amount: this.form.amount,
-          paymentType: this.form.paymentType,
-          memo: this.form.memo,
-        });
-      } catch (error) {
-        await handleErrorWithDialog(error);
-      }
-    },
     async openRow(row: RegisterRow) {
       if (row.paymentName) {
         await routeTo(`/edit/Payment/${row.paymentName}`);
@@ -583,3 +449,19 @@ export default defineComponent({
   },
 });
 </script>
+
+<style scoped>
+.cell-header,
+.cell-body {
+  overflow-x: auto;
+  white-space: nowrap;
+  height: var(--h-row);
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.cell-body {
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+</style>

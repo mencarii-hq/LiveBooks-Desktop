@@ -181,7 +181,7 @@ function getCompleteSidebar(): SidebarConfig {
           route: '/bank-feeds',
         },
         {
-          label: t`Register`,
+          label: t`Cheque Register`,
           name: 'bank-register',
           route: '/bank-register',
         },
@@ -189,12 +189,6 @@ function getCompleteSidebar(): SidebarConfig {
           label: t`Reconcile`,
           name: 'bank-reconcile-hub',
           route: '/reconcile',
-        },
-        {
-          label: t`Memorized`,
-          name: 'memorized-transactions',
-          route: '/list/MemorizedTransaction',
-          schemaName: 'MemorizedTransaction',
         },
       ],
     },
@@ -357,6 +351,12 @@ function getCompleteSidebar(): SidebarConfig {
           name: 'taxes',
           route: '/list/Tax',
           schemaName: 'Tax',
+        },
+        {
+          label: t`Recurring Transactions`,
+          name: 'memorized-transactions',
+          route: '/list/MemorizedTransaction',
+          schemaName: 'MemorizedTransaction',
         },
         {
           label: t`Import Wizard`,
