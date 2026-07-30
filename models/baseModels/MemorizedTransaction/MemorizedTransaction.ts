@@ -3,7 +3,12 @@ import { Doc } from 'fyo/model/doc';
 import { Action, ListViewSettings } from 'fyo/model/types';
 import { Money } from 'pesa';
 
-export type MemorizedFrequency = 'Monthly' | 'Quarterly' | 'Annual';
+export type MemorizedFrequency =
+  | 'Daily'
+  | 'Weekly'
+  | 'Monthly'
+  | 'Quarterly'
+  | 'Annual';
 
 export class MemorizedTransaction extends Doc {
   party?: string;
@@ -45,7 +50,7 @@ export class MemorizedTransaction extends Doc {
             await advanceNextDueDate(mt);
             showToast({
               type: 'success',
-              message: fyo.t`Created memorized payment`,
+              message: fyo.t`Created recurring payment`,
             });
           } catch (error) {
             await handleErrorWithDialog(error, mt, true, true);

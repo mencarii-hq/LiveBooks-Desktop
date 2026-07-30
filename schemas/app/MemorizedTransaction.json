@@ -1,6 +1,6 @@
 {
   "name": "MemorizedTransaction",
-  "label": "Memorized Transaction",
+  "label": "Recurring Transaction",
   "naming": "autoincrement",
   "isSingle": false,
   "isChild": false,
@@ -69,6 +69,8 @@
       "label": "Frequency",
       "fieldtype": "Select",
       "options": [
+        { "value": "Daily", "label": "Daily" },
+        { "value": "Weekly", "label": "Weekly" },
         { "value": "Monthly", "label": "Monthly" },
         { "value": "Quarterly", "label": "Quarterly" },
         { "value": "Annual", "label": "Annual" }

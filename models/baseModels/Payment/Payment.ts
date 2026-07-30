@@ -828,7 +828,7 @@ export class Payment extends Transactional {
     return [
       getLedgerLinkAction(fyo),
       {
-        label: fyo.t`Memorize…`,
+        label: fyo.t`Make recurring…`,
         group: fyo.t`Create`,
         condition: (doc) =>
           !!doc.party && !!doc.amount && !(doc as Payment).for?.length,

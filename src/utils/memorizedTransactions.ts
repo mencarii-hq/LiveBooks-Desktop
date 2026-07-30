@@ -91,8 +91,8 @@ export async function memorizePayment(
   // pairs; Create next would post an unlinked payment. Use Bank Register instead.
   if (payment.for?.length) {
     await showDialog({
-      title: t`Cannot Memorize`,
-      detail: t`Invoice payments cannot be memorized. Use Bank Register for recurring payees.`,
+      title: t`Cannot make recurring`,
+      detail: t`Invoice payments cannot be made recurring. Use Cheque Register for recurring payees.`,
       type: 'error',
     });
     return;
@@ -111,7 +111,7 @@ export async function memorizePayment(
   const amount = payment.amount;
   if (!payment.party || !bankAccount || !categoryAccount || !amount) {
     await showDialog({
-      title: t`Cannot Memorize`,
+      title: t`Cannot make recurring`,
       detail: t`Payee, accounts, and amount are required.`,
       type: 'error',
     });
@@ -133,7 +133,7 @@ export async function memorizePayment(
   await doc.sync();
   showToast({
     type: 'success',
-    message: t`Memorized transaction saved`,
+    message: t`Recurring transaction saved`,
   });
   await routeTo(`/edit/MemorizedTransaction/${String(doc.name)}`);
 }
@@ -144,7 +144,7 @@ export async function memorizeRegisterFields(
 ): Promise<void> {
   if (!(fields.amount > 0) || !fields.party) {
     await showDialog({
-      title: t`Cannot Memorize`,
+      title: t`Cannot make recurring`,
       detail: t`Payee and amount are required.`,
       type: 'error',
     });
@@ -173,7 +173,7 @@ export async function memorizeRegisterFields(
   await doc.sync();
   showToast({
     type: 'success',
-    message: t`Memorized transaction saved`,
+    message: t`Recurring transaction saved`,
   });
   await routeTo(`/edit/MemorizedTransaction/${String(doc.name)}`);
 }
@@ -220,7 +220,11 @@ export async function advanceNextDueDate(
   const start = base.isValid ? base : DateTime.now();
 
   let next = start;
-  if (freq === 'Quarterly') {
+  if (freq === 'Daily') {
+    next = start.plus({ days: 1 });
+  } else if (freq === 'Weekly') {
+    next = start.plus({ weeks: 1 });
+  } else if (freq === 'Quarterly') {
     next = start.plus({ months: 3 });
   } else if (freq === 'Annual') {
     next = start.plus({ years: 1 });
@@ -410,8 +414,8 @@ export async function maybePromptMemorizedDue(fyo: Fyo): Promise<void> {
         type: 'success',
         message:
           created === 1
-            ? t`Created 1 memorized payment`
-            : t`Created ${String(created)} memorized payments`,
+            ? t`Created 1 recurring payment`
+            : t`Created ${String(created)} recurring payments`,
       });
     }
   } catch {
