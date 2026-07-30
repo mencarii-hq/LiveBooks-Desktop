@@ -39,7 +39,7 @@ import {
 } from './types';
 
 export const toastDurationMap = {
-  short: 2_500,
+  short: 3_500,
   long: 5_000,
   very_long: Infinity,
 } as const;

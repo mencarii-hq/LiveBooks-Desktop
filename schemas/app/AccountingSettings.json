@@ -98,8 +98,7 @@
       "label": "Enable Form Customization",
       "fieldtype": "Check",
       "default": false,
-      "section": "Features",
-      "hidden": true
+      "section": "Features"
     },
     {
       "fieldname": "enableERPNextSync",
@@ -114,40 +113,35 @@
       "label": "Enable Lead",
       "fieldtype": "Check",
       "default": false,
-      "section": "Features",
-      "hidden": true
+      "section": "Features"
     },
     {
       "fieldname": "enablePricingRule",
       "label": "Enable Pricing Rule",
       "fieldtype": "Check",
       "default": false,
-      "section": "Features",
-      "hidden": true
+      "section": "Features"
     },
     {
       "fieldname": "enableItemEnquiry",
       "label": "Enable Item Enquiry",
       "fieldtype": "Check",
       "default": false,
-      "section": "Features",
-      "hidden": true
+      "section": "Features"
     },
     {
       "fieldname": "enableLoyaltyProgram",
       "label": "Enable Loyalty Program",
       "fieldtype": "Check",
       "default": false,
-      "section": "Features",
-      "hidden": true
+      "section": "Features"
     },
     {
       "fieldname": "enableCouponCode",
       "label": "Enable Coupon Code",
       "fieldtype": "Check",
       "default": false,
-      "section": "Features",
-      "hidden": true
+      "section": "Features"
     },
     {
       "fieldname": "enableitemGroup",
@@ -158,11 +152,10 @@
     },
     {
       "fieldname": "enablePointOfSaleWithOutInventory",
-      "label": "Enable POS Without Inventory",
+      "label": "POS without stock tracking",
       "fieldtype": "Check",
       "default": false,
-      "section": "Features",
-      "hidden": true
+      "section": "Features"
     },
     {
       "fieldname": "enablePartialPayment",

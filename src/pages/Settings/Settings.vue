@@ -36,6 +36,7 @@
           :title="name"
           :fields="fields"
           :doc="doc"
+          :get-doc-for-field="getDocForField"
           :errors="errors"
           @value-change="onValueChange"
         />
@@ -286,17 +287,29 @@ export default defineComponent({
       const { fieldname } = field;
       delete this.errors[fieldname];
 
+      const doc = this.getDocForField(field);
+      if (!doc) {
+        return;
+      }
+
+      const setValue =
+        field.fieldtype === 'Check' ? Boolean(value) : value ?? '';
+
       try {
-        await this.doc?.set(fieldname, value ?? '');
+        await doc.set(fieldname, setValue);
       } catch (err) {
         if (!(err instanceof Error)) {
           return;
         }
 
-        this.errors[fieldname] = getErrorMessage(err, this.doc ?? undefined);
+        this.errors[fieldname] = getErrorMessage(err, doc);
       }
 
       this.update();
+    },
+    getDocForField(field: Field): Doc | null {
+      const schemaName = field.schemaName ?? this.activeTab;
+      return this.fyo.singles[schemaName] ?? null;
     },
     update(): void {
       this.updateGroupedFields();
@@ -329,7 +342,48 @@ export default defineComponent({
         tabbed.get(section)!.push(field);
       }
 
+      this.injectAccountingPosFields(grouped);
+
       this.groupedFields = grouped;
+    },
+    injectAccountingPosFields(grouped: UIGroupedFields): void {
+      const accountingGroup = grouped.get(ModelNameEnum.AccountingSettings);
+      const posField = this.fyo.schemaMap[
+        ModelNameEnum.InventorySettings
+      ]?.fields.find((f) => f.fieldname === 'enablePointOfSale');
+
+      if (!accountingGroup || !posField) {
+        return;
+      }
+
+      const featuresSection = this.t`Features`;
+      const featuresFields = accountingGroup.get(featuresSection) ?? [];
+      if (!accountingGroup.has(featuresSection)) {
+        accountingGroup.set(featuresSection, featuresFields);
+      }
+
+      if (!featuresFields.some((f) => f.fieldname === 'enablePointOfSale')) {
+        const inventoryIdx = featuresFields.findIndex(
+          (f) => f.fieldname === 'enableInventory'
+        );
+        featuresFields.splice(
+          inventoryIdx >= 0 ? inventoryIdx + 1 : 0,
+          0,
+          posField
+        );
+      }
+
+      const withoutIdx = featuresFields.findIndex(
+        (f) => f.fieldname === 'enablePointOfSaleWithOutInventory'
+      );
+      const posIdx = featuresFields.findIndex(
+        (f) => f.fieldname === 'enablePointOfSale'
+      );
+
+      if (withoutIdx >= 0 && posIdx >= 0 && withoutIdx !== posIdx + 1) {
+        const [withoutField] = featuresFields.splice(withoutIdx, 1);
+        featuresFields.splice(posIdx + 1, 0, withoutField);
+      }
     },
   },
 });

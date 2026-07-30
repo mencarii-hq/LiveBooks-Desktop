@@ -11,7 +11,10 @@ import {
   registerLivebooksDefaultProtocol,
   startLivebooksDevHandoffServer,
 } from './livebooksCloudBridge';
-import { configureDevelopmentShell } from './setupDevelopmentShell';
+import {
+  configureDevelopmentShell,
+  configureProductionShell,
+} from './setupDevelopmentShell';
 
 export default function registerAppLifecycleListeners(main: Main) {
   if (!app.requestSingleInstanceLock()) {
@@ -56,6 +59,8 @@ export default function registerAppLifecycleListeners(main: Main) {
       configureDevelopmentShell(main.appEnv, () =>
         main.toggleRendererDevTools()
       );
+    } else {
+      configureProductionShell(main.appEnv);
     }
 
     main

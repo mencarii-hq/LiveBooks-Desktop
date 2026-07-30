@@ -6,12 +6,29 @@ import {
   MenuItemConstructorOptions,
   shell,
 } from 'electron';
-import type { WebContents } from 'electron';
+import type { ContextMenuParams, WebContents } from 'electron';
 import type { LivebooksAppEnv } from 'utils/livebooksAppEnv';
 import { macShellAppLabel } from './macDevBranding';
 
 let devShortcutsRegistered = false;
 const contextMenuAttached = new WeakSet<WebContents>();
+const devContextMenuWebContents = new WeakSet<WebContents>();
+const devToolsTogglers = new WeakMap<WebContents, () => void>();
+
+type AppMenuOptions = {
+  includeDevTools?: boolean;
+  toggleDevTools?: () => void;
+};
+
+/**
+ * Packaged builds: application menu so Cmd/Ctrl+R Reload works
+ * (menu bar may be auto-hidden on Windows/Linux).
+ */
+export function configureProductionShell(appEnv: LivebooksAppEnv): void {
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate(buildAppMenuTemplate(appEnv, {}))
+  );
+}
 
 /**
  * Dev-only application menu and shortcuts so renderer DevTools can be toggled
@@ -22,56 +39,88 @@ export function configureDevelopmentShell(
   toggleDevTools: () => void
 ): void {
   Menu.setApplicationMenu(
-    Menu.buildFromTemplate(buildDevMenuTemplate(appEnv, toggleDevTools))
+    Menu.buildFromTemplate(
+      buildAppMenuTemplate(appEnv, {
+        includeDevTools: true,
+        toggleDevTools,
+      })
+    )
   );
   registerDevelopmentShortcuts(toggleDevTools);
 }
 
-/** Right-click menu with Inspect Element and standard edit actions in dev. */
+function buildEditContextMenuTemplate(
+  params: ContextMenuParams
+): MenuItemConstructorOptions[] {
+  const template: MenuItemConstructorOptions[] = [];
+
+  if (params.isEditable) {
+    template.push(
+      { role: 'undo' },
+      { role: 'redo' },
+      { type: 'separator' },
+      { role: 'cut' },
+      { role: 'copy' },
+      { role: 'paste' },
+      { role: 'selectAll' }
+    );
+  } else if (params.selectionText.trim()) {
+    template.push({ role: 'copy' });
+  }
+
+  if (template.length) {
+    template.push({ type: 'separator' });
+  }
+  template.push({ role: 'reload' });
+
+  return template;
+}
+
+/** Right-click menu with standard edit actions for all builds. */
+export function registerEditContextMenu(webContents: WebContents): void {
+  attachContextMenuIfNeeded(webContents);
+}
+
+/** Right-click menu with Inspect Element and DevTools in dev. */
 export function registerDevelopmentContextMenu(
   webContents: WebContents,
   toggleDevTools: () => void
 ): void {
+  attachContextMenuIfNeeded(webContents);
+  devContextMenuWebContents.add(webContents);
+  devToolsTogglers.set(webContents, toggleDevTools);
+}
+
+function attachContextMenuIfNeeded(webContents: WebContents): void {
   if (contextMenuAttached.has(webContents)) {
     return;
   }
   contextMenuAttached.add(webContents);
 
   webContents.on('context-menu', (_event, params) => {
-    const template: MenuItemConstructorOptions[] = [];
+    const template = buildEditContextMenuTemplate(params);
 
-    if (params.isEditable) {
+    if (devContextMenuWebContents.has(webContents)) {
+      const toggleDevTools = devToolsTogglers.get(webContents);
       template.push(
-        { role: 'undo' },
-        { role: 'redo' },
         { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'selectAll' },
-        { type: 'separator' }
-      );
-    } else if (params.selectionText.trim()) {
-      template.push({ role: 'copy' }, { type: 'separator' });
-    }
-
-    template.push(
-      {
-        label: 'Inspect Element',
-        click: () => {
-          webContents.inspectElement(params.x, params.y);
-          if (!webContents.isDevToolsOpened()) {
-            webContents.openDevTools();
-          }
+        {
+          label: 'Inspect Element',
+          click: () => {
+            webContents.inspectElement(params.x, params.y);
+            if (!webContents.isDevToolsOpened()) {
+              webContents.openDevTools();
+            }
+          },
         },
-      },
-      {
-        label: 'Toggle Developer Tools',
-        accelerator:
-          process.platform === 'darwin' ? 'Alt+Command+I' : 'Ctrl+Shift+I',
-        click: toggleDevTools,
-      }
-    );
+        {
+          label: 'Toggle Developer Tools',
+          accelerator:
+            process.platform === 'darwin' ? 'Alt+Command+I' : 'Ctrl+Shift+I',
+          click: toggleDevTools,
+        }
+      );
+    }
 
     Menu.buildFromTemplate(template).popup({
       window: BrowserWindow.fromWebContents(webContents) ?? undefined,
@@ -99,26 +148,40 @@ function registerDevelopmentShortcuts(toggleDevTools: () => void): void {
   });
 }
 
-function buildDevMenuTemplate(
-  appEnv: LivebooksAppEnv,
-  toggleDevTools: () => void
+function buildViewSubmenu(
+  options: AppMenuOptions
 ): MenuItemConstructorOptions[] {
   const viewSubmenu: MenuItemConstructorOptions[] = [
     { role: 'reload' },
     { role: 'forceReload' },
-    {
+  ];
+
+  if (options.includeDevTools && options.toggleDevTools) {
+    viewSubmenu.push({
       label: 'Toggle Developer Tools',
       accelerator:
         process.platform === 'darwin' ? 'Alt+Command+I' : 'Ctrl+Shift+I',
-      click: toggleDevTools,
-    },
+      click: options.toggleDevTools,
+    });
+  }
+
+  viewSubmenu.push(
     { type: 'separator' },
     { role: 'resetZoom' },
     { role: 'zoomIn' },
     { role: 'zoomOut' },
     { type: 'separator' },
-    { role: 'togglefullscreen' },
-  ];
+    { role: 'togglefullscreen' }
+  );
+
+  return viewSubmenu;
+}
+
+function buildAppMenuTemplate(
+  appEnv: LivebooksAppEnv,
+  options: AppMenuOptions
+): MenuItemConstructorOptions[] {
+  const viewSubmenu = buildViewSubmenu(options);
 
   const editSubmenu: MenuItemConstructorOptions[] = [
     { role: 'undo' },

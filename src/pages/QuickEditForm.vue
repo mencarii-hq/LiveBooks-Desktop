@@ -64,6 +64,7 @@
       />
       <FormControl
         v-if="titleField"
+        :key="`title-${formRefreshKey}`"
         ref="titleControl"
         :class="!!imageField ? 'me-4' : 'w-full mx-4'"
         :input-class="[
@@ -79,8 +80,15 @@
     </div>
 
     <!-- Rest of the form -->
+    <SmartFillBox
+      v-if="doc && schemaName === 'Party'"
+      :doc="doc"
+      class="border-b dark:border-gray-800"
+      @change="onSmartFillChange"
+    />
     <TwoColumnForm
       v-if="doc"
+      :key="formRefreshKey"
       ref="form"
       class="w-full"
       :doc="doc"
@@ -96,6 +104,7 @@ import Button from 'src/components/Button.vue';
 import AttachImage from 'src/components/Controls/AttachImage.vue';
 import FormControl from 'src/components/Controls/FormControl.vue';
 import TwoColumnForm from 'src/components/TwoColumnForm.vue';
+import SmartFillBox from 'src/components/SmartFillBox.vue';
 import { fyo } from 'src/initFyo';
 import { shortcutsKey } from 'src/utils/injectionKeys';
 import { DocRef } from 'src/utils/types';
@@ -114,6 +123,7 @@ export default defineComponent({
     FormControl,
     TwoColumnForm,
     AttachImage,
+    SmartFillBox,
   },
   provide() {
     return {
@@ -147,9 +157,11 @@ export default defineComponent({
     return {
       titleField: null,
       imageField: null,
+      formRefreshKey: 0,
     } as {
       titleField: null | Field;
       imageField: null | Field;
+      formRefreshKey: number;
     };
   },
   computed: {
@@ -236,6 +248,10 @@ export default defineComponent({
     },
     valueChange(field: Field, value: DocValue) {
       this.form?.onChange(field, value);
+    },
+    onSmartFillChange() {
+      this.formRefreshKey += 1;
+      this.form?.setFormFields();
     },
     async sync() {
       if (!this.doc) {

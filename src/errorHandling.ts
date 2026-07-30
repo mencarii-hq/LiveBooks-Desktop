@@ -281,7 +281,7 @@ function getFeatureFlags(): string[] {
 
 function getIssueUrlQuery(errorLogObj?: ErrorLog): string {
   const baseUrl =
-    'https://github.com/Mencarii/LiveBooks-Desktop/issues/new?labels=bug';
+    'https://github.com/mencarii-hq/LiveBooks-Desktop/issues/new?labels=bug';
 
   const body = [
     '<h2>Description</h2>',

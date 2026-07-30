@@ -97,9 +97,9 @@
         </div>
       </div>
 
-      <!-- Create Demo (Pink Icon) -->
+      <!-- Create Demo (Pink Icon) — always available when enabled -->
       <div
-        v-if="showDemoCompany && !files?.length"
+        v-if="showDemoCompany"
         class="px-4 h-row-largest flex flex-row items-center gap-4 p-2"
         :class="
           creatingDemo

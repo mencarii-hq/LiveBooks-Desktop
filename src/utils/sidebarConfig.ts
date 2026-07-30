@@ -107,7 +107,7 @@ function getPOSSidebar() {
     name: 'pos',
     route: '/pos',
     icon: 'pos',
-    hidden: () => true,
+    hidden: () => !fyo.singles.InventorySettings?.enablePointOfSale,
   };
 }
 
@@ -351,7 +351,6 @@ function getCompleteSidebar(): SidebarConfig {
           label: t`Import Wizard`,
           name: 'import-wizard',
           route: '/import-wizard',
-          hidden: () => true,
         },
         {
           label: t`Print Templates`,

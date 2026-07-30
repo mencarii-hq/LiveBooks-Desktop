@@ -419,7 +419,7 @@ export default defineComponent({
       await showDialog({
         type: 'error',
         title: t`Cannot Delete Account`,
-        detail: t`${accountDisplay(account)} has linked child accounts.`,
+        detail: t`${this.accountDisplay(account)} has linked child accounts.`,
       });
 
       return false;

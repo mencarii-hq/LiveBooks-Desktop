@@ -8,8 +8,6 @@ import {
   ValidationMap,
 } from 'fyo/model/types';
 import { validateEmail } from 'fyo/model/validationFunction';
-import { InventorySettings } from 'models/inventory/InventorySettings';
-import { ModelNameEnum } from 'models/types';
 import { createDiscountAccount } from 'src/setup/setupInstance';
 import { getCountryInfo } from 'utils/misc';
 
@@ -23,7 +21,7 @@ export class AccountingSettings extends Doc {
   enableInvoiceReturns?: boolean;
   enableLoyaltyProgram?: boolean;
   enablePricingRule?: boolean;
-  enaenableItemEnquiry?: boolean;
+  enableItemEnquiry?: boolean;
   enableERPNextSync?: boolean;
   enablePointOfSaleWithOutInventory?: boolean;
   enablePartialPayment?: boolean;
@@ -52,32 +50,9 @@ export class AccountingSettings extends Doc {
     country: () => Object.keys(getCountryInfo()),
   };
 
-  readOnly: ReadOnlyMap = {
-    enableDiscounting: () => {
-      return !!this.enableDiscounting;
-    },
-    enableInventory: () => {
-      return !!this.enableInventory;
-    },
-    enableLead: () => {
-      return !!this.enableLead;
-    },
-    enableERPNextSync: () => {
-      return !!this.enableERPNextSync;
-    },
-    enableInvoiceReturns: () => {
-      return !!this.enableInvoiceReturns;
-    },
-    enableLoyaltyProgram: () => {
-      return !!this.enableLoyaltyProgram;
-    },
-    enablePointOfSaleWithOutInventory: () => {
-      return !!this.enablePointOfSaleWithOutInventory;
-    },
-    enableitemGroup: () => {
-      return !!this.enableitemGroup;
-    },
-  };
+  // Feature Checks are freely toggleable (upstream Frappe locked several
+  // once-on via readOnly; LiveBooks allows turning them off again).
+  readOnly: ReadOnlyMap = {};
 
   override hidden: HiddenMap = {
     discountAccount: () => !this.enableDiscounting,
@@ -86,6 +61,8 @@ export class AccountingSettings extends Doc {
       !this.fyo.singles.AccountingSettings?.enableDiscounting,
     enableCouponCode: () =>
       !this.fyo.singles.AccountingSettings?.enablePricingRule,
+    enablePointOfSaleWithOutInventory: () =>
+      !this.fyo.singles.InventorySettings?.enablePointOfSale,
   };
 
   async change(ch: ChangeArg) {
@@ -95,23 +72,6 @@ export class AccountingSettings extends Doc {
 
     if (discountingEnabled && discountAccountNotSet) {
       await createDiscountAccount(this.fyo);
-    }
-
-    if (
-      ch.changed == 'enablePointOfSaleWithOutInventory' &&
-      this.enablePointOfSaleWithOutInventory
-    ) {
-      const inventorySettings = (await this.fyo.doc.getDoc(
-        ModelNameEnum.InventorySettings
-      )) as InventorySettings;
-
-      await inventorySettings.set('enableBatches', true);
-      await inventorySettings.set('enableUomConversions', true);
-      await inventorySettings.set('enableSerialNumber', true);
-      await inventorySettings.set('enableBarcodes', true);
-      await inventorySettings.set('enablePointOfSale', true);
-
-      await inventorySettings.sync();
     }
   }
 }

@@ -4,13 +4,13 @@
 
 Accounting built on **[Frappe Books](https://github.com/frappe/books)**, repackaged and extended for a **US audience**, with **bank feeds** and **reconciliation**.
 
-[GitHub release (latest by date)](https://github.com/Mencarii/LiveBooks-Desktop/releases)  
+[GitHub release (latest by date)](https://github.com/mencarii-hq/LiveBooks-Desktop/releases)  
 Platforms  
-[Publish Mac](https://github.com/Mencarii/LiveBooks-Desktop/actions/workflows/publish-mac.yml)
-[Publish Windows](https://github.com/Mencarii/LiveBooks-Desktop/actions/workflows/publish-windows.yml)
-[Publish Linux](https://github.com/Mencarii/LiveBooks-Desktop/actions/workflows/publish-linux.yml)
+[Publish Mac](https://github.com/mencarii-hq/LiveBooks-Desktop/actions/workflows/publish-mac.yml)
+[Publish Windows](https://github.com/mencarii-hq/LiveBooks-Desktop/actions/workflows/publish-windows.yml)
+[Publish Linux](https://github.com/mencarii-hq/LiveBooks-Desktop/actions/workflows/publish-linux.yml)
 
-[Releases](https://github.com/Mencarii/LiveBooks-Desktop/releases) · [Contributing](.github/CONTRIBUTING.md) · [Upstream: Frappe Books](https://github.com/frappe/books)
+[Releases](https://github.com/mencarii-hq/LiveBooks-Desktop/releases) · [Contributing](.github/CONTRIBUTING.md) · [Upstream: Frappe Books](https://github.com/frappe/books)
 
 **Pro Cloud Signup**: [mencarii.com](https://mencarii.com) (live bank feeds and more)
 
@@ -18,13 +18,13 @@ Platforms
 
 ## About this repository
 
-**[LiveBooks Desktop](https://github.com/Mencarii/LiveBooks-Desktop)** is a fork of [Frappe Books](https://github.com/frappe/books). We adapt terminology, defaults, and workflows for **US small businesses**, and ship **bank feeds** plus **bank reconciliation** on top of the upstream accounting core.
+**[LiveBooks Desktop](https://github.com/mencarii-hq/LiveBooks-Desktop)** is a fork of [Frappe Books](https://github.com/frappe/books). We adapt terminology, defaults, and workflows for **US small businesses**, and ship **bank feeds** plus **bank reconciliation** on top of the upstream accounting core.
 
 This project is released under the **GNU Affero General Public License v3.0 only** (`AGPL-3.0-only`), in line with upstream licensing expectations for this codebase. See **`LICENSE`** and **`NOTICE`** for legal detail.
 
 **End users** (questions about using LiveBooks, not development): email **[ben.cheng@mencarii.com](mailto:ben.cheng@mencarii.com)**.
 
-**Developers** (suggestions, patches, local forks): use [GitHub Issues](https://github.com/Mencarii/LiveBooks-Desktop/issues) and read **[Contributing](.github/CONTRIBUTING.md)**. Mencarii does not support unofficial or modified builds you run yourself; the AGPL allows you to tweak and self-host your own variant, but that is **at your own risk** and not a supported “LiveBooks” product unless we publish it.
+**Developers** (suggestions, patches, local forks): use [GitHub Issues](https://github.com/mencarii-hq/LiveBooks-Desktop/issues) and read **[Contributing](.github/CONTRIBUTING.md)**. Mencarii does not support unofficial or modified builds you run yourself; the AGPL allows you to tweak and self-host your own variant, but that is **at your own risk** and not a supported “LiveBooks” product unless we publish it.
 
 ---
 
@@ -70,7 +70,7 @@ Full threat model, IPC denylist, and future encryption re-entry: **[`SECURITY.md
 
 ### Install LiveBooks Desktop
 
-Download the latest build for your platform from the **[LiveBooks Desktop releases](https://github.com/Mencarii/LiveBooks-Desktop/releases)** page.
+Download the latest build for your platform from the **[LiveBooks Desktop releases](https://github.com/mencarii-hq/LiveBooks-Desktop/releases)** page.
 
 ---
 
@@ -84,7 +84,7 @@ Download the latest build for your platform from the **[LiveBooks Desktop releas
 ### Clone and run
 
 ```bash
-git clone https://github.com/Mencarii/LiveBooks-Desktop.git
+git clone https://github.com/mencarii-hq/LiveBooks-Desktop.git
 cd LiveBooks-Desktop
 yarn
 ```
@@ -110,7 +110,7 @@ By default this targets your current OS and architecture. For other targets, see
 ### LiveBooks Cloud (release and CI)
 
 - **API origin:** Set **`LIVEBOOKS_CLOUD_ORIGIN`** and **`VITE_LIVEBOOKS_CLOUD_ORIGIN`** to the same production base URL (no trailing slash) when producing binaries for end users. The [Publish Mac](.github/workflows/publish-mac.yml) / [Publish Windows](.github/workflows/publish-windows.yml) / [Publish Linux](.github/workflows/publish-linux.yml) workflows pass both from repository secret **`LIVEBOOKS_CLOUD_ORIGIN`**; if that secret is unset, the build still defaults to `http://127.0.0.1:3000` (suitable for local packaging only).
-- **Linux (AppImage x64):** Download only from [GitHub Releases](https://github.com/Mencarii/LiveBooks-Desktop/releases) — the Linux AppImage is **unsigned**. A desktop keyring (GNOME Keyring / KWallet) is required to connect LiveBooks Cloud; without it the app cannot keep a Cloud session. Manage Cloud shows a secure-storage warning when keyring/encryption is unavailable.
+- **Linux (AppImage x64):** Download only from [GitHub Releases](https://github.com/mencarii-hq/LiveBooks-Desktop/releases) — the Linux AppImage is **unsigned**. A desktop keyring (GNOME Keyring / KWallet) is required to connect LiveBooks Cloud; without it the app cannot keep a Cloud session. Manage Cloud shows a secure-storage warning when keyring/encryption is unavailable.
 - **Auto-updates:** Prerelease channels are **off** by default (`electron-updater`). For internal QA builds that should consume GitHub prereleases, set environment variable **`LIVEBOOKS_UPDATER_ALLOW_PRERELEASE=1`** (or `true`) when launching the app or when wrapping the packaged binary.
 - **Session security:** See **Security posture** above. In **packaged** builds, refresh tokens are **not** written in plaintext when `safeStorage` is unavailable — you re-authenticate each launch. **Dev** (`yarn dev`) may use plaintext token fallback so contributors are not blocked.
 - **Day-1 verification:** `yarn test:day1` runs automated checks; pre-GA signing QA is in [`docs/signing-qa-runbook.md`](docs/signing-qa-runbook.md).
@@ -131,4 +131,4 @@ Translation contributors, screenshots, install options (Homebrew, Flatpak), docs
 
 ## Contact
 
-- **LiveBooks** (this fork): [GitHub Issues](https://github.com/Mencarii/LiveBooks-Desktop/issues).
+- **LiveBooks** (this fork): [GitHub Issues](https://github.com/mencarii-hq/LiveBooks-Desktop/issues).

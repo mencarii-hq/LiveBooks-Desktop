@@ -1,6 +1,6 @@
 # Day-1 verification matrix (Phase 6)
 
-Tracks automated vs manual checks for the [Day-1 foundation plan](https://github.com/Mencarii/LiveBooks-Desktop). Run automated checks with:
+Tracks automated vs manual checks for the [Day-1 foundation plan](https://github.com/mencarii-hq/LiveBooks-Desktop). Run automated checks with:
 
 ```bash
 yarn test:day1

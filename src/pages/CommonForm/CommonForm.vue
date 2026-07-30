@@ -88,6 +88,12 @@
         <StatusPill v-if="hasDoc" :doc="doc" />
       </FormHeader>
 
+      <SmartFillBox
+        v-if="isParty && hasDoc"
+        :doc="doc"
+        @change="updateGroupedFields"
+      />
+
       <!-- Section Container -->
       <div
         v-if="hasDoc"
@@ -187,6 +193,7 @@ import DropdownWithActions from 'src/components/DropdownWithActions.vue';
 import FormContainer from 'src/components/FormContainer.vue';
 import FormHeader from 'src/components/FormHeader.vue';
 import StatusPill from 'src/components/StatusPill.vue';
+import SmartFillBox from 'src/components/SmartFillBox.vue';
 import { getErrorMessage } from 'src/utils';
 import { shortcutsKey } from 'src/utils/injectionKeys';
 import { docsPathMap } from 'src/utils/misc';
@@ -220,6 +227,7 @@ export default defineComponent({
     LinkedEntries,
     RowEditForm,
     StatusPill,
+    SmartFillBox,
   },
   provide() {
     return {
@@ -327,6 +335,9 @@ export default defineComponent({
     },
     hasDoc(): boolean {
       return this.docOrNull instanceof Doc;
+    },
+    isParty(): boolean {
+      return this.schemaName === ModelNameEnum.Party;
     },
     status(): string {
       if (!this.hasDoc) {

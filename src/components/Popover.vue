@@ -27,10 +27,10 @@
             dark:border-gray-875
             shadow-lg
             popover-container
-            z-[10040]
           "
           :style="{
             'transition-delay': `${isOpen ? entryDelay : exitDelay}ms`,
+            zIndex: 10040,
           }"
         >
           <slot name="content" :toggle-popover="togglePopover"></slot>
@@ -112,7 +112,7 @@ export default {
         this.popper = createPopper(refEl, popEl, {
           placement: this.placement,
           strategy: 'fixed',
-          modifiers: [{ name: 'offset', options: { offset: [120, 0] } }],
+          modifiers: [{ name: 'offset', options: { offset: [0, 8] } }],
         });
       } else {
         this.popper.update();

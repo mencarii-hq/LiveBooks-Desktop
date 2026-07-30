@@ -159,10 +159,10 @@ export default defineComponent({
         .every(Boolean);
 
       if (onboardingComplete) {
+        // Mark complete for checklist UI, but do not auto-hide Get Started —
+        // demo data (and real DBs with items/invoices) would otherwise remove
+        // Get Started / Import Lists from the sidebar immediately.
         await this.updateChecks({ onboardingComplete });
-        const systemSettings = await fyo.doc.getDoc('SystemSettings');
-        await systemSettings.set('hideGetStarted', true);
-        await systemSettings.sync();
       }
 
       return onboardingComplete;

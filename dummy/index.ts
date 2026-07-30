@@ -65,7 +65,6 @@ export async function setupDummyInstance(
     ModelNameEnum.SystemSettings,
     'instanceId'
   )) as string;
-  await fyo.singles.SystemSettings?.setAndSync('hideGetStarted', true);
 
   fyo.store.skipTelemetryLogging = false;
   return { companyName: options.companyName, instanceId };
@@ -77,8 +76,8 @@ async function setOtherSettings(fyo: Fyo) {
   await address.setAndSync({
     addressLine1: '400 Congress Avenue',
     city: 'Austin',
-    state: 'TX',
-    pos: 'TX',
+    state: 'Texas',
+    pos: 'Texas',
     postalCode: '78701',
     country: 'United States',
   });

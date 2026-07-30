@@ -8,6 +8,7 @@ import {
 } from 'fyo/model/types';
 import { codeStateMap } from 'regional/in';
 import { getCountryInfo } from 'utils/misc';
+import { caProvinceMap, usStateMap } from 'utils/stateLists';
 
 export class Address extends Doc {
   formulas: FormulaMap = {
@@ -41,6 +42,10 @@ export class Address extends Doc {
       switch (country) {
         case 'India':
           return Object.values(codeStateMap).sort();
+        case 'United States':
+          return Object.values(usStateMap).sort();
+        case 'Canada':
+          return Object.values(caProvinceMap).sort();
         default:
           return [] as string[];
       }

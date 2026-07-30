@@ -27,7 +27,10 @@ import {
   resolveLivebooksAppEnvMain,
 } from './main/livebooksAppEnvMain';
 import registerProcessListeners from './main/registerProcessListeners';
-import { registerDevelopmentContextMenu } from './main/setupDevelopmentShell';
+import {
+  registerDevelopmentContextMenu,
+  registerEditContextMenu,
+} from './main/setupDevelopmentShell';
 import type { LivebooksAppEnv } from 'utils/livebooksAppEnv';
 import { LIVEBOOKS_DESKTOP_PRODUCT_NAME } from 'utils/livebooksAppEnv';
 import {
@@ -318,6 +321,8 @@ export class Main {
         emitMainProcessError(err)
       );
     });
+
+    registerEditContextMenu(this.mainWindow.webContents);
 
     if (this.isDevelopment && !this.isTest) {
       registerDevelopmentContextMenu(this.mainWindow.webContents, () =>

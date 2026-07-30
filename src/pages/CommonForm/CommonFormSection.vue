@@ -46,7 +46,8 @@
           :show-label="true"
           :border="true"
           :df="field"
-          :value="doc[field.fieldname]"
+          :read-only="evaluateReadOnly(field, fieldDoc(field))"
+          :value="fieldDoc(field)[field.fieldname]"
           @editrow="(doc: Doc) => $emit('editrow', doc)"
           @change="(value: DocValue) => $emit('value-change', field, value)"
           @row-change="(field:Field, value:DocValue, parentfield:Field) => $emit('row-change',field, value, parentfield)"
@@ -65,6 +66,7 @@ import { Doc } from 'fyo/model/doc';
 import { Field } from 'schemas/types';
 import FormControl from 'src/components/Controls/FormControl.vue';
 import Table from 'src/components/Controls/Table.vue';
+import { evaluateReadOnly } from 'src/utils/doc';
 import { focusOrSelectFormControl } from 'src/utils/ui';
 import { defineComponent, PropType } from 'vue';
 
@@ -78,6 +80,10 @@ export default defineComponent({
     },
     showTitle: Boolean,
     doc: { type: Object as PropType<Doc>, required: true },
+    getDocForField: {
+      type: Function as PropType<(field: Field) => Doc | null>,
+      default: undefined,
+    },
     collapsible: { type: Boolean, default: true },
     fields: { type: Array as PropType<Field[]>, required: true },
   },
@@ -105,6 +111,10 @@ export default defineComponent({
 
       this.collapsed = !this.collapsed;
     },
+    fieldDoc(field: Field): Doc {
+      return this.getDocForField?.(field) ?? this.doc;
+    },
+    evaluateReadOnly,
   },
 });
 </script>

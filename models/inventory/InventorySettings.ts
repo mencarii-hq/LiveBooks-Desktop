@@ -1,6 +1,7 @@
 import { Doc } from 'fyo/model/doc';
-import { FiltersMap, ReadOnlyMap } from 'fyo/model/types';
+import { ChangeArg, FiltersMap, ReadOnlyMap } from 'fyo/model/types';
 import { AccountTypeEnum } from 'models/baseModels/Account/types';
+import { ModelNameEnum } from 'models/types';
 
 export class InventorySettings extends Doc {
   defaultLocation?: string;
@@ -49,4 +50,26 @@ export class InventorySettings extends Doc {
       return !!this.fyo.singles.POSSettings?.isShiftOpen;
     },
   };
+
+  async change(ch: ChangeArg) {
+    if (ch.changed !== 'enablePointOfSale') {
+      return;
+    }
+
+    const accountingSettings = await this.fyo.doc.getDoc(
+      ModelNameEnum.AccountingSettings
+    );
+
+    if (this.enablePointOfSale) {
+      if (!this.fyo.singles.AccountingSettings?.enableInventory) {
+        await accountingSettings.set('enablePointOfSaleWithOutInventory', true);
+      }
+    } else if (accountingSettings.enablePointOfSaleWithOutInventory) {
+      await accountingSettings.set('enablePointOfSaleWithOutInventory', false);
+    }
+
+    if (accountingSettings.dirty) {
+      await accountingSettings.sync();
+    }
+  }
 }

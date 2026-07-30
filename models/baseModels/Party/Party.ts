@@ -4,6 +4,7 @@ import {
   Action,
   FiltersMap,
   FormulaMap,
+  HiddenMap,
   ListViewSettings,
   ValidationMap,
 } from 'fyo/model/types';
@@ -154,6 +155,18 @@ export class Party extends Doc {
   validations: ValidationMap = {
     email: validateEmail,
     phone: validatePhoneNumber,
+  };
+
+  hidden: HiddenMap = {
+    loyaltyProgram: () => {
+      if (!this.fyo.singles.AccountingSettings?.enableLoyaltyProgram) {
+        return true;
+      }
+
+      return this.role === 'Supplier';
+    },
+    loyaltyPoints: () => !this.loyaltyProgram || this.role === 'Supplier',
+    fromLead: () => !this.fyo.singles.AccountingSettings?.enableLead,
   };
 
   static filters: FiltersMap = {
