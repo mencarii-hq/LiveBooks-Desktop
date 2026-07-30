@@ -41,6 +41,8 @@ export enum IPC_ACTIONS {
   GET_TEMPLATES = 'get-templates',
   INIT_LOYALTY_SCHEDULER = 'init-loyalty-scheduler',
   DELETE_FILE = 'delete-file',
+  COPY_FILE = 'copy-file',
+  RENAME_FILE = 'rename-file',
   GET_DB_DEFAULT_PATH = 'get-db-default-path',
   // Database messages
   DB_CREATE = 'db-create',

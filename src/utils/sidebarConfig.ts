@@ -181,9 +181,20 @@ function getCompleteSidebar(): SidebarConfig {
           route: '/bank-feeds',
         },
         {
+          label: t`Register`,
+          name: 'bank-register',
+          route: '/bank-register',
+        },
+        {
           label: t`Reconcile`,
           name: 'bank-reconcile-hub',
           route: '/reconcile',
+        },
+        {
+          label: t`Memorized`,
+          name: 'memorized-transactions',
+          route: '/list/MemorizedTransaction',
+          schemaName: 'MemorizedTransaction',
         },
       ],
     },

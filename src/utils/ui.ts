@@ -1103,17 +1103,26 @@ export async function getSelectedFilePath() {
   });
 }
 
-export async function getSavePath(name: string, extention: string) {
+export async function getSavePath(
+  name: string,
+  extention: string,
+  defaultPath?: string
+) {
   const response = await ipc.getSaveFilePath({
     title: t`Select folder`,
-    defaultPath: `${name}.${extention}`,
+    defaultPath: defaultPath ?? `${name}.${extention}`,
   });
 
   const canceled = response.canceled;
   let filePath = response.filePath;
 
-  if (filePath && !filePath.endsWith(extention) && filePath !== ':memory:') {
-    filePath = `${filePath}.${extention}`;
+  const ext = `.${extention.replace(/^\./, '')}`;
+  if (
+    filePath &&
+    filePath !== ':memory:' &&
+    !filePath.toLowerCase().endsWith(ext.toLowerCase())
+  ) {
+    filePath = `${filePath}${ext}`;
   }
 
   return { canceled, filePath };

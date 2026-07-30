@@ -33,6 +33,12 @@ import { PaymentMethod } from '../PaymentMethod/PaymentMethod';
 
 type AccountTypeMap = Record<AccountTypeEnum, string[] | undefined>;
 
+/**
+ * CORE ACCOUNTING ENGINE — CRITICAL
+ * This class affects double-entry postings (debits/credits/balances).
+ * Do NOT change its logic without explicit approval from the developer.
+ * A wrong change here silently corrupts the books.
+ */
 export class Payment extends Transactional {
   taxes?: TaxSummary[];
   party?: string;
@@ -40,6 +46,8 @@ export class Payment extends Transactional {
   writeoff?: Money;
   paymentType?: PaymentType;
   paymentMethod?: string;
+  referenceId?: string;
+  memo?: string;
   referenceType?: ModelNameEnum.SalesInvoice | ModelNameEnum.PurchaseInvoice;
   for?: PaymentFor[];
   _accountsMap?: AccountTypeMap;
@@ -817,7 +825,21 @@ export class Payment extends Transactional {
   };
 
   static getActions(fyo: Fyo): Action[] {
-    return [getLedgerLinkAction(fyo)];
+    return [
+      getLedgerLinkAction(fyo),
+      {
+        label: fyo.t`Memorize…`,
+        group: fyo.t`Create`,
+        condition: (doc) =>
+          !!doc.party && !!doc.amount && !(doc as Payment).for?.length,
+        action: async (doc) => {
+          const { memorizePayment } = await import(
+            'src/utils/memorizedTransactions'
+          );
+          await memorizePayment(fyo, doc as Payment);
+        },
+      },
+    ];
   }
 
   static getListViewSettings(): ListViewSettings {

@@ -7,6 +7,12 @@ import { Invoice } from '../Invoice/Invoice';
 import { PurchaseInvoiceItem } from '../PurchaseInvoiceItem/PurchaseInvoiceItem';
 import { createBatch } from 'models/inventory/helpers';
 
+/**
+ * CORE ACCOUNTING ENGINE — CRITICAL
+ * This class affects double-entry postings (debits/credits/balances).
+ * Do NOT change its logic without explicit approval from the developer.
+ * A wrong change here silently corrupts the books.
+ */
 export class PurchaseInvoice extends Invoice {
   items?: PurchaseInvoiceItem[];
 

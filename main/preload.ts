@@ -132,6 +132,22 @@ const ipc = {
     )) as BackendResponse;
   },
 
+  async copyFile(src: string, dest: string) {
+    return (await ipcRenderer.invoke(
+      IPC_ACTIONS.COPY_FILE,
+      src,
+      dest
+    )) as BackendResponse;
+  },
+
+  async renameFile(src: string, dest: string) {
+    return (await ipcRenderer.invoke(
+      IPC_ACTIONS.RENAME_FILE,
+      src,
+      dest
+    )) as BackendResponse;
+  },
+
   async saveData(data: string, savePath: string) {
     await ipcRenderer.invoke(IPC_ACTIONS.SAVE_DATA, data, savePath);
   },

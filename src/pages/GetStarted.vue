@@ -62,14 +62,14 @@
                 >
                   {{ t`Set Up` }}
                 </Button>
-                <!-- <Button
+                <Button
                   v-if="item.documentation"
                   class="leading-tight text-base"
                   :class="{ 'ms-4': item.action }"
                   @click="handleDocumentation(item)"
                 >
                   {{ t`Documentation` }}
-                </Button> -->
+                </Button>
               </div>
             </div>
           </div>
@@ -112,15 +112,9 @@ export default defineComponent({
     await this.checkForCompletedTasks();
   },
   methods: {
-    async handleDocumentation({ key, documentation }: ListItem) {
+    handleDocumentation({ documentation }: ListItem) {
       if (documentation) {
         ipc.openLink(documentation);
-      }
-
-      switch (key) {
-        case 'Opening Balances':
-          await this.updateChecks({ openingBalanceChecked: true });
-          break;
       }
     },
     async handleAction({ key, action }: ListItem) {
@@ -141,6 +135,9 @@ export default defineComponent({
           break;
         case 'Review Accounts':
           await this.updateChecks({ chartOfAccountsReviewed: true });
+          break;
+        case 'Opening Balances':
+          await this.updateChecks({ openingBalanceChecked: true });
           break;
         case 'Add Taxes':
           await this.updateChecks({ taxesAdded: true });
@@ -207,6 +204,13 @@ export default defineComponent({
           filters: { role: 'Supplier' },
         });
         toUpdate.supplierCreated = count > 0;
+      }
+
+      if (!fyo.singles.GetStarted?.openingBalanceChecked) {
+        const count = await fyo.db.count('JournalEntry', {
+          filters: { entryType: 'Opening Entry' },
+        });
+        toUpdate.openingBalanceChecked = count > 0;
       }
       await this.updateChecks(toUpdate);
     },

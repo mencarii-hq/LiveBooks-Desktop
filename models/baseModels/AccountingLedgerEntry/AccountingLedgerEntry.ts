@@ -3,6 +3,12 @@ import { ListViewSettings } from 'fyo/model/types';
 import { ModelNameEnum } from 'models/types';
 import { Money } from 'pesa';
 
+/**
+ * CORE ACCOUNTING ENGINE — CRITICAL
+ * This class affects double-entry postings (debits/credits/balances).
+ * Do NOT change its logic without explicit approval from the developer.
+ * A wrong change here silently corrupts the books.
+ */
 export class AccountingLedgerEntry extends Doc {
   date?: string | Date;
   account?: string;

@@ -30,6 +30,19 @@
         >
           {{ companyName }}
         </div>
+        <button
+          type="button"
+          class="
+            w-full
+            text-center text-xs
+            py-1
+            text-green-100
+            hover:text-white hover:bg-green-800
+          "
+          @click.stop="saveAsOpenCompany"
+        >
+          {{ t`Save As…` }}
+        </button>
         <hr class="dark:border-gray-800 mx-4" />
       </div>
 
@@ -343,6 +356,7 @@
 import { t } from 'fyo';
 import { reportIssue } from 'src/errorHandling';
 import { fyo } from 'src/initFyo';
+import { saveCompanyAs } from 'src/utils/companyDb';
 import { showDialog, showToast } from 'src/utils/interactive';
 import {
   getLivebooksCloudSessionSummary,
@@ -547,6 +561,24 @@ export default defineComponent({
     }
   },
   methods: {
+    async saveAsOpenCompany() {
+      const newPath = await saveCompanyAs();
+      if (!newPath) {
+        return;
+      }
+      // Reconnect already ran inside saveCompanyAs; refresh the current view
+      // so open pages do not hold docs from the pre-move connection.
+      const current = this.$router.currentRoute.value.fullPath;
+      try {
+        await this.$router.replace('/');
+        if (current && current !== '/') {
+          await this.$router.replace(current);
+        }
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Save As: route refresh failed', error);
+      }
+    },
     routeTo,
     reportIssue,
     toggleSidebar,

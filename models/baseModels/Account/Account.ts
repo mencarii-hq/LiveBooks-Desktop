@@ -14,6 +14,12 @@ import { ModelNameEnum } from 'models/types';
 import { QueryFilter } from 'utils/db/types';
 import { AccountRootType, AccountRootTypeEnum, AccountType } from './types';
 
+/**
+ * CORE ACCOUNTING ENGINE — CRITICAL
+ * This class affects double-entry postings (debits/credits/balances).
+ * Do NOT change its logic without explicit approval from the developer.
+ * A wrong change here silently corrupts the books.
+ */
 export class Account extends Doc {
   accountName?: string;
   rootType?: AccountRootType;

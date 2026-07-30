@@ -103,6 +103,13 @@
       "section": "Details"
     },
     {
+      "fieldname": "memo",
+      "label": "Memo",
+      "placeholder": "Memo / note",
+      "fieldtype": "Data",
+      "section": "Details"
+    },
+    {
       "fieldname": "referenceDate",
       "label": "Reference Date",
       "placeholder": "Ref. Date",
@@ -179,6 +186,7 @@
     "paymentType",
     "paymentAccount",
     "referenceId",
+    "memo",
     "referenceDate",
     "clearanceDate",
     "amount",
@@ -187,5 +195,5 @@
     "attachment",
     "for"
   ],
-  "keywordFields": ["name", "party", "paymentType"]
+  "keywordFields": ["name", "party", "paymentType", "memo"]
 }

@@ -1,6 +1,7 @@
 import { t } from 'fyo';
 import { ModelNameEnum } from 'models/types';
-import { openSettings, routeTo } from './ui';
+import { fyo } from 'src/initFyo';
+import { getFormRoute, openSettings, routeTo } from './ui';
 import { GetStartedConfigItem } from './types';
 
 export function getGetStartedConfig(): GetStartedConfigItem[] {
@@ -60,6 +61,12 @@ export function getGetStartedConfig(): GetStartedConfigItem[] {
           icon: 'opening-ac',
           fieldname: 'openingBalanceChecked',
           description: t`Set up your opening balances before performing any accounting entries`,
+          action: async () => {
+            const doc = fyo.doc.getNewDoc(ModelNameEnum.JournalEntry, {
+              entryType: 'Opening Entry',
+            });
+            await routeTo(getFormRoute(ModelNameEnum.JournalEntry, doc.name!));
+          },
           documentation: 'https://docs.frappe.io/books/setup-opening-balances',
         },
         {

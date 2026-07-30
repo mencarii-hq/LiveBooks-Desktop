@@ -31,6 +31,12 @@ import { ReturnDocItem } from './types';
 import { getShipmentCOGSAmountFromSLEs } from 'reports/inventory/helpers';
 import { InvoiceItem } from 'models/baseModels/InvoiceItem/InvoiceItem';
 
+/**
+ * CORE ACCOUNTING ENGINE — CRITICAL
+ * This class affects double-entry postings (debits/credits/balances).
+ * Do NOT change its logic without explicit approval from the developer.
+ * A wrong change here silently corrupts the books.
+ */
 export abstract class StockTransfer extends Transfer {
   name?: string;
   date?: Date;

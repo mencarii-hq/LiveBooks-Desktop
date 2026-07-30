@@ -233,15 +233,16 @@ export default defineComponent({
           ...addressValues,
         });
 
-        // Persist so the Party Link field can resolve the target.
+        // Only link after persist — an unsaved Address name breaks Party.address.
         const canSync =
           !!addressDoc.get('addressLine1') &&
           !!addressDoc.get('city') &&
           !!addressDoc.get('country');
-        if (canSync) {
-          await addressDoc.sync();
+        if (!canSync) {
+          return undefined;
         }
 
+        await addressDoc.sync();
         this.doc.links ??= {};
         this.doc.links.address = addressDoc;
         await this.doc.set('address', addressDoc.name as string);

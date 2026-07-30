@@ -7,6 +7,7 @@ import BankAccountActivity from 'src/pages/BankAccountActivity.vue';
 import BankFeedSettings from 'src/pages/BankFeedSettings.vue';
 import BankReconcile from 'src/pages/BankReconcile.vue';
 import BankReconcileHub from 'src/pages/BankReconcileHub.vue';
+import BankRegister from 'src/pages/BankRegister.vue';
 import BankStatementImport from 'src/pages/BankStatementImport.vue';
 import ImportListsHub from 'src/pages/ImportListsHub.vue';
 import ImportWizard from 'src/pages/ImportWizard.vue';
@@ -129,6 +130,11 @@ const routes: RouteRecordRaw[] = [
     name: 'Bank Account Activity',
     component: BankAccountActivity,
     props: true,
+  },
+  {
+    path: '/bank-register',
+    name: 'Bank Register',
+    component: BankRegister,
   },
   {
     path: '/reconcile',

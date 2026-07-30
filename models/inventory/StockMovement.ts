@@ -25,6 +25,12 @@ import {
 } from './helpers';
 import { MovementType, MovementTypeEnum } from './types';
 
+/**
+ * CORE ACCOUNTING ENGINE — CRITICAL
+ * This class affects double-entry postings (debits/credits/balances).
+ * Do NOT change its logic without explicit approval from the developer.
+ * A wrong change here silently corrupts the books.
+ */
 export class StockMovement extends Transfer {
   name?: string;
   date?: Date;

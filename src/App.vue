@@ -91,6 +91,8 @@ import {
   ensureFirstLaunchAt,
   maybePromptFeedbackSurvey,
 } from './utils/feedbackSurvey';
+import { getSavePath } from './utils/ui';
+import { maybePromptMemorizedDue } from './utils/memorizedTransactions';
 
 enum Screen {
   Desk = 'Desk',
@@ -252,6 +254,9 @@ export default defineComponent({
       runWhenIdle(() => {
         void fyo.telemetry.maybeSendFirstCompanyCreatePing();
       });
+      runWhenIdle(() => {
+        void maybePromptMemorizedDue(fyo);
+      });
     },
     newDatabase() {
       this.activeScreen = Screen.SetupWizard;
@@ -299,7 +304,19 @@ export default defineComponent({
         | undefined;
       try {
         const companyName = setupWizardOptions.companyName;
-        const filePath = await ipc.getDbDefaultPath(companyName);
+        const defaultPath = await ipc.getDbDefaultPath(companyName);
+        const { canceled, filePath } = await getSavePath(
+          companyName,
+          'db',
+          defaultPath
+        );
+        if (canceled || !filePath) {
+          if (wizard) {
+            wizard.loading = false;
+          }
+          this.activeScreen = Screen.SetupWizard;
+          return;
+        }
         await setupInstance(filePath, setupWizardOptions, fyo);
         fyo.config.set('lastSelectedFilePath', filePath);
         ensureFirstLaunchAt(fyo);

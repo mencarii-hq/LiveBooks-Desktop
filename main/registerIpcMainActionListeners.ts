@@ -46,6 +46,32 @@ import {
 import { saveHtmlAsPdf } from './saveHtmlAsPdf';
 import { initLoyaltyExpiryJob } from './initSheduler';
 
+/**
+ * Restrict renderer-driven FS helpers to company DB artifacts only
+ * (.db / -wal / -shm / .db.archived-*). Blocks arbitrary path copy/delete.
+ */
+function assertCompanyDbArtifactPath(filePath: string): string {
+  if (typeof filePath !== 'string' || !filePath.trim()) {
+    throw new Error('Invalid file path');
+  }
+  if (filePath.includes('\0')) {
+    throw new Error('Invalid file path');
+  }
+  const resolved = path.resolve(filePath);
+  const base = path.basename(resolved);
+  const ok =
+    /\.db$/i.test(base) ||
+    /\.db-wal$/i.test(base) ||
+    /\.db-shm$/i.test(base) ||
+    /\.db\.archived-\d+$/i.test(base);
+  if (!ok) {
+    throw new Error(
+      'Only company database files (.db, -wal, -shm, archived) can be modified'
+    );
+  }
+  return resolved;
+}
+
 type LivebooksCloudApiResult = {
   ok: boolean;
   status: number;
@@ -312,8 +338,46 @@ export default function registerIpcMainActionListeners(main: Main) {
   });
 
   ipcMain.handle(IPC_ACTIONS.DELETE_FILE, async (_, filePath: string) => {
-    return getErrorHandledReponse(async () => await fs.unlink(filePath));
+    return getErrorHandledReponse(async () => {
+      const safe = assertCompanyDbArtifactPath(filePath);
+      await fs.unlink(safe);
+    });
   });
+
+  ipcMain.handle(
+    IPC_ACTIONS.COPY_FILE,
+    async (_, src: string, dest: string) => {
+      return getErrorHandledReponse(async () => {
+        const safeSrc = assertCompanyDbArtifactPath(src);
+        const safeDest = assertCompanyDbArtifactPath(dest);
+        await fs.copyFile(safeSrc, safeDest);
+      });
+    }
+  );
+
+  ipcMain.handle(
+    IPC_ACTIONS.RENAME_FILE,
+    async (_, src: string, dest: string) => {
+      return getErrorHandledReponse(async () => {
+        const safeSrc = assertCompanyDbArtifactPath(src);
+        const safeDest = assertCompanyDbArtifactPath(dest);
+        try {
+          await fs.rename(safeSrc, safeDest);
+        } catch (error) {
+          // Cross-device rename fails with EXDEV — fall back to copy+delete.
+          const code =
+            error && typeof error === 'object' && 'code' in error
+              ? String((error as { code: unknown }).code)
+              : '';
+          if (code !== 'EXDEV') {
+            throw error;
+          }
+          await fs.copyFile(safeSrc, safeDest);
+          await fs.unlink(safeSrc);
+        }
+      });
+    }
+  );
 
   ipcMain.handle(IPC_ACTIONS.GET_DB_LIST, async () => {
     const files = await setAndGetCleanedConfigFiles();

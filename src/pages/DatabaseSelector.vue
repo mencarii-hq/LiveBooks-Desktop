@@ -194,6 +194,23 @@
           <button
             class="
               ms-auto
+              px-2
+              h-8
+              text-xs text-gray-600
+              dark:text-gray-400
+              hover:text-green-700
+              dark:hover:text-green-300
+              hover:bg-gray-100
+              dark:hover:bg-gray-800
+              rounded
+            "
+            :title="t`Save As…`"
+            @click.stop="() => saveAsCompany(file)"
+          >
+            {{ t`Save As…` }}
+          </button>
+          <button
+            class="
               p-2
               hover:bg-red-200
               dark:hover:bg-red-900 dark:hover:bg-opacity-40
@@ -321,6 +338,7 @@ import { showDialog, showToast } from 'src/utils/interactive';
 import { updateConfigFiles } from 'src/utils/misc';
 import { purgeCloudPlaidItemsForInstance } from 'src/utils/livebooksCloudBook';
 import { deleteDb, getSavePath, getSelectedFilePath } from 'src/utils/ui';
+import { saveCompanyAs } from 'src/utils/companyDb';
 import type { ConfigFilesWithModified } from 'utils/types';
 import { defineComponent } from 'vue';
 
@@ -373,6 +391,12 @@ export default defineComponent({
     },
     formatDate(isoDate: string) {
       return DateTime.fromISO(isoDate).toRelative();
+    },
+    async saveAsCompany(file: { dbPath: string }) {
+      const newPath = await saveCompanyAs(file.dbPath);
+      if (newPath) {
+        await this.setFiles();
+      }
     },
     async deleteDb(i: number) {
       const file = this.files[i];

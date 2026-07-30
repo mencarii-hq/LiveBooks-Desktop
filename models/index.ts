@@ -20,6 +20,7 @@ import { CouponCode } from './baseModels/CouponCode/CouponCode';
 import { Payment } from './baseModels/Payment/Payment';
 import { PaymentMethod } from './baseModels/PaymentMethod/PaymentMethod';
 import { PaymentFor } from './baseModels/PaymentFor/PaymentFor';
+import { MemorizedTransaction } from './baseModels/MemorizedTransaction/MemorizedTransaction';
 import { PriceList } from './baseModels/PriceList/PriceList';
 import { PriceListItem } from './baseModels/PriceList/PriceListItem';
 import { PricingRule } from './baseModels/PricingRule/PricingRule';
@@ -91,6 +92,7 @@ export const models = {
   Payment,
   PaymentMethod,
   PaymentFor,
+  MemorizedTransaction,
   PrintSettings,
   PriceList,
   PriceListItem,

@@ -82,6 +82,20 @@
                 {{ t`Add Group` }}
               </button>
               <button
+                v-if="account.isGroup"
+                class="
+                  ms-3
+                  text-xs text-gray-800
+                  dark:text-gray-400
+                  hover:text-gray-900
+                  dark:hover:text-gray-100
+                  focus:outline-none
+                "
+                @click.stop="renameAccount(account)"
+              >
+                {{ t`Rename` }}
+              </button>
+              <button
                 class="
                   ms-3
                   text-xs text-gray-800
@@ -276,6 +290,18 @@ export default defineComponent({
     fyo.doc.observer.on('sync:AccountingLedgerEntry', () => {
       this.refetchTotals = true;
     });
+    fyo.doc.observer.on('sync:Account', async (name: string) => {
+      if (!name) {
+        return;
+      }
+      try {
+        const doc = await fyo.doc.getDoc(ModelNameEnum.Account, name);
+        this.patchAccountFromDoc(doc);
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('ChartOfAccounts sync:Account patch failed', error);
+      }
+    });
   },
   async activated() {
     await this.fetchAccounts();
@@ -388,13 +414,96 @@ export default defineComponent({
       account?: AccountItem,
       parentAccount?: AccountItem
     ) {
-      if (doc.hasListener('afterDelete')) {
-        return;
+      // Capture tree node + id at open time so afterSync still patches even if
+      // doc.name changes (manual rename) or the AccountItem ref is stale.
+      const treeAccount = account;
+      const openedName = account?.name ?? doc.name;
+
+      if (!doc.hasListener('afterDelete')) {
+        doc.once('afterDelete', () => {
+          this.removeAccount(doc.name!, treeAccount, parentAccount);
+        });
       }
 
-      doc.once('afterDelete', () => {
-        this.removeAccount(doc.name!, account, parentAccount);
-      });
+      if (!doc.hasListener('afterSync')) {
+        doc.on('afterSync', () => {
+          this.patchAccountFromDoc(doc, treeAccount, openedName);
+        });
+      }
+    },
+    patchAccountFromDoc(doc: Doc, account?: AccountItem, openedName?: string) {
+      if (!account || account.name !== doc.name) {
+        // Prefer current doc name, then the name at open time, then accountName.
+        const found =
+          this.findAccountItem(doc.name!) ||
+          (openedName ? this.findAccountItem(openedName) : undefined) ||
+          (account ? this.findAccountItem(account.name) : undefined) ||
+          (doc.accountName
+            ? this.findAccountItemByAccountName(doc.accountName as string)
+            : undefined);
+        if (!found) {
+          return;
+        }
+        account = found;
+      }
+      // Keep tree key in sync if the Account doc id was renamed.
+      if (doc.name && account.name !== doc.name) {
+        account.name = doc.name;
+      }
+      if (doc.accountName != null) {
+        account.accountName = doc.accountName as string;
+      }
+      if (doc.accountType != null) {
+        account.accountType = doc.accountType as string;
+      }
+      if (doc.rootType != null) {
+        account.rootType = doc.rootType as string;
+      }
+      if (doc.isGroup != null) {
+        account.isGroup = doc.isGroup as boolean;
+      }
+    },
+    findAccountItem(
+      name: string,
+      accounts: AccountItem[] = this.accounts
+    ): AccountItem | undefined {
+      for (const a of accounts) {
+        if (a.name === name) {
+          return a;
+        }
+        if (a.children?.length) {
+          const found = this.findAccountItem(name, a.children);
+          if (found) {
+            return found;
+          }
+        }
+      }
+      return undefined;
+    },
+    findAccountItemByAccountName(
+      accountName: string,
+      accounts: AccountItem[] = this.accounts
+    ): AccountItem | undefined {
+      for (const a of accounts) {
+        if (a.accountName === accountName) {
+          return a;
+        }
+        if (a.children?.length) {
+          const found = this.findAccountItemByAccountName(
+            accountName,
+            a.children
+          );
+          if (found) {
+            return found;
+          }
+        }
+      }
+      return undefined;
+    },
+    async renameAccount(account: AccountItem) {
+      const doc = await fyo.doc.getDoc(ModelNameEnum.Account, account.name);
+      this.setOpenAccountDocListener(doc, account);
+      await openQuickEdit({ doc });
     },
     async deleteAccount(account: AccountItem) {
       const canDelete = await this.canDeleteAccount(account);

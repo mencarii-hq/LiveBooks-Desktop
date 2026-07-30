@@ -1,0 +1,109 @@
+{
+  "name": "MemorizedTransaction",
+  "label": "Memorized Transaction",
+  "naming": "autoincrement",
+  "isSingle": false,
+  "isChild": false,
+  "isSubmittable": false,
+  "fields": [
+    {
+      "fieldname": "name",
+      "label": "ID",
+      "fieldtype": "Data",
+      "required": true,
+      "readOnly": true,
+      "hidden": true
+    },
+    {
+      "fieldname": "party",
+      "label": "Payee",
+      "fieldtype": "Link",
+      "target": "Party",
+      "create": true,
+      "required": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "paymentType",
+      "label": "Payment Type",
+      "fieldtype": "Select",
+      "options": [
+        { "value": "Pay", "label": "Pay" },
+        { "value": "Receive", "label": "Receive" }
+      ],
+      "required": true,
+      "default": "Pay",
+      "section": "Default"
+    },
+    {
+      "fieldname": "fromAccount",
+      "label": "From Account",
+      "fieldtype": "Link",
+      "target": "Account",
+      "required": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "toAccount",
+      "label": "To Account",
+      "fieldtype": "Link",
+      "target": "Account",
+      "required": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "amount",
+      "label": "Amount",
+      "fieldtype": "Currency",
+      "required": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "memo",
+      "label": "Memo",
+      "fieldtype": "Data",
+      "section": "Default"
+    },
+    {
+      "fieldname": "frequency",
+      "label": "Frequency",
+      "fieldtype": "Select",
+      "options": [
+        { "value": "Monthly", "label": "Monthly" },
+        { "value": "Quarterly", "label": "Quarterly" },
+        { "value": "Annual", "label": "Annual" }
+      ],
+      "required": true,
+      "default": "Monthly",
+      "section": "Schedule"
+    },
+    {
+      "fieldname": "nextDueDate",
+      "label": "Next Due Date",
+      "fieldtype": "Date",
+      "required": true,
+      "section": "Schedule"
+    },
+    {
+      "fieldname": "paymentMethod",
+      "label": "Payment Method",
+      "fieldtype": "Link",
+      "target": "PaymentMethod",
+      "default": "Cash",
+      "readOnly": true,
+      "hidden": true,
+      "section": "Default"
+    }
+  ],
+  "quickEditFields": [
+    "party",
+    "paymentType",
+    "fromAccount",
+    "toAccount",
+    "amount",
+    "memo",
+    "frequency",
+    "nextDueDate"
+  ],
+  "keywordFields": ["party", "memo"]
+}

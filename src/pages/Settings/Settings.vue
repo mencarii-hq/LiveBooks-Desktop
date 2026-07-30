@@ -236,9 +236,16 @@ export default defineComponent({
     await this.reset();
   },
   methods: {
+    settingsDocNames(): string[] {
+      // POS lives on InventorySettings but is injected under General; keep it
+      // in save/reset even when the Inventory tab is hidden.
+      const names = new Set(this.schemas.map(({ name }) => name));
+      names.add(ModelNameEnum.InventorySettings);
+      return [...names];
+    },
     async reset() {
-      const resetableDocs = this.schemas
-        .map(({ name }) => this.fyo.singles[name])
+      const resetableDocs = this.settingsDocNames()
+        .map((name) => this.fyo.singles[name])
         .filter((doc) => doc?.dirty) as Doc[];
 
       for (const doc of resetableDocs) {
@@ -248,8 +255,8 @@ export default defineComponent({
       this.update();
     },
     async sync(): Promise<void> {
-      const syncableDocs = this.schemas
-        .map(({ name }) => this.fyo.singles[name])
+      const syncableDocs = this.settingsDocNames()
+        .map((name) => this.fyo.singles[name])
         .filter((doc) => doc?.canSave) as Doc[];
 
       for (const doc of syncableDocs) {
