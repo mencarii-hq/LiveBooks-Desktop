@@ -11,8 +11,7 @@
         w-full w-form
         shadow-lg
         rounded-lg
-        border
-        dark:border-gray-800
+        border border-default
         relative
         bg-white
         dark:bg-gray-875
@@ -21,17 +20,17 @@
     >
       <!-- Welcome -->
       <div class="px-4 py-4">
-        <h1 class="text-2xl font-semibold select-none dark:text-gray-25">
+        <h1 class="text-2xl font-semibold select-none text-ink">
           {{ t`Welcome to LiveBooks Desktop` }}
         </h1>
-        <p class="text-gray-600 dark:text-gray-400 text-base select-none">
+        <p class="text-ink-muted text-base select-none">
           {{
             t`Create a new company or select an existing one from your computer`
           }}
         </p>
       </div>
 
-      <hr class="dark:border-gray-800" />
+      <hr class="border-default" />
 
       <!-- New File (Blue Icon) -->
       <div
@@ -52,10 +51,10 @@
         </div>
 
         <div>
-          <p class="font-medium dark:text-gray-200">
+          <p class="font-medium dark:text-gray-100">
             {{ t`New Company` }}
           </p>
-          <p class="text-sm text-gray-600 dark:text-gray-400">
+          <p class="text-sm text-gray-600 dark:text-gray-300">
             {{ t`Create a new company and store it on your computer` }}
           </p>
         </div>
@@ -88,10 +87,10 @@
           />
         </div>
         <div>
-          <p class="font-medium dark:text-gray-200">
+          <p class="font-medium dark:text-gray-100">
             {{ t`Existing Company` }}
           </p>
-          <p class="text-sm text-gray-600 dark:text-gray-400">
+          <p class="text-sm text-gray-600 dark:text-gray-300">
             {{ t`Load an existing company from your computer` }}
           </p>
         </div>
@@ -122,10 +121,10 @@
           <feather-icon name="monitor" class="w-4 h-4 text-white" />
         </div>
         <div>
-          <p class="font-medium dark:text-gray-200">
+          <p class="font-medium dark:text-gray-100">
             {{ t`Create Demo` }}
           </p>
-          <p class="text-sm text-gray-600 dark:text-gray-400">
+          <p class="text-sm text-gray-600 dark:text-gray-300">
             {{ t`Create a demo company to try out LiveBooks Desktop` }}
           </p>
         </div>
@@ -157,6 +156,7 @@
               bg-gray-200
               dark:bg-gray-800
               text-gray-500
+              dark:text-gray-300
               font-semibold
               flex-shrink-0
               text-base
@@ -166,14 +166,14 @@
           </div>
           <div class="w-full">
             <div class="flex justify-between overflow-x-auto items-baseline">
-              <h2 class="font-medium dark:text-gray-200">
+              <h2 class="font-medium dark:text-gray-100">
                 {{ file.companyName }}
               </h2>
               <p
                 class="
                   whitespace-nowrap
                   text-sm text-gray-600
-                  dark:text-gray-400
+                  dark:text-gray-300
                 "
               >
                 {{ formatDate(file.modified) }}
@@ -182,7 +182,7 @@
             <p
               class="
                 text-sm text-gray-600
-                dark:text-gray-400
+                dark:text-gray-300
                 overflow-x-auto
                 no-scrollbar
                 whitespace-nowrap
@@ -218,9 +218,9 @@
           class="
             text-sm
             bg-gray-100
-            dark:bg-gray-890
+            dark:bg-gray-700
             hover:bg-gray-200
-            dark:hover:bg-gray-900
+            dark:hover:bg-gray-600
             rounded
             px-4
             py-1.5
@@ -260,7 +260,7 @@
         <p
           class="
             text-sm text-gray-600
-            dark:text-gray-400
+            dark:text-gray-300
             mt-2
             break-all
             select-text
@@ -278,9 +278,9 @@
             mt-2
             w-full
             bg-gray-100
-            dark:bg-gray-875
+            dark:bg-gray-800
             focus:bg-gray-200
-            dark:focus:bg-gray-890
+            dark:focus:bg-gray-700
             rounded-md
             px-2
             py-1.5
@@ -312,7 +312,7 @@
           creating the dummy instance.
         </p>
         <div class="flex my-12 justify-center items-baseline gap-4 text-base">
-          <label for="basecount" class="text-gray-600 dark:text-gray-400"
+          <label for="basecount" class="text-gray-600 dark:text-gray-300"
             >Base Count</label
           >
           <input
@@ -321,9 +321,9 @@
             name="basecount"
             class="
               bg-gray-100
-              dark:bg-gray-875
+              dark:bg-gray-800
               focus:bg-gray-200
-              dark:focus:bg-gray-890
+              dark:focus:bg-gray-700
               rounded-md
               px-2
               py-1

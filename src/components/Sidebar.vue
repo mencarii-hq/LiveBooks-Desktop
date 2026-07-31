@@ -1,16 +1,19 @@
 <template>
   <div
-    class="py-2 h-full flex justify-between flex-col bg-green-700 relative"
+    class="sidebar-root py-2 h-full min-h-0 flex flex-col bg-green-700 relative"
     :class="{
       'window-drag': platform !== 'Windows',
     }"
   >
-    <div>
+    <!-- Nav must be no-drag + overflow so wheel/trackpad scroll works under app-region:drag -->
+    <div
+      class="flex-1 min-h-0 overflow-y-auto window-no-drag sidebar-nav-scroll"
+    >
       <!-- Brand + company -->
       <div
         class=""
         :class="
-          platform === 'Mac' && languageDirection === 'ltr' ? 'mt-8' : 'mt-3'
+          platform === 'Mac' && languageDirection === 'ltr' ? 'mt-6' : 'mt-3'
         "
       >
         <div
@@ -30,7 +33,7 @@
         >
           {{ companyName }}
         </div>
-        <hr class="dark:border-gray-800 mx-4" />
+        <hr class="border-white border-opacity-20 mx-4" />
       </div>
 
       <!-- Sidebar Items -->
@@ -48,7 +51,7 @@
             class="flex-shrink-0"
             :name="group.icon"
             :size="group.iconSize || '18'"
-            :height="group.iconHeight ?? 0"
+            :height="group.iconHeight ?? 4"
             :active="!!isGroupActive(group)"
             :darkMode="darkMode"
             :onPrimary="true"
@@ -96,8 +99,8 @@
     </div>
 
     <!-- Report Issue and DB Switcher -->
-    <div class="window-no-drag flex flex-col gap-2 py-2 px-4">
-      <hr class="dark:border-gray-800" />
+    <div class="window-no-drag shrink-0 flex flex-col gap-2 py-2 px-4">
+      <hr class="border-white border-opacity-20" />
       <button
         class="
           flex
@@ -184,7 +187,7 @@
         </p>
       </button> -->
 
-      <hr class="dark:border-gray-800" />
+      <hr class="border-white border-opacity-20" />
       <div class="select-none">
         <p
           class="
@@ -254,7 +257,7 @@
                 p-1.5
                 rounded-md
                 text-gray-600
-                dark:text-gray-400
+                dark:text-gray-300
                 hover:bg-gray-200
                 dark:hover:bg-gray-700
                 hover:text-gray-900
@@ -270,20 +273,21 @@
             v-if="livebooksCloudSignedIn"
             class="
               text-sm text-gray-600
-              dark:text-gray-400
+              dark:text-gray-300
               whitespace-normal
               break-words
             "
           >
             {{
-              t`This computer is linked to your account. Open the website to manage billing and subscription, or disconnect this app below.`
+              t`This computer is linked to your account. Open the website to manage billing and subscription, or
+            disconnect this app below.`
             }}
           </p>
           <p
             v-else
             class="
               text-sm text-gray-600
-              dark:text-gray-400
+              dark:text-gray-300
               whitespace-normal
               break-words
             "
@@ -310,7 +314,8 @@
             role="status"
           >
             {{
-              t`Secure storage is unavailable on this computer. Install or unlock a desktop keyring (GNOME Keyring or KWallet) to connect LiveBooks Cloud. Without it, this app cannot keep a Cloud session.`
+              t`Secure storage is unavailable on this computer. Install or unlock a desktop keyring (GNOME Keyring or
+            KWallet) to connect LiveBooks Cloud. Without it, this app cannot keep a Cloud session.`
             }}
           </p>
         </div>
@@ -676,3 +681,36 @@ export default defineComponent({
   },
 });
 </script>
+
+<style scoped>
+.sidebar-nav-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.sidebar-root:hover .sidebar-nav-scroll {
+  scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 0;
+}
+
+.sidebar-root:hover .sidebar-nav-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.sidebar-root:hover .sidebar-nav-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+</style>

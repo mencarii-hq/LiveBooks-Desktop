@@ -1,3 +1,5 @@
+import { markSplashDismissed } from './utils/bootPerformance';
+
 const BOOT_SPLASH_ID = 'boot-splash';
 
 export function isBootSplashVisible(): boolean {
@@ -36,4 +38,19 @@ export async function dismissBootSplash(
   }
 
   el.remove();
+}
+
+/**
+ * Dismiss the boot splash if still present (idempotent).
+ * Call before dialogs / selector / setup wizard so they are not trapped under it.
+ */
+export async function releaseBootSplash(
+  minVisibleMs = 0,
+  startedAt = Date.now()
+): Promise<void> {
+  if (!isBootSplashVisible()) {
+    return;
+  }
+  await dismissBootSplash(minVisibleMs, startedAt);
+  markSplashDismissed();
 }

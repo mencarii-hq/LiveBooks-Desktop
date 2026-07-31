@@ -71,7 +71,6 @@ import { updateConfigFiles } from './utils/misc';
 import {
   markSetInitialScreenEnd,
   markSetInitialScreenStart,
-  markSplashDismissed,
   markWorkspaceReady,
 } from './utils/bootPerformance';
 import { updatePrintTemplates } from './utils/printTemplates';
@@ -81,8 +80,8 @@ import { routeTo } from './utils/ui';
 import { useKeys } from './utils/vueUtils';
 import { setDarkMode } from 'src/utils/theme';
 import {
-  dismissBootSplash,
   isBootSplashVisible,
+  releaseBootSplash,
   setBootSplashSubtitle,
   waitForNextPaint,
 } from './bootSplash';
@@ -174,23 +173,25 @@ export default defineComponent({
       this.activeScreen = Screen.DatabaseSelector;
       await nextTick();
       await waitForNextPaint();
-      await dismissBootSplash(0, splashStarted);
-      markSplashDismissed();
+      await releaseBootSplash(0, splashStarted);
       markSetInitialScreenEnd();
     } else {
-      // Dismiss splash before auto-open so access/DB dialogs are not trapped
-      // under the full-screen overlay (which looked like a hang with no errors).
+      // Keep HTML splash through auto-open/refresh so we don't flash the Vue
+      // workspace overlay. fileSelected skips that overlay while splash is up.
+      // Release before dialogs / selector / setup wizard (z-index traps them).
       setBootSplashSubtitle('Loading your workspace…');
-      await nextTick();
-      await waitForNextPaint();
-      await dismissBootSplash(0, splashStarted);
-      markSplashDismissed();
       try {
         await this.fileSelected(pendingDbPath);
       } catch (error) {
+        await releaseBootSplash(0, splashStarted);
         await handleErrorWithDialog(error, undefined, true, true);
         await this.showDbSelector();
       } finally {
+        if (isBootSplashVisible()) {
+          await nextTick();
+          await waitForNextPaint();
+          await releaseBootSplash(0, splashStarted);
+        }
         markSetInitialScreenEnd();
         if (this.activeScreen === null) {
           this.activeScreen = Screen.DatabaseSelector;
@@ -279,6 +280,8 @@ export default defineComponent({
     async openSelectedDatabase(filePath: string): Promise<void> {
       fyo.config.set('lastSelectedFilePath', filePath);
       if (filePath !== ':memory:' && !(await ipc.checkDbAccess(filePath))) {
+        // Dialogs are z-20; splash must go first or they look like a hang.
+        await releaseBootSplash();
         await showDialog({
           title: this.t`Cannot open file`,
           type: 'error',
@@ -294,6 +297,7 @@ export default defineComponent({
       try {
         await this.showSetupWizardOrDesk(filePath);
       } catch (error) {
+        await releaseBootSplash();
         await handleErrorWithDialog(error, undefined, true, true);
         await this.showDbSelector();
       }
@@ -347,6 +351,7 @@ export default defineComponent({
       );
 
       if (!setupComplete) {
+        await releaseBootSplash();
         this.activeScreen = Screen.SetupWizard;
         return;
       }
@@ -385,6 +390,7 @@ export default defineComponent({
       markWorkspaceReady();
     },
     async showDbSelector(): Promise<void> {
+      await releaseBootSplash();
       localStorage.clear();
       fyo.config.set('lastSelectedFilePath', null);
       fyo.telemetry.stop();
