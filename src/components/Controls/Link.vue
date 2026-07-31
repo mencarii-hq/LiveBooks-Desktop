@@ -49,8 +49,12 @@ export default {
       }
 
       try {
-        const linkDoc = await this.doc?.loadAndGetLink(fieldname);
-        this.linkValue = linkDoc?.get(linkDisplayField) ?? '';
+        let linkDoc = await this.doc?.loadAndGetLink(fieldname);
+        // Standalone FormControls (no parent doc) still need the display label.
+        if (!linkDoc && value && target) {
+          linkDoc = await fyo.doc.getDoc(target, value);
+        }
+        this.linkValue = linkDoc?.get(linkDisplayField) ?? value ?? '';
       } catch {
         // Missing / partial link targets are expected while typing.
         this.linkValue = value || '';

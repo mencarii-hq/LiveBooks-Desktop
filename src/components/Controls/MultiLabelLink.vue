@@ -226,10 +226,14 @@ export default {
             await parentDoc.set(fieldname, doc.name);
           }
           this.triggerChange(doc.name);
-        } finally {
-          this.results = [];
-          this.$router.back();
+        } catch (error) {
+          // Keep the nested create panel open so the user can fix the parent
+          // field; do not pop the stack after a failed link-back.
+          throw error;
         }
+
+        this.results = [];
+        this.$router.back();
       });
     },
     async getCreateFilters() {

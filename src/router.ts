@@ -195,6 +195,49 @@ const routes: RouteRecordRaw[] = [
   },
 ];
 
+// Snapshot before the router's initial `/` (or index.html) navigation can
+// overwrite localStorage — otherwise refresh always loses the real last page.
+let savedLastRoute: string | null = (() => {
+  const route = localStorage.getItem('lastRoute');
+  if (!route || route.includes('index.html')) {
+    return null;
+  }
+  return route;
+})();
+
+// Until desk restores, ignore the boot navigation to `/` so it cannot clobber
+// the snapshot. Non-root navigations still persist (avoids HMR/gated misses).
+let deskRouteReady = false;
+
+/** Route captured at module load, before boot navigation clobbers it. */
+export function getSavedLastRoute(): string | null {
+  return savedLastRoute;
+}
+
+/** Call once desk is ready to restore so `/` (Dashboard) may be persisted. */
+export function enableRoutePersistence(): void {
+  deskRouteReady = true;
+}
+
+/** Drop the boot snapshot (e.g. when switching company). */
+export function clearSavedLastRoute(): void {
+  savedLastRoute = null;
+  deskRouteReady = false;
+}
+
+function persistRoute(fullPath: string): void {
+  if (fullPath.includes('index.html')) {
+    return;
+  }
+  // Boot lands on `/` before setDeskRoute; don't wipe a deeper lastRoute.
+  if (!deskRouteReady && (fullPath === '/' || fullPath === '')) {
+    return;
+  }
+
+  localStorage.setItem('lastRoute', fullPath);
+  savedLastRoute = fullPath;
+}
+
 const router = createRouter({ routes, history: createWebHistory() });
 
 router.afterEach(({ fullPath }) => {
@@ -202,11 +245,7 @@ router.afterEach(({ fullPath }) => {
   historyState.forward = !!state.forward;
   historyState.back = !!state.back;
 
-  if (fullPath.includes('index.html')) {
-    return;
-  }
-
-  localStorage.setItem('lastRoute', fullPath);
+  persistRoute(fullPath);
 });
 
 export default router;

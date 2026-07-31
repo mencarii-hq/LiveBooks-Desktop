@@ -351,7 +351,17 @@ function toRawDate(value: DocValue, field: Field): string | null {
     return null;
   }
 
-  if (typeof value === 'string' || typeof value === 'number') {
+  // Date-only ISO strings must use Luxon — `new Date('YYYY-MM-DD')` is UTC
+  // midnight and shifts the calendar day west of UTC.
+  if (typeof value === 'string') {
+    const dt = DateTime.fromISO(value);
+    if (!dt.isValid) {
+      throwError(value, field, 'raw');
+    }
+    return dt.toISODate();
+  }
+
+  if (typeof value === 'number') {
     value = new Date(value);
   }
 

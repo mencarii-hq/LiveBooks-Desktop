@@ -43,12 +43,28 @@
           "
           :class="{
             'ms-auto': isNumeric(column.fieldtype),
-            'pe-4': i === columns.length - 1,
+            'pe-4': i === columns.length - 1 && !showRunNow,
           }"
         >
           {{ column.label }}
         </div>
       </Row>
+      <div
+        v-if="showRunNow && !isSelectionMode"
+        class="
+          w-28
+          shrink-0
+          ms-2
+          text-gray-700
+          dark:text-gray-300
+          h-row
+          flex
+          items-center
+          pe-4
+        "
+      >
+        {{ t`Actions` }}
+      </div>
     </div>
     <hr class="dark:border-gray-800" />
 
@@ -97,16 +113,30 @@
           >
             <ListCell
               v-for="(column, c) in columns"
-              :key="column.label"
+              :key="column.label || column.fieldname"
               :class="{
                 'text-start': isNumeric(column.fieldtype),
-                'pe-4': c === columns.length - 1,
+                'pe-4': c === columns.length - 1 && !showRunNow,
               }"
               :row="(row as RenderData)"
               :column="column"
               @status-found="handleStatusFound"
             />
           </Row>
+          <div
+            v-if="showRunNow && !isSelectionMode"
+            class="w-28 shrink-0 ms-2 pe-4 flex items-center"
+            @click.stop
+          >
+            <Button
+              type="secondary"
+              class="whitespace-nowrap"
+              :disabled="runningName === row.name"
+              @click="runMemorized(row.name as string)"
+            >
+              {{ t`Run Now` }}
+            </Button>
+          </div>
         </div>
         <hr
           v-if="!(i === dataSlice.length - 1 && i > 13)"
@@ -179,6 +209,7 @@ export default defineComponent({
       pageEnd: 0,
       statusMap: {} as Record<string, string>,
       selectedItems: [] as string[],
+      runningName: null as string | null,
     };
   },
   computed: {
@@ -192,6 +223,9 @@ export default defineComponent({
       return (
         this.data.length > 0 && this.selectedItems.length === this.data.length
       );
+    },
+    showRunNow(): boolean {
+      return this.schemaName === 'MemorizedTransaction';
     },
     columns() {
       let columns = this.listConfig?.columns ?? [];
@@ -233,6 +267,43 @@ export default defineComponent({
     setPageIndices({ start, end }: { start: number; end: number }) {
       this.pageStart = start;
       this.pageEnd = end;
+    },
+    async runMemorized(name: string) {
+      if (this.runningName) {
+        return;
+      }
+      this.runningName = name;
+      try {
+        const { runMemorizedNow } = await import(
+          'src/utils/memorizedTransactions'
+        );
+        const { showToast } = await import('src/utils/interactive');
+        const { handleErrorWithDialog } = await import('src/errorHandling');
+        const { ModelNameEnum } = await import('models/types');
+        const mt = await fyo.doc.getDoc(
+          ModelNameEnum.MemorizedTransaction,
+          name
+        );
+        try {
+          const payment = await runMemorizedNow(fyo, mt);
+          const { routeTo } = await import('src/utils/ui');
+          const paymentName = String(payment.name ?? '');
+          showToast({
+            type: 'success',
+            message: fyo.t`Created recurring payment`,
+            actionText: fyo.t`View Payment`,
+            action: () => {
+              if (paymentName) {
+                void routeTo(`/edit/Payment/${paymentName}`);
+              }
+            },
+          });
+        } catch (error) {
+          await handleErrorWithDialog(error, mt, true, true);
+        }
+      } finally {
+        this.runningName = null;
+      }
     },
     setUpdateListeners() {
       if (!this.schemaName) {

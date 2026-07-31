@@ -182,7 +182,8 @@ export async function memorizeRegisterFields(
 
 export async function createPaymentFromMemorized(
   fyo: Fyo,
-  mt: MemorizedTransaction | Doc
+  mt: MemorizedTransaction | Doc,
+  options?: { date?: string | Date }
 ): Promise<Payment> {
   const paymentType = (mt.paymentType as 'Pay' | 'Receive') || 'Pay';
   const amountMoney = mt.amount as { float?: number; toString?: () => string };
@@ -196,9 +197,23 @@ export async function createPaymentFromMemorized(
   const bankAccount = paymentType === 'Pay' ? fromAccount : toAccount;
   const categoryAccount = paymentType === 'Pay' ? toAccount : fromAccount;
 
-  const date =
+  // Prefer explicit date; else due date at "now" clock time; else now.
+  let date: string | Date =
+    options?.date ||
     (mt.nextDueDate as string | Date | undefined) ||
-    DateTime.now().toISODate()!;
+    DateTime.now().toJSDate();
+
+  if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date.trim())) {
+    const now = DateTime.now();
+    date = DateTime.fromISO(date.trim())
+      .set({
+        hour: now.hour,
+        minute: now.minute,
+        second: now.second,
+        millisecond: now.millisecond,
+      })
+      .toJSDate();
+  }
 
   return await createRegisterPayment(fyo, {
     date,
@@ -211,17 +226,27 @@ export async function createPaymentFromMemorized(
   });
 }
 
+/** Post one occurrence now (real datetime) and advance nextDueDate. */
+export async function runMemorizedNow(
+  fyo: Fyo,
+  mt: MemorizedTransaction | Doc
+): Promise<Payment> {
+  const payment = await createPaymentFromMemorized(fyo, mt, {
+    date: DateTime.now().toJSDate(),
+  });
+  await advanceNextDueDate(mt);
+  return payment;
+}
+
 export async function advanceNextDueDate(
   mt: MemorizedTransaction | Doc
 ): Promise<void> {
   const freq = (mt.frequency as string) || 'Monthly';
-  const base =
-    mt.nextDueDate != null
-      ? DateTime.fromISO(String(mt.nextDueDate).slice(0, 10))
-      : DateTime.now();
-  const start = base.isValid ? base : DateTime.now();
+  // Anchor from today (not the old nextDueDate) so same-day Run Now is
+  // idempotent: Daily → tomorrow, Weekly → today+7, etc.
+  const start = DateTime.now().startOf('day');
 
-  let next = start;
+  let next: DateTime;
   if (freq === 'Daily') {
     next = start.plus({ days: 1 });
   } else if (freq === 'Weekly') {

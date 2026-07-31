@@ -1,6 +1,17 @@
 <template>
+  <!-- Single action: run on click (no nested dropdown). -->
+  <Button
+    v-if="actions && actions.length === 1"
+    :type="type"
+    :icon="false"
+    @click="runSingle"
+  >
+    <slot>
+      <feather-icon name="more-horizontal" class="w-4 h-4" />
+    </slot>
+  </Button>
   <Dropdown
-    v-if="actions && actions.length"
+    v-else-if="actions && actions.length"
     class="text-xs"
     :items="items"
     :doc="doc"
@@ -59,6 +70,19 @@ export default defineComponent({
         action,
         component,
       }));
+    },
+  },
+  methods: {
+    async runSingle() {
+      const action = this.actions[0]?.action;
+      if (!action) {
+        return;
+      }
+      if (this.doc) {
+        await action(this.doc, this.$router);
+      } else {
+        await (action as () => unknown)();
+      }
     },
   },
 });

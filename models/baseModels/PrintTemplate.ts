@@ -22,7 +22,7 @@ export class PrintTemplate extends Doc {
 
   static getListViewSettings(fyo: Fyo): ListViewSettings {
     return {
-      formRoute: (name) => `/template-builder/${name}`,
+      formRoute: (name) => `/template-builder/${encodeURIComponent(name)}`,
       columns: [
         'name',
         {

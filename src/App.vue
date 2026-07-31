@@ -92,6 +92,11 @@ import {
 } from './utils/feedbackSurvey';
 import { getSavePath } from './utils/ui';
 import { maybePromptMemorizedDue } from './utils/memorizedTransactions';
+import {
+  clearSavedLastRoute,
+  enableRoutePersistence,
+  getSavedLastRoute,
+} from './router';
 
 enum Screen {
   Desk = 'Desk',
@@ -379,11 +384,17 @@ export default defineComponent({
       const { onboardingComplete } = await fyo.doc.getDoc('GetStarted');
       const { hideGetStarted } = await fyo.doc.getDoc('SystemSettings');
 
+      // Use the boot-time snapshot — raw localStorage may already be `/`.
+      const lastRoute = getSavedLastRoute();
       let route = '/get-started';
-      if (hideGetStarted || onboardingComplete) {
-        route = localStorage.getItem('lastRoute') || '/';
+      if (lastRoute) {
+        route = lastRoute;
+      } else if (hideGetStarted || onboardingComplete) {
+        route = '/';
       }
 
+      // Allow persisting `/` and the restored route from here on.
+      enableRoutePersistence();
       await routeTo(route);
       await nextTick();
       await waitForNextPaint();
@@ -392,6 +403,7 @@ export default defineComponent({
     async showDbSelector(): Promise<void> {
       await releaseBootSplash();
       localStorage.clear();
+      clearSavedLastRoute();
       fyo.config.set('lastSelectedFilePath', null);
       fyo.telemetry.stop();
       await fyo.purgeCache();

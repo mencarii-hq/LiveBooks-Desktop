@@ -173,6 +173,10 @@ import PageHeader from 'src/components/PageHeader.vue';
 import Row from 'src/components/Row.vue';
 import { fyo } from 'src/initFyo';
 import { handleErrorWithDialog } from 'src/errorHandling';
+import {
+  getLastRegisterBankAccount,
+  setLastRegisterBankAccount,
+} from 'src/utils/registerBankAccount';
 import { routeTo } from 'src/utils/ui';
 import { QueryFilter } from 'utils/db/types';
 import { defineComponent } from 'vue';
@@ -189,8 +193,6 @@ type RegisterRow = {
   balance: string;
   paymentName?: string;
 };
-
-const LAST_BANK_KEY = 'livebooks-register-bank-account';
 
 export default defineComponent({
   name: 'BankRegister',
@@ -238,24 +240,56 @@ export default defineComponent({
       };
     },
   },
+  watch: {
+    bankAccount(value: string) {
+      if (value) {
+        setLastRegisterBankAccount(value);
+      }
+    },
+  },
   async mounted() {
     try {
-      await this.loadAccounts();
-      const saved = localStorage.getItem(LAST_BANK_KEY);
-      if (saved && this.bankAccounts.some((a) => a.name === saved)) {
-        this.bankAccount = saved;
-        await this.loadRows();
-      }
+      await this.restoreBankAndLoad(true);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('BankRegister mounted', error);
       await handleErrorWithDialog(error);
     }
   },
+  async activated() {
+    // keep-alive: remount is skipped — re-apply saved bank and refresh rows
+    try {
+      await this.restoreBankAndLoad(false);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('BankRegister activated', error);
+    }
+  },
   methods: {
     accountLabel(id?: string) {
       if (!id) return '';
       return this.accountNameById[id] || id;
+    },
+    async restoreBankAndLoad(forceAccounts: boolean) {
+      if (forceAccounts || !this.bankAccounts.length) {
+        await this.loadAccounts();
+      }
+      const names = this.bankAccounts.map((a) => a.name);
+      const saved = getLastRegisterBankAccount(names);
+      if (saved && this.bankAccount !== saved) {
+        this.bankAccount = saved;
+      } else if (!this.bankAccount && saved) {
+        this.bankAccount = saved;
+      }
+      if (this.bankAccount && !names.includes(this.bankAccount)) {
+        this.bankAccount = saved || '';
+      }
+      if (this.bankAccount) {
+        setLastRegisterBankAccount(this.bankAccount);
+        await this.loadRows();
+      } else {
+        this.rows = [];
+      }
     },
     async loadAccounts() {
       const banks = (await fyo.db.getAll(ModelNameEnum.Account, {
@@ -288,13 +322,13 @@ export default defineComponent({
     async onBankAccountChange(value: string | null) {
       this.bankAccount = value || '';
       if (this.bankAccount) {
-        localStorage.setItem(LAST_BANK_KEY, this.bankAccount);
+        setLastRegisterBankAccount(this.bankAccount);
       }
       await this.loadRows();
     },
     async goWriteEntry() {
       if (!this.bankAccount) return;
-      localStorage.setItem(LAST_BANK_KEY, this.bankAccount);
+      setLastRegisterBankAccount(this.bankAccount);
       await routeTo({
         path: '/bank-register/write',
         query: { account: this.bankAccount },

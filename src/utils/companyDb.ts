@@ -176,32 +176,6 @@ export async function moveCompanyFile(
     return currentPath;
   }
 
-  const archiveChoice = await showDialog({
-    title: t`Move Company File`,
-    detail: t`The company file will move to the new location. The old file will be archived so two copies do not share the same company id.`,
-    type: 'warning',
-    buttons: [
-      {
-        label: t`Move and archive old file`,
-        action() {
-          return 'archive' as const;
-        },
-        isPrimary: true,
-      },
-      {
-        label: t`Cancel`,
-        action() {
-          return null;
-        },
-        isEscape: true,
-      },
-    ],
-  });
-
-  if (archiveChoice !== 'archive') {
-    return null;
-  }
-
   const wasOpen = !!fyo.db.isConnected && fyo.db.dbPath === currentPath;
   let movedAndConnected = false;
 
@@ -274,8 +248,8 @@ export async function moveCompanyFile(
     // eslint-disable-next-line no-console
     console.error('Move: archive of old file failed', archiveError);
     await showDialog({
-      title: t`Moved with warning`,
-      detail: t`Company file moved to ${filePath}, but the old file could not be archived. Remove or rename it manually so two copies do not share the same company id.`,
+      title: t`Moved`,
+      detail: t`Company file moved to ${filePath}. The previous file could not be retired — please remove or rename it manually so it is not opened as a second copy.`,
       type: 'warning',
     });
     return filePath;
@@ -283,7 +257,7 @@ export async function moveCompanyFile(
 
   await showDialog({
     title: t`Moved`,
-    detail: t`Company file moved to ${filePath}`,
+    detail: t`Company file moved to ${filePath}.`,
     type: 'info',
   });
   return filePath;

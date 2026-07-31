@@ -176,12 +176,14 @@ import {
   createRegisterPayment,
   memorizeRegisterFields,
 } from 'src/utils/memorizedTransactions';
+import {
+  getLastRegisterBankAccount,
+  setLastRegisterBankAccount,
+} from 'src/utils/registerBankAccount';
 import { routeTo } from 'src/utils/ui';
 import { defineComponent } from 'vue';
 
 type AccountOpt = { name: string; accountName?: string };
-
-const LAST_BANK_KEY = 'livebooks-register-bank-account';
 
 export default defineComponent({
   name: 'BankRegisterWrite',
@@ -219,32 +221,45 @@ export default defineComponent({
       } as Field;
     },
   },
+  watch: {
+    bankAccount(value: string) {
+      if (value) {
+        setLastRegisterBankAccount(value);
+      }
+    },
+  },
   async mounted() {
     try {
       await this.loadAccounts();
       await this.loadParties();
-      const fromQuery = String(this.$route.query.account || '');
-      const saved = localStorage.getItem(LAST_BANK_KEY) || '';
-      const pick =
-        (fromQuery && this.bankAccounts.some((a) => a.name === fromQuery)
-          ? fromQuery
-          : '') ||
-        (saved && this.bankAccounts.some((a) => a.name === saved) ? saved : '');
-      this.bankAccount = pick;
-      if (pick) {
-        localStorage.setItem(LAST_BANK_KEY, pick);
-      }
+      this.applySavedBank();
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('BankRegisterWrite mounted', error);
       await handleErrorWithDialog(error);
     }
   },
+  activated() {
+    this.applySavedBank();
+  },
   methods: {
+    applySavedBank() {
+      const names = this.bankAccounts.map((a) => a.name);
+      const fromQuery = String(this.$route.query.account || '');
+      const saved = getLastRegisterBankAccount(names);
+      const pick =
+        (fromQuery && names.includes(fromQuery) ? fromQuery : '') ||
+        saved ||
+        this.bankAccount;
+      this.bankAccount = names.includes(pick) ? pick : '';
+      if (this.bankAccount) {
+        setLastRegisterBankAccount(this.bankAccount);
+      }
+    },
     onBankAccountChange(value: string | null) {
       this.bankAccount = value || '';
       if (this.bankAccount) {
-        localStorage.setItem(LAST_BANK_KEY, this.bankAccount);
+        setLastRegisterBankAccount(this.bankAccount);
       }
     },
     async loadAccounts() {
@@ -310,7 +325,7 @@ export default defineComponent({
           paymentType: this.form.paymentType,
           memo: this.form.memo,
         });
-        localStorage.setItem(LAST_BANK_KEY, this.bankAccount);
+        setLastRegisterBankAccount(this.bankAccount);
         await routeTo('/bank-register');
       } catch (error) {
         await handleErrorWithDialog(error);

@@ -2,6 +2,7 @@ import { Fyo, t } from 'fyo';
 import { NotFoundError, ValidationError } from 'fyo/utils/errors';
 import { AccountingLedgerEntry } from 'models/baseModels/AccountingLedgerEntry/AccountingLedgerEntry';
 import { ModelNameEnum } from 'models/types';
+import { DateTime } from 'luxon';
 import { Money } from 'pesa';
 import { Transactional } from './Transactional';
 import { TransactionType } from './types';
@@ -68,8 +69,29 @@ export class LedgerPosting {
   }
 
   timezoneDateTimeAdjuster(setDate: string | Date) {
-    const dateTimeValue = new Date(setDate);
+    // Date-only ISO (no time) → local noon to avoid TZ day shift for ALE.
+    if (typeof setDate === 'string') {
+      const trimmed = setDate.trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        const dt = DateTime.fromISO(trimmed);
+        if (dt.isValid) {
+          return dt
+            .set({ hour: 12, minute: 0, second: 0, millisecond: 0 })
+            .toJSDate();
+        }
+      }
+      const parsed = DateTime.fromISO(trimmed);
+      if (parsed.isValid) {
+        return parsed.toJSDate();
+      }
+    }
 
+    // Real DateTime values — keep the clock time as posted.
+    if (setDate instanceof Date && !Number.isNaN(setDate.getTime())) {
+      return setDate;
+    }
+
+    const dateTimeValue = new Date(setDate);
     const dtFixedValue = dateTimeValue;
     const dtMinutes = dtFixedValue.getTimezoneOffset() % 60;
     const dtHours = (dtFixedValue.getTimezoneOffset() - dtMinutes) / 60;

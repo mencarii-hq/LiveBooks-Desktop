@@ -639,7 +639,11 @@ export default defineComponent({
 
           if (g.items) {
             let activeItem = g.items.filter(
-              ({ route }) => route === fullPath || fullPath.startsWith(route)
+              ({ route, schemaName }) =>
+                route === fullPath ||
+                fullPath.startsWith(route) ||
+                (schemaName === 'PrintTemplate' &&
+                  fullPath.startsWith('/template-builder'))
             );
 
             if (activeItem.length) {
@@ -657,7 +661,12 @@ export default defineComponent({
       const schemaNameMatch =
         item.schemaName && params.schemaName === item.schemaName;
 
-      const isMatch = routeMatch || schemaNameMatch;
+      const printTemplateBuilderMatch =
+        item.schemaName === 'PrintTemplate' &&
+        currentRoute.startsWith('/template-builder');
+
+      const isMatch =
+        routeMatch || schemaNameMatch || printTemplateBuilderMatch;
       if (params.name && item.schemaName && !isMatch) {
         return currentRoute.includes(`${item.schemaName}/${params.name}`);
       }

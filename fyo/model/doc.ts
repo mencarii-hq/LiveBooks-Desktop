@@ -805,10 +805,16 @@ export class Doc extends Observable<DocValue | Doc[]> {
     const dbModified = (dbValues.modified as Date)?.toISOString();
 
     if (dbValues && docModified !== dbModified) {
+      const titleKey =
+        this.schema.linkDisplayField || this.schema.titleField || 'name';
+      const titleValue = this.get(titleKey) ?? dbValues[titleKey];
+      const displayName =
+        typeof titleValue === 'string' && titleValue.trim()
+          ? titleValue.trim()
+          : this.name;
       throw new ConflictError(
         this.fyo
-          .t`${this.schema.label} ${this.name} has been modified after loading please reload entry.` +
-          ` ${dbModified}, ${docModified}`
+          .t`${this.schema.label} ${displayName} has been modified after loading please reload entry.`
       );
     }
   }

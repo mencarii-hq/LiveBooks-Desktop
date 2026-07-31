@@ -1,8 +1,7 @@
-import { Fyo, t } from 'fyo';
+import { t } from 'fyo';
 import { Doc } from 'fyo/model/doc';
 import { DocValue } from 'fyo/core/types';
 import {
-  Action,
   DefaultMap,
   FormulaMap,
   ListViewSettings,
@@ -20,6 +19,9 @@ export type MemorizedFrequency =
   | 'Annual';
 
 function toISODate(value: DocValue): string {
+  if (value instanceof Date) {
+    return DateTime.fromJSDate(value).toISODate() ?? '';
+  }
   return String(value ?? '').slice(0, 10);
 }
 
@@ -53,6 +55,20 @@ export class MemorizedTransaction extends Doc {
   };
 
   validations: ValidationMap = {
+    fromAccount: (value: DocValue) => {
+      if (value && this.toAccount && value === this.toAccount) {
+        throw new ValidationError(
+          t`From Account and To Account cannot be the same.`
+        );
+      }
+    },
+    toAccount: (value: DocValue) => {
+      if (value && this.fromAccount && value === this.fromAccount) {
+        throw new ValidationError(
+          t`From Account and To Account cannot be the same.`
+        );
+      }
+    },
     nextDueDate: async (value: DocValue) => {
       if (value == null || value === '') {
         return;
@@ -77,6 +93,11 @@ export class MemorizedTransaction extends Doc {
         if (persisted && persisted === dueISO) {
           return;
         }
+        // Allow schedule advance after Run Now / Create even if still due
+        // (e.g. Daily from yesterday → today).
+        if (persisted && dueISO > persisted) {
+          return;
+        }
       }
 
       throw new ValidationError(
@@ -97,31 +118,5 @@ export class MemorizedTransaction extends Doc {
         'memo',
       ],
     };
-  }
-
-  static getActions(fyo: Fyo): Action[] {
-    return [
-      {
-        label: fyo.t`Create next`,
-        group: fyo.t`Create`,
-        action: async (doc) => {
-          const { createPaymentFromMemorized, advanceNextDueDate } =
-            await import('src/utils/memorizedTransactions');
-          const { showToast } = await import('src/utils/interactive');
-          const { handleErrorWithDialog } = await import('src/errorHandling');
-          const mt = doc as MemorizedTransaction;
-          try {
-            await createPaymentFromMemorized(fyo, mt);
-            await advanceNextDueDate(mt);
-            showToast({
-              type: 'success',
-              message: fyo.t`Created recurring payment`,
-            });
-          } catch (error) {
-            await handleErrorWithDialog(error, mt, true, true);
-          }
-        },
-      },
-    ];
   }
 }

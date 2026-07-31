@@ -46,12 +46,20 @@ export class Account extends Doc {
 
   required: RequiredMap = {
     /**
-     * Added here cause rootAccounts don't have parents
-     * they are created during initialization. if this is
-     * added to the schema it will cause NOT NULL errors
+     * Child accounts need a parent after setup. Root accounts are created
+     * during initialization with no parent — keep them editable (e.g. rename)
+     * without forcing parentAccount.
      */
-
-    parentAccount: () => !!this.fyo.singles?.AccountingSettings?.setupComplete,
+    parentAccount: () => {
+      if (!this.fyo.singles?.AccountingSettings?.setupComplete) {
+        return false;
+      }
+      // Existing roots intentionally have no parent.
+      if (this.inserted && !this.parentAccount) {
+        return false;
+      }
+      return true;
+    },
   };
 
   static defaults: DefaultMap = {
