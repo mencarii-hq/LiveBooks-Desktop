@@ -24,6 +24,7 @@ import { handleErrorWithDialog } from 'src/errorHandling';
 import { fyo } from 'src/initFyo';
 import router from 'src/router';
 import { assertIsType } from 'utils/index';
+import { isUuidDocId } from 'utils/ids';
 import { SelectFileOptions } from 'utils/types';
 import { RouteLocationRaw } from 'vue-router';
 import { evaluateHidden } from './doc';
@@ -123,11 +124,14 @@ export async function deleteDocWithPrompt(doc: Doc) {
             if (getDbError(err as Error) === LinkValidationError) {
               await showDialog({
                 title: t`Delete Failed`,
-                detail: t`Cannot delete ${schemaLabel} "${doc.name!}" because of linked entries.`,
+                detail: t`Cannot delete ${schemaLabel} "${getDocReferenceLabel(
+                  doc
+                )}" because of linked entries.`,
                 type: 'error',
               });
             } else {
-              await handleErrorWithDialog(err as Error, doc);
+              // dontThrow: avoid rejecting the dialog promise (unhandled → Report Error toast)
+              await handleErrorWithDialog(err as Error, doc, false, true);
             }
 
             return false;
@@ -882,13 +886,32 @@ export function showCannotCancelOrDeleteToast(doc: Doc) {
   showToast({ type: 'warning', message, duration: 'short' });
 }
 
-function getDocReferenceLabel(doc: Doc) {
-  const label = doc.schema.label || doc.schemaName;
-  if (doc.schema.naming === 'random') {
-    return label;
+/**
+ * User-facing doc label for toasts/dialogs/form headers.
+ * Prefer titleField / linkDisplayField; never surface UUID primary keys.
+ */
+export function getDocReferenceLabel(doc: Doc): string {
+  const schemaLabel = String(doc.schema.label || doc.schemaName);
+  const titleField =
+    doc.schema.linkDisplayField || doc.schema.titleField || 'name';
+
+  if (titleField !== 'name') {
+    const rawTitle = doc.get(titleField);
+    const title = typeof rawTitle === 'string' ? rawTitle.trim() : '';
+    if (title && !isUuidDocId(title)) {
+      return title;
+    }
   }
 
-  return doc.name || label;
+  if (
+    doc.schema.naming === 'random' ||
+    doc.schema.naming === 'uuid' ||
+    isUuidDocId(doc.name)
+  ) {
+    return schemaLabel;
+  }
+
+  return doc.name || schemaLabel;
 }
 
 export const printSizes = [
@@ -1067,31 +1090,49 @@ export function showExportInFolder(message: string, filePath: string) {
 }
 
 export async function deleteDb(filePath: string) {
-  const { error } = await ipc.deleteFile(filePath);
+  // Delete .db plus SQLite sidecar files; ENOENT on missing sidecars is fine.
+  const paths = [filePath, `${filePath}-wal`, `${filePath}-shm`];
+  let primaryMissing = false;
 
-  if (error?.code === 'EBUSY') {
-    await showDialog({
-      title: t`Delete Failed`,
-      detail: t`Please restart and try again.`,
-      type: 'error',
-    });
-  } else if (error?.code === 'ENOENT') {
+  for (const path of paths) {
+    const { error } = await ipc.deleteFile(path);
+    if (!error) {
+      continue;
+    }
+    if (error.code === 'ENOENT') {
+      if (path === filePath) {
+        primaryMissing = true;
+      }
+      continue;
+    }
+    if (error.code === 'EBUSY') {
+      await showDialog({
+        title: t`Delete Failed`,
+        detail: t`Please restart and try again.`,
+        type: 'error',
+      });
+      return;
+    }
+    if (error.code === 'EPERM') {
+      await showDialog({
+        title: t`Cannot Delete`,
+        detail: t`Close LiveBooks Desktop and try manually.`,
+        type: 'error',
+      });
+      return;
+    }
+    const err = new BaseError(500, error.message);
+    err.name = error.name;
+    err.stack = error.stack;
+    throw err;
+  }
+
+  if (primaryMissing) {
     await showDialog({
       title: t`Delete Failed`,
       detail: t`File ${filePath} does not exist.`,
       type: 'error',
     });
-  } else if (error?.code === 'EPERM') {
-    await showDialog({
-      title: t`Cannot Delete`,
-      detail: t`Close LiveBooks Desktop and try manually.`,
-      type: 'error',
-    });
-  } else if (error) {
-    const err = new BaseError(500, error.message);
-    err.name = error.name;
-    err.stack = error.stack;
-    throw err;
   }
 }
 

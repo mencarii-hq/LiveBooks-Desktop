@@ -126,12 +126,17 @@ export function useDocShortcuts(
       return;
     }
 
-    if (doc.canSave) {
-      return await commonDocSync(doc, true);
-    }
-
+    // Match form headers: Submit when ready, else Save whenever editable.
     if (doc.canSubmit) {
       return await commonDocSubmit(doc);
+    }
+
+    const canShowSave =
+      !doc.schema.isChild &&
+      !doc.isCancelled &&
+      !(doc.schema.isSubmittable && doc.isSubmitted);
+    if (canShowSave) {
+      return await commonDocSync(doc, true);
     }
 
     showCannotSaveOrSubmitToast(doc);

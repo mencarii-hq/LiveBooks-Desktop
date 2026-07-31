@@ -62,7 +62,25 @@ module.exports = {
       gridColumn: {
         'span-full': '1 / -1',
       },
-      colors,
+      colors: {
+        ...colors,
+        // Semantic tokens — values flip via CSS vars on :root / html.dark
+        ink: {
+          DEFAULT: 'var(--color-ink)',
+          muted: 'var(--color-ink-muted)',
+          subtle: 'var(--color-ink-subtle)',
+        },
+        surface: {
+          DEFAULT: 'var(--color-surface)',
+          raised: 'var(--color-surface-raised)',
+          'raised-hover': 'var(--color-surface-raised-hover)',
+          input: 'var(--color-surface-input)',
+        },
+        'border-default': 'var(--color-border-default)',
+      },
+      borderColor: {
+        default: 'var(--color-border-default)',
+      },
     },
   },
   variants: {
@@ -75,6 +93,9 @@ module.exports = {
       'focus-within',
       'dark',
     ],
+    textColor: ['responsive', 'hover', 'focus', 'group-hover', 'dark'],
+    borderColor: ['responsive', 'hover', 'focus', 'focus-within', 'dark'],
+    placeholderColor: ['responsive', 'focus', 'dark'],
     display: ['group-hover'],
     borderWidth: ['last'],
     fontWeight: ['dark'],

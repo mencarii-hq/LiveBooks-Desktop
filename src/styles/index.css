@@ -20,13 +20,36 @@
 
 @tailwind utilities;
 
-html {
-  color: theme('colors.black');
+:root {
+  /* Semantic color tokens (light) — must precede html color rules */
+  --color-ink: theme('colors.gray.900');
+  --color-ink-muted: theme('colors.gray.600');
+  --color-ink-subtle: theme('colors.gray.500');
+  --color-surface: theme('colors.gray.25');
+  --color-surface-raised: theme('colors.gray.200');
+  --color-surface-raised-hover: theme('colors.gray.300');
+  --color-surface-input: theme('colors.gray.25');
+  --color-border-default: theme('colors.gray.200');
 }
 
 html.dark {
-  color: theme('colors.black');
-  background-color: theme('colors.gray.900');
+  --color-ink: theme('colors.gray.25');
+  --color-ink-muted: theme('colors.gray.300');
+  --color-ink-subtle: theme('colors.gray.400');
+  --color-surface: theme('colors.gray.900');
+  --color-surface-raised: theme('colors.gray.700');
+  --color-surface-raised-hover: theme('colors.gray.600');
+  --color-surface-input: theme('colors.gray.800');
+  --color-border-default: theme('colors.gray.700');
+}
+
+html {
+  color: var(--color-ink);
+}
+
+html.dark {
+  color: var(--color-ink);
+  background-color: var(--color-surface);
   color-scheme: dark;
 }
 
