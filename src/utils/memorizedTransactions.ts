@@ -119,6 +119,7 @@ export async function memorizePayment(
   }
 
   const doc = fyo.doc.getNewDoc(ModelNameEnum.MemorizedTransaction, {
+    title: payment.party,
     party: payment.party,
     paymentType,
     fromAccount: payment.account,
@@ -159,6 +160,7 @@ export async function memorizeRegisterFields(
     fields.paymentType === 'Pay' ? fields.categoryAccount : fields.bankAccount;
 
   const doc = fyo.doc.getNewDoc(ModelNameEnum.MemorizedTransaction, {
+    title: fields.party,
     party: fields.party,
     paymentType: fields.paymentType,
     fromAccount: account,
@@ -247,6 +249,7 @@ export async function getDueMemorized(
     const rows = await fyo.db.getAllRaw(ModelNameEnum.MemorizedTransaction, {
       fields: [
         'name',
+        'title',
         'party',
         'amount',
         'nextDueDate',
@@ -336,11 +339,12 @@ export async function maybePromptMemorizedDue(fyo: Fyo): Promise<void> {
       .map((d) => {
         const amt = fyo.format(d.amount as never, 'Currency');
         const dueDate = String(d.nextDueDate ?? '').slice(0, 10);
-        return `${String(d.party ?? '')} — ${amt} (${dueDate})`;
+        const label = String(d.title || d.party || '');
+        return `${label} — ${amt} (${dueDate})`;
       })
       .join('\n');
 
-    const firstParty = String(due[0].party || '');
+    const firstLabel = String(due[0].title || due[0].party || '');
     const buttons =
       due.length === 1
         ? [
@@ -368,7 +372,7 @@ export async function maybePromptMemorizedDue(fyo: Fyo): Promise<void> {
               isPrimary: true,
             },
             {
-              label: t`Create: ${firstParty}`,
+              label: t`Create: ${firstLabel}`,
               action() {
                 return 'one' as const;
               },

@@ -2,6 +2,7 @@
   "name": "MemorizedTransaction",
   "label": "Recurring Transaction",
   "naming": "autoincrement",
+  "titleField": "title",
   "isSingle": false,
   "isChild": false,
   "isSubmittable": false,
@@ -13,6 +14,13 @@
       "required": true,
       "readOnly": true,
       "hidden": true
+    },
+    {
+      "fieldname": "title",
+      "label": "Name",
+      "fieldtype": "Data",
+      "required": true,
+      "section": "Default"
     },
     {
       "fieldname": "party",
@@ -84,6 +92,7 @@
       "label": "Next Due Date",
       "fieldtype": "Date",
       "required": true,
+      "minDateOffsetDays": 1,
       "section": "Schedule"
     },
     {
@@ -98,6 +107,7 @@
     }
   ],
   "quickEditFields": [
+    "title",
     "party",
     "paymentType",
     "fromAccount",
@@ -107,5 +117,5 @@
     "frequency",
     "nextDueDate"
   ],
-  "keywordFields": ["party", "memo"]
+  "keywordFields": ["title", "party", "memo"]
 }
