@@ -24,6 +24,22 @@ const root = dirname; // redundant, but is meant to keep with the previous line
 const buildDirPath = path.join(root, 'dist_electron', 'build');
 const packageDirPath = path.join(root, 'dist_electron', 'bundled');
 
+/**
+ * Mac target arch must follow CLI flags (`--arm64` / `--x64`).
+ * A hardcoded `['arm64', 'x64']` ignores those flags and made the separate
+ * arm/intel publish workflows each upload both arches (GitHub asset races).
+ * With no arch flag, keep both for a local full mac package.
+ */
+function resolveMacArches(argv = process.argv) {
+  const arches = [];
+  if (argv.includes('--arm64')) arches.push('arm64');
+  if (argv.includes('--x64')) arches.push('x64');
+  if (argv.includes('--universal')) arches.push('universal');
+  return arches.length > 0 ? arches : ['arm64', 'x64'];
+}
+
+const macArches = resolveMacArches();
+
 const liveBooksConfig = {
   productName: FROZEN_PRODUCT_NAME,
   appId: FROZEN_BUNDLE_ID,
@@ -65,7 +81,7 @@ const liveBooksConfig = {
     target: [
       {
         target: 'default',
-        arch: ['arm64', 'x64'],
+        arch: macArches,
       },
     ],
     // electron-builder 26: notarize is boolean only. Team ID / Apple ID come
