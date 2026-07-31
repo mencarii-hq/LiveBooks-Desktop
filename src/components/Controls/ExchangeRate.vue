@@ -4,7 +4,7 @@
       flex
       items-center
       bg-gray-50
-      dark:bg-gray-890 dark:border-gray-800
+      dark:bg-gray-800 dark:border-gray-600
       rounded-md
       text-sm
       p-1
@@ -16,13 +16,13 @@
       :class="
         disabled
           ? 'bg-gray-100 dark:bg-gray-850'
-          : 'bg-gray-25 dark:bg-gray-890'
+          : 'bg-gray-25 dark:bg-gray-800'
       "
     >
       <input
         class="
           text-right
-          dark:text-gray-400
+          dark:text-gray-300
           border-transparent
           focus:border-gray-500 focus:outline-none
           dark:focus:ring-1
@@ -36,23 +36,23 @@
         min="0"
       />
 
-      <span class="dark:text-gray-400">{{ left }}</span>
+      <span class="dark:text-gray-300">{{ left }}</span>
     </div>
 
-    <p class="mx-1 text-gray-600 dark:text-gray-400">=</p>
+    <p class="mx-1 text-gray-600 dark:text-gray-300">=</p>
 
     <div
       class="rate-container gap-2"
       :class="
         disabled
           ? 'bg-gray-100 dark:bg-gray-850'
-          : 'bg-gray-25 dark:bg-gray-890'
+          : 'bg-gray-25 dark:bg-gray-800'
       "
     >
       <input
         class="
           text-right
-          dark:text-gray-400
+          dark:text-gray-300
           border-transparent
           focus:border-gray-500 focus:outline-none
           dark:focus:ring-1
@@ -66,7 +66,7 @@
         min="0"
         @change="rightChange"
       />
-      <span class="dark:text-gray-400">{{ right }}</span>
+      <span class="dark:text-gray-300">{{ right }}</span>
     </div>
 
     <button
@@ -85,7 +85,7 @@
     >
       <feather-icon
         name="refresh-cw"
-        class="w-3 h-3 text-gray-600 dark:text-gray-400"
+        class="w-3 h-3 text-gray-600 dark:text-gray-300"
       />
     </button>
   </div>

@@ -126,7 +126,7 @@
         bg-white
         dark:bg-gray-900
         text-gray-900
-        dark:text-gray-200
+        dark:text-gray-100
         border-s-4
       "
       :style="{ borderColor: activeColor }"

@@ -35,13 +35,13 @@
             </div>
           </div>
           <!-- Shortcut count if collapsed -->
-          <div v-else class="text-base text-gray-600 dark:text-gray-400">
+          <div v-else class="text-base text-gray-600 dark:text-gray-300">
             {{ t`${g.shortcuts.length} shortcuts` }}
           </div>
         </div>
         <hr class="dark:border-gray-800" />
       </template>
-      <div class="p-4 text-base text-gray-600 dark:text-gray-400">
+      <div class="p-4 text-base text-gray-600 dark:text-gray-300">
         {{ t`More shortcuts will be added soon.` }}
       </div>
     </div>

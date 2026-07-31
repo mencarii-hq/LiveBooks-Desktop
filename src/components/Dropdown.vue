@@ -37,13 +37,13 @@
         >
           <div
             v-if="isLoading"
-            class="p-2 text-gray-600 dark:text-gray-400 italic"
+            class="p-2 text-gray-600 dark:text-gray-300 italic"
           >
             {{ t`Loading...` }}
           </div>
           <div
             v-else-if="dropdownItems.length === 0"
-            class="p-2 text-gray-600 dark:text-gray-400 italic"
+            class="p-2 text-gray-600 dark:text-gray-300 italic"
           >
             {{ getEmptyMessage() }}
           </div>
@@ -62,7 +62,7 @@
                   text-xs
                   uppercase
                   text-gray-700
-                  dark:text-gray-400
+                  dark:text-gray-300
                   font-semibold
                   tracking-wider
                 "
@@ -82,7 +82,7 @@
                 "
                 :class="
                   index === highlightedIndex
-                    ? 'bg-gray-100 dark:bg-gray-875'
+                    ? 'bg-gray-100 dark:bg-gray-700'
                     : ''
                 "
                 @mouseenter="highlightedIndex = index"

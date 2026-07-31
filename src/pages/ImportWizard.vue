@@ -86,7 +86,7 @@
           :class="
             fileName
               ? 'text-gray-900 dark:text-gray-25 font-semibold'
-              : 'text-gray-700 dark:text-gray-200'
+              : 'text-gray-700 dark:text-gray-100'
           "
         >
           <span v-if="fileName" class="font-normal">{{ t`Selected` }} </span>
@@ -272,7 +272,7 @@
           :key="key"
           class="p-4 max-h-80 overflow-auto custom-scroll custom-scroll-thumb1"
         >
-          <h2 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+          <h2 class="text-sm font-semibold text-gray-800 dark:text-gray-100">
             {{ key }}
           </h2>
           <div
@@ -302,7 +302,7 @@
         <!-- Pick Column Footer -->
         <hr class="dark:border-gray-800" />
         <div class="p-4 flex justify-between items-center">
-          <p class="text-sm text-gray-600 dark:text-gray-400">
+          <p class="text-sm text-gray-600 dark:text-gray-300">
             {{ t`${numColumnsPicked} fields selected` }}
           </p>
           <Button type="primary" @click="showColumnPicker = false">{{
@@ -322,10 +322,10 @@
         <div v-if="success.length > 0">
           <!-- Success Section Header -->
           <div class="flex justify-between px-4 pt-4 pb-1">
-            <p class="text-base font-semibold dark:text-gray-200">
+            <p class="text-base font-semibold dark:text-gray-100">
               {{ t`Success` }}
             </p>
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-gray-600 dark:text-gray-300">
               {{
                 success.length === 1
                   ? t`${success.length} entry imported`
@@ -355,7 +355,7 @@
           <!-- Failed Section Header -->
           <div class="flex justify-between px-4 pt-4 pb-1">
             <p class="text-base font-semibold">{{ t`Failed` }}</p>
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-gray-600 dark:text-gray-300">
               {{
                 failed.length === 1
                   ? t`${failed.length} entry failed`
@@ -386,7 +386,7 @@
         <!-- Fallback Div -->
         <div
           v-if="failed.length === 0 && success.length === 0"
-          class="p-4 text-base dark:text-gray-200"
+          class="p-4 text-base dark:text-gray-100"
         >
           {{ t`No entries were imported.` }}
         </div>
@@ -1012,6 +1012,6 @@ export default defineComponent({
 </script>
 <style scoped>
 .index-cell {
-  @apply flex pe-4 justify-end items-center border-e last:border-b dark:border-gray-800 bg-white dark:bg-gray-875 sticky left-0 -my-4 text-gray-600 dark:text-gray-400;
+  @apply flex pe-4 justify-end items-center border-e last:border-b dark:border-gray-800 bg-white dark:bg-gray-875 sticky left-0 -my-4 text-gray-600 dark:text-gray-300;
 }
 </style>

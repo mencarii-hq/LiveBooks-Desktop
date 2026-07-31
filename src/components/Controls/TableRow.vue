@@ -1,12 +1,12 @@
 <template>
   <Row
     :ratio="ratio"
-    class="w-full px-2 group flex items-center justify-center h-row-mid"
+    class="w-full px-2 group items-center h-row-mid"
     :class="readOnly ? '' : 'hover:bg-gray-25 dark:hover:bg-gray-900'"
   >
     <!-- Index or Remove button -->
     <div
-      class="flex items-center ps-2 text-gray-600 dark:text-gray-400"
+      class="flex items-center ps-2 text-gray-600 dark:text-gray-300"
       @mouseenter="isRowIndexVisible = false"
       @mouseleave="isRowIndexVisible = true"
     >
@@ -64,6 +64,7 @@
     <FormControl
       v-for="(df, i) in tableFields"
       :key="df.fieldname"
+      class="min-w-0 w-full"
       :size="size"
       :df="df"
       :value="row[df.fieldname]"
@@ -80,7 +81,7 @@
     >
       <feather-icon
         name="edit"
-        class="w-4 h-4 text-gray-600 dark:text-gray-400"
+        class="w-4 h-4 text-gray-600 dark:text-gray-300"
       />
     </Button>
 

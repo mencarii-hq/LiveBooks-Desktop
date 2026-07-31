@@ -33,7 +33,7 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
           <label class="flex flex-col gap-1 text-sm">
-            <span class="text-gray-600 dark:text-gray-400">{{ t`Date` }}</span>
+            <span class="text-gray-600 dark:text-gray-300">{{ t`Date` }}</span>
             <input
               v-model="form.date"
               type="date"
@@ -44,12 +44,12 @@
                 px-2
                 py-1.5
                 bg-white
-                dark:bg-gray-900
+                dark:bg-gray-800 dark:border dark:border-gray-600
               "
             />
           </label>
           <label class="flex flex-col gap-1 text-sm">
-            <span class="text-gray-600 dark:text-gray-400"
+            <span class="text-gray-600 dark:text-gray-300"
               >{{ t`Payee` }} <span class="text-red-500">*</span></span
             >
             <input
@@ -62,7 +62,7 @@
                 px-2
                 py-1.5
                 bg-white
-                dark:bg-gray-900
+                dark:bg-gray-800 dark:border dark:border-gray-600
               "
               :placeholder="t`Payee`"
             />
@@ -71,7 +71,7 @@
             </datalist>
           </label>
           <label class="flex flex-col gap-1 text-sm">
-            <span class="text-gray-600 dark:text-gray-400">{{
+            <span class="text-gray-600 dark:text-gray-300">{{
               t`Category`
             }}</span>
             <select
@@ -83,7 +83,7 @@
                 px-2
                 py-1.5
                 bg-white
-                dark:bg-gray-900
+                dark:bg-gray-800 dark:border dark:border-gray-600
               "
             >
               <option disabled value="">{{ t`Select category` }}</option>
@@ -97,7 +97,7 @@
             </select>
           </label>
           <label class="flex flex-col gap-1 text-sm">
-            <span class="text-gray-600 dark:text-gray-400"
+            <span class="text-gray-600 dark:text-gray-300"
               >{{ t`Amount` }} <span class="text-red-500">*</span></span
             >
             <input
@@ -112,12 +112,12 @@
                 px-2
                 py-1.5
                 bg-white
-                dark:bg-gray-900
+                dark:bg-gray-800 dark:border dark:border-gray-600
               "
             />
           </label>
           <label class="flex flex-col gap-1 text-sm">
-            <span class="text-gray-600 dark:text-gray-400">{{
+            <span class="text-gray-600 dark:text-gray-300">{{
               t`Entry type`
             }}</span>
             <select
@@ -129,7 +129,7 @@
                 px-2
                 py-1.5
                 bg-white
-                dark:bg-gray-900
+                dark:bg-gray-800 dark:border dark:border-gray-600
               "
             >
               <option value="Pay">{{ t`Payment` }}</option>
@@ -137,7 +137,7 @@
             </select>
           </label>
           <label class="flex flex-col gap-1 text-sm">
-            <span class="text-gray-600 dark:text-gray-400">{{ t`Memo` }}</span>
+            <span class="text-gray-600 dark:text-gray-300">{{ t`Memo` }}</span>
             <input
               v-model="form.memo"
               type="text"
@@ -148,7 +148,7 @@
                 px-2
                 py-1.5
                 bg-white
-                dark:bg-gray-900
+                dark:bg-gray-800 dark:border dark:border-gray-600
               "
             />
           </label>

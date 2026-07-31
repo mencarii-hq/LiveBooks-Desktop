@@ -15,7 +15,7 @@
           border
           rounded-t-md
           text-gray-600
-          dark:border-gray-800 dark:text-gray-400
+          dark:border-gray-800 dark:text-gray-300
         "
       >
         <div
@@ -75,7 +75,7 @@
           border
           rounded-t-md
           text-gray-600
-          dark:border-gray-800 dark:text-gray-400
+          dark:border-gray-800 dark:text-gray-300
         "
       >
         <div

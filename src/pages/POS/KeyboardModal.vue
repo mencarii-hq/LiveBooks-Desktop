@@ -1,7 +1,7 @@
 <template>
   <Modal class="h-auto" :set-close-listener="false">
     <div class="px-5" style="width: 30vw">
-      <p class="text-center dark:text-gray-400 font-semibold py-3">Keyboard</p>
+      <p class="text-center dark:text-gray-300 font-semibold py-3">Keyboard</p>
       <hr class="dark:border-gray-800" />
       <div class="mx-6 my-3">
         <component
@@ -29,7 +29,7 @@
             rounded
             font-bold
             py-4
-            dark:text-gray-400
+            dark:text-gray-300
           "
         >
           <button
@@ -42,7 +42,7 @@
               transition-colors
               duration-200
               hover:bg-gray-200
-              dark:bg-gray-875 dark:hover:bg-gray-900
+              dark:bg-gray-700 dark:hover:bg-gray-600
             "
             @click="appendValue('7')"
           >
@@ -58,7 +58,7 @@
               transition-colors
               duration-200
               hover:bg-gray-200
-              dark:bg-gray-875 dark:hover:bg-gray-900
+              dark:bg-gray-700 dark:hover:bg-gray-600
             "
             @click="appendValue('8')"
           >
@@ -74,7 +74,7 @@
               transition-colors
               duration-200
               hover:bg-gray-200
-              dark:bg-gray-875 dark:hover:bg-gray-900
+              dark:bg-gray-700 dark:hover:bg-gray-600
             "
             @click="appendValue('9')"
           >
@@ -90,7 +90,7 @@
               transition-colors
               duration-200
               hover:bg-gray-200
-              dark:bg-gray-875 dark:hover:bg-gray-900
+              dark:bg-gray-700 dark:hover:bg-gray-600
             "
             @click="deleteLast()"
           >
@@ -107,7 +107,7 @@
               transition-colors
               duration-200
               hover:bg-gray-200
-              dark:bg-gray-875 dark:hover:bg-gray-900
+              dark:bg-gray-700 dark:hover:bg-gray-600
             "
             @click="appendValue('4')"
           >
@@ -123,7 +123,7 @@
               transition-colors
               duration-200
               hover:bg-gray-200
-              dark:bg-gray-875 dark:hover:bg-gray-900
+              dark:bg-gray-700 dark:hover:bg-gray-600
             "
             @click="appendValue('5')"
           >
@@ -139,7 +139,7 @@
               transition-colors
               duration-200
               hover:bg-gray-200
-              dark:bg-gray-875 dark:hover:bg-gray-900
+              dark:bg-gray-700 dark:hover:bg-gray-600
             "
             @click="appendValue('6')"
           >
@@ -155,7 +155,7 @@
               transition-colors
               duration-200
               hover:bg-gray-200
-              dark:bg-gray-875 dark:hover:bg-gray-900
+              dark:bg-gray-700 dark:hover:bg-gray-600
             "
             @click="appendValue('-')"
           >
@@ -172,7 +172,7 @@
               transition-colors
               duration-200
               hover:bg-gray-200
-              dark:bg-gray-875 dark:hover:bg-gray-900
+              dark:bg-gray-700 dark:hover:bg-gray-600
             "
             @click="appendValue('1')"
           >
@@ -188,7 +188,7 @@
               transition-colors
               duration-200
               hover:bg-gray-200
-              dark:bg-gray-875 dark:hover:bg-gray-900
+              dark:bg-gray-700 dark:hover:bg-gray-600
             "
             @click="appendValue('2')"
           >
@@ -204,7 +204,7 @@
               transition-colors
               duration-200
               hover:bg-gray-200
-              dark:bg-gray-875 dark:hover:bg-gray-900
+              dark:bg-gray-700 dark:hover:bg-gray-600
             "
             @click="appendValue('3')"
           >
@@ -220,7 +220,7 @@
               transition-colors
               duration-200
               hover:bg-gray-200
-              dark:bg-gray-875 dark:hover:bg-gray-900
+              dark:bg-gray-700 dark:hover:bg-gray-600
             "
             @click="appendValue('+')"
           >
@@ -237,7 +237,7 @@
               transition-colors
               duration-200
               hover:bg-gray-200
-              dark:bg-gray-875 dark:hover:bg-gray-900
+              dark:bg-gray-700 dark:hover:bg-gray-600
             "
             @click="appendValue('.')"
           >
@@ -253,7 +253,7 @@
               transition-colors
               duration-200
               hover:bg-gray-200
-              dark:bg-gray-875 dark:hover:bg-gray-900
+              dark:bg-gray-700 dark:hover:bg-gray-600
             "
             @click="appendValue('0')"
           >
@@ -270,7 +270,7 @@
                 transition-colors
                 duration-200
                 hover:bg-gray-200
-                dark:bg-gray-875 dark:hover:bg-gray-900
+                dark:bg-gray-700 dark:hover:bg-gray-600
               "
               @click="reset()"
             >

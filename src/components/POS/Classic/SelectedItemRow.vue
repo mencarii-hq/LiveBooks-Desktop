@@ -1,7 +1,7 @@
 <template>
   <feather-icon
     :name="isExapanded ? 'chevron-up' : 'chevron-down'"
-    class="w-4 h-4 inline-flex cursor-pointer text-gray-700 dark:text-gray-200"
+    class="w-4 h-4 inline-flex cursor-pointer text-gray-700 dark:text-gray-100"
     @click="toggleExpand"
   />
 
@@ -48,7 +48,7 @@
           cursor-pointer
           hover:text-blue-500
           text-gray-700
-          dark:text-gray-200
+          dark:text-gray-100
         "
         @click="adjustQuantity(1)"
       />
@@ -60,7 +60,7 @@
           cursor-pointer
           hover:text-blue-500
           text-gray-700
-          dark:text-gray-200
+          dark:text-gray-100
         "
         @click="adjustQuantity(-1)"
       />

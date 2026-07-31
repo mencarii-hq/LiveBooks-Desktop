@@ -39,7 +39,6 @@
         <Button
           class="w-full bg-green-500 dark:bg-green-700"
           style="padding: 1.35rem"
-          :disabled="validationError"
           @click="setLoyaltyPoints()"
         >
           <slot>

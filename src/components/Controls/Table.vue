@@ -1,6 +1,6 @@
 <template>
   <div v-if="tableFields?.length">
-    <div v-if="showLabel" class="text-gray-600 dark:text-gray-400 text-sm mb-1">
+    <div v-if="showLabel" class="text-gray-600 dark:text-gray-300 text-sm mb-1">
       {{ df.label }}
     </div>
 
@@ -13,9 +13,8 @@
           dark:border-gray-800
           px-2
           text-gray-600
-          dark:text-gray-400
+          dark:text-gray-300
           w-full
-          flex
           items-center
         "
       >
@@ -23,12 +22,12 @@
         <div
           v-for="df in tableFields"
           :key="df.fieldname"
-          class="flex px-2 h-row-mid"
+          class="flex px-2 h-row-mid min-w-0"
           :class="[
             df.sub_label
               ? 'flex-col items-center text-center'
               : isNumeric(df)
-              ? 'ms-auto items-center'
+              ? 'justify-end items-center'
               : 'items-center',
           ]"
         >
@@ -68,7 +67,6 @@
           px-2
           w-full
           h-row-mid
-          flex
           items-center
           focus:outline-none focus:ring-1 focus:ring-blue-500
         "

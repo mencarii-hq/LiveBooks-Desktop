@@ -51,7 +51,7 @@
       <p class="px-4 font-semibold">{{ error.message }}</p>
       <pre
         v-if="error.detail"
-        class="px-4 text-xl text-gray-700 dark:text-gray-400"
+        class="px-4 text-xl text-gray-700 dark:text-gray-300"
         >{{ error.detail }}</pre
       >
     </div>

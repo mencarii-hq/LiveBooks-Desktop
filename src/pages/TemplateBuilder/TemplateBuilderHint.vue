@@ -6,7 +6,7 @@
           flex
           gap-2
           text-sm text-gray-600
-          dark:text-gray-400
+          dark:text-gray-300
           whitespace-nowrap
           overflow-auto
           no-scrollbar
@@ -17,7 +17,7 @@
         <div class="">{{ getKey(r) }}</div>
         <div
           v-if="!r.isCollapsible"
-          class="font-semibold text-gray-800 dark:text-gray-200"
+          class="font-semibold text-gray-800 dark:text-gray-100"
         >
           {{ r.value }}
         </div>

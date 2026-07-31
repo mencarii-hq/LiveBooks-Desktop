@@ -60,7 +60,7 @@
           dark:bg-gray-890
         "
       >
-        <p v-if="loading" class="text-base text-gray-600 dark:text-gray-400">
+        <p v-if="loading" class="text-base text-gray-600 dark:text-gray-300">
           {{ t`Loading instance...` }}
         </p>
         <Button
@@ -73,7 +73,7 @@
           type="primary"
           class="w-24"
           data-testid="submit-button"
-          :disabled="!areAllValuesFilled || loading"
+          :disabled="loading"
           @click="submit"
           >{{ t`Submit` }}</Button
         >

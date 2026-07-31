@@ -99,7 +99,7 @@
                   "
                 />
                 <span
-                  class="block text-xs text-gray-500 dark:text-gray-400 mt-1"
+                  class="block text-xs text-gray-500 dark:text-gray-300 mt-1"
                 >
                   {{
                     t`Only transactions on or before this date appear below.`
@@ -133,12 +133,12 @@
                     bg-gray-50
                     dark:bg-gray-800
                     text-gray-700
-                    dark:text-gray-200
+                    dark:text-gray-100
                     cursor-not-allowed
                   "
                 />
                 <span
-                  class="block text-xs text-gray-500 dark:text-gray-400 mt-1"
+                  class="block text-xs text-gray-500 dark:text-gray-300 mt-1"
                 >
                   {{ t`From your last reconcile (locked).` }}
                 </span>
@@ -173,7 +173,7 @@
                   "
                 />
                 <span
-                  class="block text-xs text-gray-500 dark:text-gray-400 mt-1"
+                  class="block text-xs text-gray-500 dark:text-gray-300 mt-1"
                 >
                   {{ t`Closing balance on your statement (the target).` }}
                 </span>
@@ -191,7 +191,7 @@
               "
             >
               <div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase">
+                <div class="text-xs text-gray-500 dark:text-gray-300 uppercase">
                   {{ t`Ending balance (target)` }}
                 </div>
                 <div class="text-lg font-medium tabular-nums">
@@ -199,7 +199,7 @@
                 </div>
               </div>
               <div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase">
+                <div class="text-xs text-gray-500 dark:text-gray-300 uppercase">
                   {{ t`Cleared balance` }}
                 </div>
                 <div class="text-lg font-medium tabular-nums">
@@ -207,7 +207,7 @@
                 </div>
               </div>
               <div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase">
+                <div class="text-xs text-gray-500 dark:text-gray-300 uppercase">
                   {{ t`Difference` }}
                 </div>
                 <div
@@ -270,13 +270,16 @@
               <h2 class="text-sm font-medium dark:text-gray-100">
                 {{ t`Money out` }}
               </h2>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              <p class="text-xs text-gray-500 dark:text-gray-300 mt-0.5">
                 {{
                   t`Withdrawals and expenses (match the withdrawals column on your statement).`
                 }}
               </p>
             </div>
-            <div v-if="loadingEntries" class="p-3 text-sm text-gray-600">
+            <div
+              v-if="loadingEntries"
+              class="p-3 text-sm text-gray-600 dark:text-gray-300"
+            >
               {{ t`Loading transactions…` }}
             </div>
             <div
@@ -286,7 +289,7 @@
               {{ loadError }}
             </div>
             <table v-else class="min-w-full text-sm text-start">
-              <thead class="text-xs uppercase text-gray-500 dark:text-gray-400">
+              <thead class="text-xs uppercase text-gray-500 dark:text-gray-300">
                 <tr>
                   <th class="p-2 w-10 text-start">{{ t`Clear` }}</th>
                   <th class="text-start p-2">{{ t`Date` }}</th>
@@ -316,7 +319,7 @@
                   <td class="p-2 whitespace-nowrap tabular-nums">
                     {{ formatDateDMY(row.date) }}
                   </td>
-                  <td class="p-2 text-gray-600 dark:text-gray-400">
+                  <td class="p-2 text-gray-600 dark:text-gray-300">
                     {{ row.referenceShort || t`—` }}
                   </td>
                   <td class="p-2">{{ row.payee || t`—` }}</td>
@@ -327,7 +330,7 @@
                 <tr v-if="!moneyOutEntries.length && !loadingEntries">
                   <td
                     colspan="5"
-                    class="p-3 text-sm text-gray-500 dark:text-gray-400"
+                    class="p-3 text-sm text-gray-500 dark:text-gray-300"
                   >
                     {{ t`No withdrawals in this period.` }}
                   </td>
@@ -359,13 +362,16 @@
               <h2 class="text-sm font-medium dark:text-gray-100">
                 {{ t`Money in` }}
               </h2>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              <p class="text-xs text-gray-500 dark:text-gray-300 mt-0.5">
                 {{
                   t`Deposits and income (match the deposits column on your statement).`
                 }}
               </p>
             </div>
-            <div v-if="loadingEntries" class="p-3 text-sm text-gray-600">
+            <div
+              v-if="loadingEntries"
+              class="p-3 text-sm text-gray-600 dark:text-gray-300"
+            >
               {{ t`Loading transactions…` }}
             </div>
             <div
@@ -375,7 +381,7 @@
               {{ loadError }}
             </div>
             <table v-else class="min-w-full text-sm text-start">
-              <thead class="text-xs uppercase text-gray-500 dark:text-gray-400">
+              <thead class="text-xs uppercase text-gray-500 dark:text-gray-300">
                 <tr>
                   <th class="p-2 w-10 text-start">{{ t`Clear` }}</th>
                   <th class="text-start p-2">{{ t`Date` }}</th>
@@ -421,7 +427,7 @@
                 <tr v-if="!moneyInEntries.length && !loadingEntries">
                   <td
                     colspan="4"
-                    class="p-3 text-sm text-gray-500 dark:text-gray-400"
+                    class="p-3 text-sm text-gray-500 dark:text-gray-300"
                   >
                     {{ t`No deposits in this period.` }}
                   </td>
@@ -445,7 +451,7 @@
           <h3 class="text-sm font-medium dark:text-gray-100 mb-2">
             {{ t`Add a missing transaction` }}
           </h3>
-          <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">
+          <p class="text-xs text-gray-600 dark:text-gray-300 mb-3">
             {{
               t`Use for bank fees, interest, or anything on the statement that is not in your books yet. Saving posts a journal entry and marks the new line cleared.`
             }}
@@ -460,7 +466,7 @@
             "
           >
             <label class="block sm:col-span-1">
-              <span class="text-xs text-gray-600 dark:text-gray-400">{{
+              <span class="text-xs text-gray-600 dark:text-gray-300">{{
                 t`Date`
               }}</span>
               <input
@@ -480,7 +486,7 @@
               />
             </label>
             <label class="block sm:col-span-1 lg:col-span-2">
-              <span class="text-xs text-gray-600 dark:text-gray-400">{{
+              <span class="text-xs text-gray-600 dark:text-gray-300">{{
                 t`Payee`
               }}</span>
               <input
@@ -501,7 +507,7 @@
               />
             </label>
             <label class="block sm:col-span-1 lg:col-span-2">
-              <span class="text-xs text-gray-600 dark:text-gray-400">{{
+              <span class="text-xs text-gray-600 dark:text-gray-300">{{
                 t`Category`
               }}</span>
               <select
@@ -540,7 +546,7 @@
               </select>
             </label>
             <label class="block sm:col-span-1">
-              <span class="text-xs text-gray-600 dark:text-gray-400">{{
+              <span class="text-xs text-gray-600 dark:text-gray-300">{{
                 t`Amount`
               }}</span>
               <input
@@ -565,7 +571,7 @@
               <Button
                 type="primary"
                 class="!text-sm"
-                :disabled="addBusy || !canSaveAddRow"
+                :disabled="addBusy"
                 @click="saveAddRow"
               >
                 {{ addBusy ? t`Saving…` : t`Save` }}
@@ -1123,7 +1129,14 @@ export default defineComponent({
       this.resetAddRow();
     },
     async saveAddRow() {
-      if (!this.canSaveAddRow || this.addBusy) {
+      if (this.addBusy) {
+        return;
+      }
+      if (!this.canSaveAddRow) {
+        showToast({
+          type: 'error',
+          message: t`Fill date, payee, category, and a non-zero amount.`,
+        });
         return;
       }
       this.addBusy = true;

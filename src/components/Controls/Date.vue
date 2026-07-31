@@ -11,6 +11,8 @@
       :value="inputValue"
       :placeholder="inputPlaceholder"
       :readonly="isReadOnly"
+      :min="dateMin"
+      :max="dateMax"
       :tabindex="isReadOnly ? '-1' : '0'"
       @blur="onBlur"
       @focus="onFocus"
@@ -31,7 +33,10 @@
       >
         {{ formattedValue }}
       </p>
-      <p v-else-if="inputPlaceholder" class="text-base text-gray-500 w-full">
+      <p
+        v-else-if="inputPlaceholder"
+        class="text-base text-gray-500 dark:text-gray-300 w-full"
+      >
         {{ inputPlaceholder }}
       </p>
 
@@ -40,7 +45,7 @@
           name="calendar"
           class="w-4 h-4"
           :class="
-            showMandatory ? 'text-red-600' : 'text-gray-600 dark:text-gray-400'
+            showMandatory ? 'text-red-600' : 'text-gray-600 dark:text-gray-300'
           "
         />
       </button>
@@ -74,6 +79,23 @@ export default defineComponent({
 
       return '';
     },
+    /** Schema `minDateOffsetDays`: 1 = tomorrow (blocks today and earlier). */
+    dateMin(): string | undefined {
+      const offset = (this.df as { minDateOffsetDays?: number })
+        ?.minDateOffsetDays;
+      if (typeof offset !== 'number' || Number.isNaN(offset)) {
+        return undefined;
+      }
+      return DateTime.now().plus({ days: offset }).toISODate() ?? undefined;
+    },
+    dateMax(): string | undefined {
+      const offset = (this.df as { maxDateOffsetDays?: number })
+        ?.maxDateOffsetDays;
+      if (typeof offset !== 'number' || Number.isNaN(offset)) {
+        return undefined;
+      }
+      return DateTime.now().plus({ days: offset }).toISODate() ?? undefined;
+    },
     inputType() {
       return 'date';
     },
@@ -86,8 +108,8 @@ export default defineComponent({
         return '';
       }
 
-      const border = 'border border-gray-200 dark:border-gray-800';
-      let background = 'bg-gray-25 dark:bg-gray-875';
+      const border = 'border border-default';
+      let background = 'bg-surface-input';
       if (this.isReadOnly) {
         background = 'bg-gray-50 dark:bg-gray-850';
       }

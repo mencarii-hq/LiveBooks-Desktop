@@ -16,7 +16,7 @@
         class="border rounded-lg p-4 dark:border-gray-700 space-y-3"
       >
         <h2 class="text-sm font-medium">{{ t`Statement setup` }}</h2>
-        <p class="text-xs text-gray-600 dark:text-gray-400">
+        <p class="text-xs text-gray-600 dark:text-gray-300">
           {{
             t`Enter the period end and closing balance from your bank PDF. After you import CSV lines below, the reconcile workbench compares line totals to this balance.`
           }}
@@ -84,7 +84,7 @@
         <h2 class="text-sm font-medium mb-2">
           {{ t`Plaid statements (cloud)` }}
         </h2>
-        <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">
+        <p class="text-xs text-gray-600 dark:text-gray-300 mb-3">
           {{
             t`Sync stores official PDFs from Plaid in LiveBooks Cloud (book owner). Use period dates when importing lines from your own CSV export.`
           }}
@@ -182,7 +182,7 @@
 
       <div v-if="fileKind === 'ofx' && ofxParsed.length" class="space-y-2">
         <h2 class="text-sm font-medium">{{ t`Preview` }}</h2>
-        <p class="text-xs text-gray-600 dark:text-gray-400">
+        <p class="text-xs text-gray-600 dark:text-gray-300">
           {{ t`${ofxParsed.length} transaction(s) ready to import.` }}
         </p>
       </div>
@@ -194,7 +194,12 @@
             <label>{{ t`Which column is the Date?` }}</label>
             <select
               v-model="idxDate"
-              class="border rounded w-full dark:bg-gray-900"
+              class="
+                border
+                rounded
+                w-full
+                dark:bg-gray-800 dark:border-gray-600
+              "
             >
               <option v-for="(h, i) in headers" :key="'d' + i" :value="i">
                 {{ h || '(' + i + ')' }}
@@ -205,7 +210,12 @@
             <label>{{ t`Which column is the Description?` }}</label>
             <select
               v-model="idxDesc"
-              class="border rounded w-full dark:bg-gray-900"
+              class="
+                border
+                rounded
+                w-full
+                dark:bg-gray-800 dark:border-gray-600
+              "
             >
               <option v-for="(h, i) in headers" :key="'s' + i" :value="i">
                 {{ h || '(' + i + ')' }}
@@ -216,7 +226,12 @@
             <label>{{ t`Which column is the Amount?` }}</label>
             <select
               v-model="idxAmount"
-              class="border rounded w-full dark:bg-gray-900"
+              class="
+                border
+                rounded
+                w-full
+                dark:bg-gray-800 dark:border-gray-600
+              "
             >
               <option :value="-1">
                 {{ t`— use debit/credit (advanced) —` }}
@@ -247,7 +262,12 @@
             <label>{{ t`Debit column (optional)` }}</label>
             <select
               v-model="idxDebit"
-              class="border rounded w-full dark:bg-gray-900"
+              class="
+                border
+                rounded
+                w-full
+                dark:bg-gray-800 dark:border-gray-600
+              "
             >
               <option :value="-1">{{ t`—` }}</option>
               <option v-for="(h, i) in headers" :key="'db' + i" :value="i">
@@ -259,7 +279,12 @@
             <label>{{ t`Credit column (optional)` }}</label>
             <select
               v-model="idxCredit"
-              class="border rounded w-full dark:bg-gray-900"
+              class="
+                border
+                rounded
+                w-full
+                dark:bg-gray-800 dark:border-gray-600
+              "
             >
               <option :value="-1">{{ t`—` }}</option>
               <option v-for="(h, i) in headers" :key="'cr' + i" :value="i">
@@ -271,7 +296,12 @@
             <label>{{ t`Reference column (optional)` }}</label>
             <select
               v-model="idxRef"
-              class="border rounded w-full dark:bg-gray-900"
+              class="
+                border
+                rounded
+                w-full
+                dark:bg-gray-800 dark:border-gray-600
+              "
             >
               <option :value="-1">{{ t`—` }}</option>
               <option v-for="(h, i) in headers" :key="'r' + i" :value="i">
@@ -349,7 +379,7 @@
         </div>
       </div>
 
-      <Button type="primary" :disabled="!canSave" @click="saveStatement">
+      <Button type="primary" @click="saveStatement">
         {{
           isFeedWindow && !fromReconcile
             ? t`Import transactions`
@@ -1048,6 +1078,13 @@ export default defineComponent({
     async saveStatement() {
       if (this.fromReconcile) {
         this.refreshReconcileBannerAndPersist();
+      }
+      if (!this.bankAccount) {
+        showToast({
+          type: 'error',
+          message: t`Select a bank account.`,
+        });
+        return;
       }
       if (!this.reconcileSetupComplete) {
         showToast({

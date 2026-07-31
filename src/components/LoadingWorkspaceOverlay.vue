@@ -31,7 +31,7 @@
       <p class="text-lg font-medium text-gray-800 dark:text-gray-100">
         {{ t`Loading Workspace…` }}
       </p>
-      <p class="max-w-sm text-sm text-gray-500 dark:text-gray-400">
+      <p class="max-w-sm text-sm text-gray-500 dark:text-gray-300">
         {{ t`Opening your company books. This may take a moment.` }}
       </p>
     </div>

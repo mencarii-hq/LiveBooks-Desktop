@@ -12,7 +12,7 @@
       <feather-icon
         v-if="collapsible"
         :name="collapsed ? 'chevron-up' : 'chevron-down'"
-        class="w-4 h-4 text-gray-600 dark:text-gray-400"
+        class="w-4 h-4 text-gray-600 dark:text-gray-300"
       />
     </div>
     <div v-if="!collapsed" class="grid gap-4 gap-x-8 grid-cols-2">

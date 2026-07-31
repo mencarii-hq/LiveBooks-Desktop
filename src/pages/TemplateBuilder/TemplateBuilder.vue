@@ -29,7 +29,7 @@
         <feather-icon name="edit" class="w-4 h-4" />
       </Button>
       <DropdownWithActions v-if="actions.length" :actions="actions" />
-      <Button v-if="doc?.canSave" type="primary" @click="sync()">
+      <Button v-if="showSaveButton" type="primary" @click="sync()">
         {{ t`Save` }}
       </Button>
     </PageHeader>
@@ -111,7 +111,7 @@
             v-if="canDisplayPreview"
             class="flex ml-auto gap-2 px-2 w-36 justify-between flex-shrink-0"
           >
-            <p class="text-sm text-gray-600 dark:text-gray-400 my-auto">
+            <p class="text-sm text-gray-600 dark:text-gray-300 my-auto">
               {{ t`Display Scale` }}
             </p>
             <input
@@ -175,7 +175,7 @@
             gap-2
             p-2
             text-sm text-gray-600
-            dark:text-gray-400
+            dark:text-gray-300
             items-center
             mt-auto
             border-t
@@ -205,13 +205,13 @@
             @click="toggleShowHints"
           >
             <h2
-              class="text-base text-gray-900 dark:text-gray-200 font-semibold"
+              class="text-base text-gray-900 dark:text-gray-100 font-semibold"
             >
               {{ t`Key Hints` }}
             </h2>
             <feather-icon
               :name="showHints ? 'chevron-up' : 'chevron-down'"
-              class="w-4 h-4 text-gray-600 dark:text-gray-400 resize-none"
+              class="w-4 h-4 text-gray-600 dark:text-gray-300 resize-none"
             />
           </div>
 
@@ -366,6 +366,22 @@ export default defineComponent({
     };
   },
   computed: {
+    showSaveButton(): boolean {
+      const doc = this.doc;
+      if (!doc) {
+        return false;
+      }
+      if (doc.schema.isChild) {
+        return false;
+      }
+      if (doc.isCancelled) {
+        return false;
+      }
+      if (doc.schema.isSubmittable && doc.isSubmitted) {
+        return false;
+      }
+      return true;
+    },
     canDisplayPreview(): boolean {
       if (!this.displayDoc || !this.values) {
         return false;

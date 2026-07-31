@@ -1,15 +1,8 @@
 <template>
   <div>
     <!-- Search Bar Button -->
-    <Button
-      class="px-3 py-2 rounded-r-none dark:bg-gray-900"
-      :padding="false"
-      @click="open"
-    >
-      <feather-icon
-        name="search"
-        class="w-4 h-4 text-gray-700 dark:text-gray-300"
-      />
+    <Button class="px-3 py-2 rounded-r-none" :padding="false" @click="open">
+      <feather-icon name="search" class="w-4 h-4 text-ink-muted" />
     </Button>
   </div>
 
@@ -76,7 +69,7 @@
                 :class="
                   idx === i
                     ? 'text-gray-900 dark:text-gray-100'
-                    : 'text-gray-700 dark:text-gray-400'
+                    : 'text-gray-700 dark:text-gray-300'
                 "
                 :style="idx === i ? 'margin-left: -4px' : ''"
               >
@@ -84,7 +77,7 @@
               </p>
               <p
                 v-if="si.group === 'Docs'"
-                class="text-gray-600 dark:text-gray-400 text-sm ms-3"
+                class="text-gray-600 dark:text-gray-300 text-sm ms-3"
               >
                 {{ si.more.filter(Boolean).join(', ') }}
               </p>
@@ -140,7 +133,7 @@
         <!-- Additional Filters -->
         <div v-if="showMore" class="-mt-1">
           <!-- Group Skip Filters -->
-          <div class="flex gap-1 text-gray-800 dark:text-gray-200">
+          <div class="flex gap-1 text-gray-800 dark:text-gray-100">
             <button
               v-for="s in ['skipTables', 'skipTransactions'] as const"
               :key="s"
@@ -230,7 +223,7 @@
               <button
                 class="w-9"
                 :class="
-                  limit === c ? 'bg-gray-100 dark:bg-gray-875 rounded' : ''
+                  limit === c ? 'bg-gray-100 dark:bg-gray-700 rounded' : ''
                 "
                 @click="limit = Number(c)"
               >

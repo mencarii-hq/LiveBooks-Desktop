@@ -94,7 +94,7 @@ export default defineComponent({
 
       classes.push(...this.baseInputClasses);
       if (this.textRight ?? isNumeric(this.df)) {
-        classes.push('text-start');
+        classes.push('text-end');
       }
 
       classes.push(this.sizeClasses);
@@ -139,7 +139,7 @@ export default defineComponent({
     },
     containerReadOnlyClasses(): string {
       if (!this.isReadOnly) {
-        return 'focus-within:bg-gray-100 dark:focus-within:bg-gray-850';
+        return 'focus-within:bg-gray-100 dark:focus-within:bg-gray-700';
       }
 
       return '';
@@ -149,8 +149,8 @@ export default defineComponent({
         return '';
       }
 
-      const border = 'border border-gray-200 dark:border-gray-800';
-      let background = 'bg-gray-25 dark:bg-gray-875';
+      const border = 'border border-default';
+      let background = 'bg-surface-input';
       if (this.isReadOnly) {
         background = 'bg-gray-50 dark:bg-gray-850';
       }

@@ -10,7 +10,7 @@
       >
         {{ name }}
       </p>
-      <p class="font-semibold text-base text-gray-600 dark:text-gray-400">
+      <p class="font-semibold text-base text-gray-600 dark:text-gray-300">
         {{ schema?.label ?? '' }}
       </p>
     </div>

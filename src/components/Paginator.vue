@@ -29,7 +29,7 @@
         "
         @click="() => setPageNo(Math.max(1, pageNo - 1))"
       />
-      <div class="flex gap-1 bg-gray-100 dark:bg-gray-890 rounded">
+      <div class="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded">
         <input
           type="number"
           class="
@@ -79,7 +79,7 @@
           class="w-9"
           :class="
             count === c || (count === itemCount && c === -1)
-              ? 'rounded bg-gray-100 dark:bg-gray-890'
+              ? 'rounded bg-gray-100 dark:bg-gray-700'
               : ''
           "
           @click="setCount(c)"

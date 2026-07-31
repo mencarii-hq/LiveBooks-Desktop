@@ -61,7 +61,7 @@
       >
         <FeatherIcon
           :name="shouldClear ? 'x' : 'upload'"
-          class="w-4 h-4 text-gray-600 dark:text-gray-400"
+          class="w-4 h-4 text-gray-600 dark:text-gray-300"
         />
       </button>
     </div>

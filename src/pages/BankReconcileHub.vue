@@ -16,7 +16,7 @@
         }}
       </p>
 
-      <div v-if="loading" class="text-sm text-gray-600 dark:text-gray-400">
+      <div v-if="loading" class="text-sm text-gray-600 dark:text-gray-300">
         {{ t`Loading accounts…` }}
       </div>
       <template v-else>
@@ -108,7 +108,7 @@
                 <td class="p-3 text-start text-gray-700 dark:text-gray-300">
                   {{ row.ledgerAccountLabel }}
                 </td>
-                <td class="p-3 text-start text-gray-600 dark:text-gray-400">
+                <td class="p-3 text-start text-gray-600 dark:text-gray-300">
                   {{ row.lastReconciledLabel || t`—` }}
                 </td>
                 <td
@@ -154,7 +154,7 @@
           v-if="institutionTables.length === 0"
           class="
             text-sm text-gray-600
-            dark:text-gray-400
+            dark:text-gray-300
             border border-gray-200
             dark:border-gray-700
             rounded-lg
@@ -328,7 +328,7 @@ export default defineComponent({
           } else {
             statusLabel = t`Ready`;
             statusPillClass =
-              'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+              'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100';
           }
 
           const map = primaryPlaidMap(b.name, byChart);

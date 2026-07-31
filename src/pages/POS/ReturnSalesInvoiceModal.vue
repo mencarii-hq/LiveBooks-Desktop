@@ -1,6 +1,6 @@
 <template>
   <Modal class="h-auto w-auto p-5" :set-close-listener="false">
-    <p class="text-center font-semibold dark:text-gray-400">
+    <p class="text-center font-semibold dark:text-gray-300">
       {{ t`Invoices` }}
     </p>
 
@@ -36,7 +36,7 @@
         w-full
         rounded-t-md
         text-gray-600
-        dark:border-gray-800 dark:text-gray-400
+        dark:border-gray-800 dark:text-gray-300
       "
     >
       <div

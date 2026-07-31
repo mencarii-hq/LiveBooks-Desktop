@@ -45,7 +45,7 @@
         <div class="ms-auto flex items-center">
           <svg
             v-if="isPersistent"
-            class="animate-spin h-4 w-4 text-gray-600 dark:text-gray-400"
+            class="animate-spin h-4 w-4 text-gray-600 dark:text-gray-300"
             viewBox="0 0 24 24"
           >
             <circle
@@ -72,7 +72,7 @@
               h-4
               ms-auto
               text-gray-600
-              dark:text-gray-400
+              dark:text-gray-300
               cursor-pointer
               hover:text-gray-800
               dark:hover:text-gray-200

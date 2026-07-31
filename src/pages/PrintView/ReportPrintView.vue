@@ -71,7 +71,7 @@
 
       <!-- Report Print Settings -->
       <div v-if="report" class="border-l dark:border-gray-800 flex flex-col">
-        <p class="p-4 text-sm text-gray-600 dark:text-gray-400">
+        <p class="p-4 text-sm text-gray-600 dark:text-gray-300">
           {{
             [
               t`Hidden values will be visible on Print on.`,
@@ -135,7 +135,7 @@
 
         <!-- Pick Columns -->
         <div class="border-t dark:border-gray-800 p-4">
-          <h2 class="text-sm text-gray-600 dark:text-gray-400">
+          <h2 class="text-sm text-gray-600 dark:text-gray-300">
             {{ t`Pick Columns` }}
           </h2>
           <div

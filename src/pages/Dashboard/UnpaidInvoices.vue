@@ -25,7 +25,7 @@
         >
           {{ fyo.format(paid, 'Currency') }}
           <span
-            :class="{ 'text-gray-900 dark:text-gray-200 font-normal': count }"
+            :class="{ 'text-gray-900 dark:text-gray-100 font-normal': count }"
             >{{ t`Paid` }}</span
           >
         </div>
@@ -43,7 +43,7 @@
         >
           {{ fyo.format(unpaid, 'Currency') }}
           <span
-            :class="{ 'text-gray-900 dark:text-gray-200 font-normal': count }"
+            :class="{ 'text-gray-900 dark:text-gray-100 font-normal': count }"
             >{{ t`Unpaid` }}</span
           >
         </div>

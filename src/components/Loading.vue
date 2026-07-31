@@ -25,7 +25,7 @@
       <!-- Message -->
       <p
         v-if="message?.length"
-        class="text-base text-gray-600 dark:text-gray-400 pb-2"
+        class="text-base text-gray-600 dark:text-gray-300 pb-2"
       >
         {{ message }}
       </p>
@@ -58,7 +58,7 @@
             h-4
             ms-auto
             text-gray-600
-            dark:text-gray-400
+            dark:text-gray-300
             cursor-pointer
             hover:text-gray-800
             dark:hover:text-gray-200

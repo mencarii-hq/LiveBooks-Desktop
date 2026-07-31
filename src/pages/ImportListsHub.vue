@@ -9,7 +9,7 @@
         p-4
       "
     >
-      <p class="text-sm text-gray-700 dark:text-gray-200 mb-4 max-w-2xl">
+      <p class="text-sm text-gray-700 dark:text-gray-100 mb-4 max-w-2xl">
         Use the Import Wizard to map columns from a CSV export (for example from
         QuickBooks or a spreadsheet) into LiveBooks records.
       </p>

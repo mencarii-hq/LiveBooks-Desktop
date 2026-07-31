@@ -1,6 +1,6 @@
 <template>
   <Modal class="h-auto w-auto p-5" :set-close-listener="false">
-    <p class="text-center font-semibold dark:text-gray-400">
+    <p class="text-center font-semibold dark:text-gray-300">
       {{ t`Invoices` }}
     </p>
 
@@ -27,7 +27,7 @@
       <Button
         :background="false"
         class="w-full h-full p-2 mt-2"
-        :class="{ 'dark:bg-gray-890 underline': savedInvoiceList }"
+        :class="{ 'dark:bg-gray-700 underline': savedInvoiceList }"
         @click="savedInvoiceList = true"
         >Saved</Button
       >
@@ -35,7 +35,7 @@
       <Button
         :background="false"
         class="w-full h-full p-2 mt-2"
-        :class="{ 'dark:bg-gray-890 underline': !savedInvoiceList }"
+        :class="{ 'dark:bg-gray-700 underline': !savedInvoiceList }"
         @click="savedInvoiceList = false"
         >Submitted</Button
       >
@@ -52,7 +52,7 @@
         w-full
         rounded-t-md
         text-gray-600
-        dark:border-gray-800 dark:text-gray-400
+        dark:border-gray-800 dark:text-gray-300
       "
     >
       <div

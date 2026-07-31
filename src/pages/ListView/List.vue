@@ -9,7 +9,7 @@
     >
       <div
         v-if="!isSelectionMode"
-        class="w-8 text-start me-2 text-gray-700 dark:text-gray-400"
+        class="w-8 text-start me-2 text-gray-700 dark:text-gray-300"
       >
         #
       </div>
@@ -26,7 +26,7 @@
         />
       </div>
       <Row
-        class="flex-1 text-gray-700 dark:text-gray-400 h-row-mid"
+        class="flex-1 text-gray-700 dark:text-gray-300 h-row-mid"
         :column-count="columns.length"
         gap="1rem"
       >
@@ -66,7 +66,7 @@
         <div class="flex hover:bg-gray-50 dark:hover:bg-gray-850 items-center">
           <div
             v-if="!isSelectionMode"
-            class="w-8 text-start me-2 text-gray-700 dark:text-gray-400"
+            class="w-8 text-start me-2 text-gray-700 dark:text-gray-300"
           >
             {{ i + pageStart + 1 }}
           </div>
@@ -127,7 +127,7 @@
       class="flex flex-col items-center justify-center my-auto"
     >
       <img src="../../assets/img/list-empty-state.svg" alt="" class="w-24" />
-      <p class="my-3 text-gray-800 dark:text-gray-200">
+      <p class="my-3 text-gray-800 dark:text-gray-100">
         {{ t`No entries found` }}
       </p>
       <Button v-if="canCreate" type="primary" @click="$emit('makeNewDoc')">

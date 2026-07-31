@@ -7,9 +7,9 @@
           dark:border-gray-900
           rounded
           bg-gray-50
-          dark:bg-gray-890
+          dark:bg-gray-800
           focus-within:bg-gray-100
-          dark:focus-within:bg-gray-900
+          dark:focus-within:bg-gray-700
           flex
           items-center
         "

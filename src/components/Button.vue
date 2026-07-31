@@ -42,8 +42,9 @@ export default defineComponent({
         'text-white': this.type === 'primary',
         'bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700':
           this.type === 'primary' && this.background,
-        'text-gray-700 dark:text-gray-200': this.type !== 'primary',
-        'bg-gray-200 dark:bg-gray-900':
+        // Semantic tokens flip via CSS vars — no dark: pair needed
+        'text-ink': this.type !== 'primary',
+        'bg-surface-raised hover:bg-surface-raised-hover':
           this.type !== 'primary' && this.background,
         'h-8': this.background,
         'px-3': this.padding && this.icon,

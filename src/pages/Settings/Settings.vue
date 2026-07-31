@@ -1,7 +1,7 @@
 <template>
   <FormContainer>
     <template #header>
-      <Button v-if="canSave" type="primary" @click="sync">
+      <Button type="primary" @click="sync">
         {{ t`Save` }}
       </Button>
     </template>
@@ -67,7 +67,7 @@
           :class="
             key === activeTab
               ? 'text-gray-900 dark:text-gray-25 font-semibold border-t-2 border-gray-800 dark:border-gray-100'
-              : 'text-gray-700 dark:text-gray-200 '
+              : 'text-gray-700 dark:text-gray-100 '
           "
           :style="{
             paddingTop: key === activeTab ? 'calc(1rem - 2px)' : '1rem',
@@ -258,6 +258,10 @@ export default defineComponent({
       const syncableDocs = this.settingsDocNames()
         .map((name) => this.fyo.singles[name])
         .filter((doc) => doc?.canSave) as Doc[];
+
+      if (!syncableDocs.length) {
+        return;
+      }
 
       for (const doc of syncableDocs) {
         await this.syncDoc(doc);

@@ -22,7 +22,7 @@
           height: getFieldHeight(df),
         }"
       >
-        <div class="ps-4 flex text-gray-600 dark:text-gray-400">
+        <div class="ps-4 flex text-gray-600 dark:text-gray-300">
           {{ df.label }}
         </div>
 

@@ -3,7 +3,10 @@
     <p class="text-center font-semibold py-3">Apply Coupon Code</p>
     <div class="px-10">
       <hr class="dark:border-gray-800" />
-      <p v-if="appliedCoupons.length" class="text-xs m-2 text-gray-500">
+      <p
+        v-if="appliedCoupons.length"
+        class="text-xs m-2 text-gray-500 dark:text-gray-300"
+      >
         {{ t`Applied Coupon Codes` }}
       </p>
       <div
@@ -75,7 +78,6 @@
           <Button
             class="w-full bg-green-500 dark:bg-green-700"
             style="padding: 1.35rem"
-            :disabled="validationError"
             @click="setCouponCode()"
           >
             <slot>

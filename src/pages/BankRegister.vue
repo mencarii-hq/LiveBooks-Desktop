@@ -35,13 +35,13 @@
       <div class="flex flex-col overflow-hidden px-4 flex-1">
         <div
           v-if="!bankAccount"
-          class="text-sm text-gray-600 dark:text-gray-400 py-4"
+          class="text-sm text-gray-600 dark:text-gray-300 py-4"
         >
           {{ t`Select a bank account to view the register.` }}
         </div>
         <div
           v-else-if="loading"
-          class="text-sm text-gray-600 dark:text-gray-400 py-4"
+          class="text-sm text-gray-600 dark:text-gray-300 py-4"
         >
           {{ t`Loading…` }}
         </div>
@@ -53,7 +53,7 @@
                 text-start
                 me-2
                 text-gray-700
-                dark:text-gray-400
+                dark:text-gray-300
                 h-row
                 flex
                 items-center
@@ -62,7 +62,7 @@
               #
             </div>
             <Row
-              class="flex-1 text-gray-700 dark:text-gray-400 h-row-mid"
+              class="flex-1 text-gray-700 dark:text-gray-300 h-row-mid"
               :column-count="7"
               gap="1rem"
             >
@@ -79,7 +79,7 @@
 
           <div
             v-if="!rows.length"
-            class="p-4 text-gray-600 dark:text-gray-400 text-sm"
+            class="p-4 text-gray-600 dark:text-gray-300 text-sm"
           >
             {{ t`No entries yet.` }}
           </div>
@@ -107,7 +107,7 @@
                     text-start
                     me-2
                     text-gray-700
-                    dark:text-gray-400
+                    dark:text-gray-300
                     h-row
                     flex
                     items-center

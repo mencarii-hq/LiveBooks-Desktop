@@ -224,7 +224,7 @@ export default defineComponent({
       }
 
       if (!cell.rawValue) {
-        return 'text-gray-600 dark:text-gray-400';
+        return 'text-gray-600 dark:text-gray-300';
       }
 
       if (typeof cell.rawValue !== 'number') {
@@ -232,7 +232,7 @@ export default defineComponent({
       }
 
       if (cell.rawValue === 0) {
-        return 'text-gray-600 dark:text-gray-400';
+        return 'text-gray-600 dark:text-gray-300';
       }
 
       const prec = this.fyo?.singles?.displayPrecision ?? 2;

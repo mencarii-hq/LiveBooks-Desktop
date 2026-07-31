@@ -10,7 +10,7 @@
       px-2
       rounded-t-md
       text-gray-600
-      dark:text-gray-400
+      dark:text-gray-300
       w-full
     "
   >

@@ -7,7 +7,7 @@
       rounded-t
       px-2
       text-gray-600
-      dark:text-gray-400
+      dark:text-gray-300
       w-full
       flex
       items-center

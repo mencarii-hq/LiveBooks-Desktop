@@ -10,11 +10,7 @@
     <template #target="{ togglePopover }">
       <Button :icon="true" @click="togglePopover()">
         <span class="flex items-center">
-          <Icon
-            name="filter"
-            size="12"
-            class="stroke-current text-gray-700 dark:text-gray-400"
-          />
+          <Icon name="filter" size="12" class="stroke-current text-ink" />
           <span class="ms-1">
             <template v-if="activeFilterCount > 0">
               {{ filterAppliedMessage }}
@@ -45,7 +41,7 @@
                     items-center
                     justify-center
                     text-gray-600
-                    dark:text-gray-400
+                    dark:text-gray-300
                     hover:text-gray-800
                     dark:hover:text-gray-300
                     rounded-md

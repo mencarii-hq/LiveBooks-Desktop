@@ -97,7 +97,7 @@
             :checked="plaidAutoStageImportBatches"
             @change="togglePlaidAutoStage"
           />
-          <span class="text-gray-700 dark:text-gray-200">
+          <span class="text-gray-700 dark:text-gray-100">
             <span class="block">
               {{
                 t`Auto-stage new Plaid batches into Bank Account Activity (For Review).`
@@ -112,7 +112,7 @@
         </label>
       </div>
 
-      <div v-if="feedsLoading" class="text-sm text-gray-600 dark:text-gray-400">
+      <div v-if="feedsLoading" class="text-sm text-gray-600 dark:text-gray-300">
         {{ t`Loading feeds…` }}
       </div>
       <div
@@ -123,7 +123,7 @@
       </div>
       <div
         v-else-if="feedItems.length === 0"
-        class="text-sm text-gray-600 dark:text-gray-400 mb-6"
+        class="text-sm text-gray-600 dark:text-gray-300 mb-6"
       >
         {{
           t`No Plaid connections yet. Use Connect Banks via Plaid to link an institution.`
@@ -183,7 +183,7 @@
                       text-xs
                       font-normal
                       text-gray-600
-                      dark:text-gray-400
+                      dark:text-gray-300
                       mt-1
                     "
                   >
@@ -299,7 +299,7 @@
               </tr>
               <tr v-else-if="linkedAccountsLoading[row.item_id]">
                 <td
-                  class="p-3 text-sm text-gray-600 dark:text-gray-400"
+                  class="p-3 text-sm text-gray-600 dark:text-gray-300"
                   colspan="7"
                 >
                   {{ t`Loading Plaid accounts…` }}
@@ -317,7 +317,7 @@
                 "
               >
                 <td
-                  class="p-3 text-sm text-gray-600 dark:text-gray-400"
+                  class="p-3 text-sm text-gray-600 dark:text-gray-300"
                   colspan="7"
                 >
                   {{
@@ -379,7 +379,7 @@
                           py-1
                           w-full
                           text-sm
-                          dark:bg-gray-900 dark:border-gray-700
+                          dark:bg-gray-800 dark:border-gray-600
                           disabled:opacity-60 disabled:cursor-not-allowed
                         "
                       >
@@ -485,7 +485,7 @@
         </h3>
         <div class="space-y-3 max-w-md">
           <div>
-            <label class="block text-sm font-medium mb-1 dark:text-gray-200">
+            <label class="block text-sm font-medium mb-1 dark:text-gray-100">
               {{ t`Type` }}
             </label>
             <div
@@ -503,7 +503,7 @@
                 :class="
                   manualForm.kind === 'bank'
                     ? 'bg-gray-200 dark:bg-gray-700 font-medium'
-                    : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100'
                 "
                 @click="manualForm.kind = 'bank'"
               >
@@ -515,7 +515,7 @@
                 :class="
                   manualForm.kind === 'credit_card'
                     ? 'bg-gray-200 dark:bg-gray-700 font-medium'
-                    : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100'
                 "
                 @click="manualForm.kind = 'credit_card'"
               >
@@ -524,7 +524,7 @@
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1 dark:text-gray-200">
+            <label class="block text-sm font-medium mb-1 dark:text-gray-100">
               {{ t`Account name` }}
             </label>
             <input
@@ -537,7 +537,7 @@
                 px-2
                 py-1
                 w-full
-                dark:bg-gray-900 dark:border-gray-700
+                dark:bg-gray-800 dark:border-gray-600
               "
               :placeholder="t`e.g. Chase CSV — Checking`"
               @keydown.enter="trySaveManual"
@@ -549,7 +549,7 @@
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm font-medium mb-1 dark:text-gray-200">
+              <label class="block text-sm font-medium mb-1 dark:text-gray-100">
                 {{ t`Opening balance` }}
               </label>
               <input
@@ -562,14 +562,14 @@
                   px-2
                   py-1
                   w-full
-                  dark:bg-gray-900 dark:border-gray-700
+                  dark:bg-gray-800 dark:border-gray-600
                 "
                 :placeholder="t`0.00`"
                 @keydown.enter="trySaveManual"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1 dark:text-gray-200">
+              <label class="block text-sm font-medium mb-1 dark:text-gray-100">
                 {{ t`As of` }}
               </label>
               <input
@@ -581,7 +581,7 @@
                   px-2
                   py-1
                   w-full
-                  dark:bg-gray-900 dark:border-gray-700
+                  dark:bg-gray-800 dark:border-gray-600
                 "
                 @keydown.enter="trySaveManual"
               />
@@ -603,7 +603,7 @@
             </Button>
             <Button
               type="primary"
-              :disabled="!canSaveManual || manualSaving"
+              :disabled="manualSaving"
               @click="trySaveManual"
             >
               {{ manualSaving ? t`Saving…` : t`Save` }}
@@ -614,13 +614,13 @@
 
       <div
         v-if="manualLoading"
-        class="text-sm text-gray-600 dark:text-gray-400"
+        class="text-sm text-gray-600 dark:text-gray-300"
       >
         {{ t`Loading manual banks…` }}
       </div>
       <div
         v-else-if="manualBanks.length === 0"
-        class="text-sm text-gray-600 dark:text-gray-400"
+        class="text-sm text-gray-600 dark:text-gray-300"
       >
         {{ t`No manual banks yet. Add one to start uploading CSV statements.` }}
       </div>
@@ -1963,7 +1963,14 @@ export default defineComponent({
       );
     },
     async trySaveManual() {
-      if (!this.canSaveManual || this.manualSaving) {
+      if (this.manualSaving) {
+        return;
+      }
+      if (!this.canSaveManual) {
+        showToast({
+          type: 'error',
+          message: t`Enter account name, opening date, and opening balance.`,
+        });
         return;
       }
       const name = this.manualForm.accountName.trim();

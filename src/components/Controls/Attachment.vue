@@ -9,7 +9,7 @@
         class="block whitespace-nowrap overflow-auto no-scrollbar"
         :class="[
           inputClasses,
-          !value ? 'text-gray-600 dark:text-gray-400' : 'cursor-default',
+          !value ? 'text-gray-600 dark:text-gray-300' : 'cursor-default',
         ]"
         >{{ label }}</label
       >
@@ -29,7 +29,7 @@
         <button v-if="!value" class="p-0.5 rounded" @click="upload">
           <FeatherIcon
             name="upload"
-            class="h-4 w-4 text-gray-600 dark:text-gray-400"
+            class="h-4 w-4 text-gray-600 dark:text-gray-300"
           />
         </button>
 
@@ -37,7 +37,7 @@
         <button v-if="value" class="p-0.5 rounded" @click="download">
           <FeatherIcon
             name="download"
-            class="h-4 w-4 text-gray-600 dark:text-gray-400"
+            class="h-4 w-4 text-gray-600 dark:text-gray-300"
           />
         </button>
 
@@ -49,7 +49,7 @@
         >
           <FeatherIcon
             name="x"
-            class="h-4 w-4 text-gray-600 dark:text-gray-400"
+            class="h-4 w-4 text-gray-600 dark:text-gray-300"
           />
         </button>
       </div>

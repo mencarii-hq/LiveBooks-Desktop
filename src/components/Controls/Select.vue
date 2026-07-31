@@ -16,7 +16,7 @@
           :class="[
             inputClasses,
             containerClasses,
-            dropdownVisible ? 'dark:hover:bg-gray-850' : '',
+            dropdownVisible ? 'dark:hover:bg-gray-700' : '',
           ]"
         >
           <div class="w-full" @click="toggleDropdown">
@@ -85,7 +85,7 @@
               p-1.5
               rounded-md
               hover:bg-gray-100
-              dark:hover:bg-gray-875
+              dark:hover:bg-gray-700
               flex
             "
             :class="selectValue !== option.label ? 'pl-6' : 'pl-2'"

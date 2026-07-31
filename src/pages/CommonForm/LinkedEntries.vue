@@ -29,7 +29,7 @@
         <Button :icon="true" @click="$emit('close')">
           <feather-icon name="x" class="w-4 h-4" />
         </Button>
-        <p class="text-xl font-semibold text-gray-600 dark:text-gray-400">
+        <p class="text-xl font-semibold text-gray-600 dark:text-gray-300">
           {{ t`Linked Entries` }}
         </p>
       </div>
@@ -60,7 +60,7 @@
           <h2
             class="
               text-base text-gray-600
-              dark:text-gray-400
+              dark:text-gray-300
               font-semibold
               select-none
             "
@@ -72,7 +72,7 @@
           </h2>
           <feather-icon
             :name="entries[sn].collapsed ? 'chevron-up' : 'chevron-down'"
-            class="w-4 h-4 text-gray-600 dark:text-gray-400"
+            class="w-4 h-4 text-gray-600 dark:text-gray-300"
           />
         </div>
 
@@ -110,7 +110,7 @@
               </p>
 
               <!-- Date -->
-              <p v-if="e.date" class="text-xs text-gray-600 dark:text-gray-400">
+              <p v-if="e.date" class="text-xs text-gray-600 dark:text-gray-300">
                 {{ fyo.format(e.date, 'Date') }}
               </p>
             </div>
@@ -195,7 +195,7 @@
         </div>
       </div>
     </div>
-    <p v-else class="p-4 text-sm text-gray-600 dark:text-gray-400">
+    <p v-else class="p-4 text-sm text-gray-600 dark:text-gray-300">
       {{ t`No linked entries found` }}
     </p>
   </div>

@@ -17,7 +17,7 @@
 
       <div
         v-if="accountsLoading || feedsLoading"
-        class="text-sm text-gray-600 dark:text-gray-400"
+        class="text-sm text-gray-600 dark:text-gray-300"
       >
         {{ t`Loading accounts…` }}
       </div>
@@ -148,7 +148,7 @@
                 <td class="p-3 text-start tabular-nums">
                   {{ row.bankBalanceLabel ?? t`—` }}
                 </td>
-                <td class="p-3 text-start text-gray-600 dark:text-gray-400">
+                <td class="p-3 text-start text-gray-600 dark:text-gray-300">
                   {{ row.lastSyncLabel || t`—` }}
                 </td>
                 <td class="p-3 text-start">
@@ -178,7 +178,7 @@
               </tr>
               <tr v-if="bank.rows.length === 0">
                 <td
-                  class="p-3 text-sm text-gray-600 dark:text-gray-400"
+                  class="p-3 text-sm text-gray-600 dark:text-gray-300"
                   colspan="6"
                 >
                   {{ t`No bank accounts were returned for this connection.` }}

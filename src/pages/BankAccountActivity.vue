@@ -38,7 +38,7 @@
 
       <div
         v-if="accountKind === 'unknown' && !decodeError"
-        class="text-sm text-gray-600 dark:text-gray-400"
+        class="text-sm text-gray-600 dark:text-gray-300"
       >
         {{ t`Loading…` }}
       </div>
@@ -161,7 +161,7 @@
                 <td class="p-3 text-start tabular-nums">
                   {{ summaryBankBalanceLabel ?? t`—` }}
                 </td>
-                <td class="p-3 text-start text-gray-600 dark:text-gray-400">
+                <td class="p-3 text-start text-gray-600 dark:text-gray-300">
                   {{ summaryLastSyncLabel || t`—` }}
                 </td>
                 <td class="p-3 text-start">
@@ -201,8 +201,8 @@
             class="px-3 py-2 text-sm rounded-t border border-b-0 -mb-px"
             :class="
               activeTab === tab.id
-                ? 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 font-medium'
-                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400'
+                ? 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 font-medium'
+                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-300'
             "
             @click="activeTab = tab.id"
           >
@@ -404,7 +404,7 @@
         <!-- Auto-apply progress (one-shot, transient) -->
         <div
           v-if="autoApplyBusy"
-          class="text-xs text-gray-600 dark:text-gray-400 mb-2"
+          class="text-xs text-gray-600 dark:text-gray-300 mb-2"
         >
           {{ t`Syncing new transactions from your bank…` }}
         </div>
@@ -505,7 +505,7 @@
                       py-0.5
                       text-xs
                       max-w-[14rem]
-                      dark:bg-gray-900 dark:border-gray-700
+                      dark:bg-gray-800 dark:border-gray-600
                     "
                     :disabled="manualPendingRowKey === manualLineKey(line)"
                   >
@@ -563,7 +563,7 @@
                       class="
                         text-gray-500
                         hover:text-gray-900
-                        dark:text-gray-400 dark:hover:text-gray-100
+                        dark:text-gray-300 dark:hover:text-gray-100
                         rounded
                         px-1.5
                         py-0.5
@@ -585,9 +585,9 @@
                         mt-1
                         w-32
                         bg-white
-                        dark:bg-gray-900
+                        dark:bg-gray-800
                         border border-gray-200
-                        dark:border-gray-700
+                        dark:border-gray-600
                         rounded
                         shadow
                         text-sm

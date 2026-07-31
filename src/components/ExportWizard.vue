@@ -47,7 +47,7 @@
             :label-class="
               ef.fieldtype === 'Table'
                 ? 'text-sm text-gray-600 dark:text-gray-300 font-semibold'
-                : 'text-sm text-gray-600 dark:text-gray-400'
+                : 'text-sm text-gray-600 dark:text-gray-300'
             "
             :df="getField(ef)"
             :show-label="true"
@@ -79,7 +79,7 @@
     <!-- Export Button -->
     <hr class="dark:border-gray-800" />
     <div class="p-4 flex justify-between items-center">
-      <p class="text-sm text-gray-600 dark:text-gray-400">
+      <p class="text-sm text-gray-600 dark:text-gray-300">
         {{ t`${numSelected} fields selected` }}
       </p>
       <Button type="primary" @click="exportData">{{ t`Export` }}</Button>

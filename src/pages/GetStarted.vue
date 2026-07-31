@@ -46,7 +46,7 @@
                   class="w-5 h-5 mb-4"
                 />
                 <h3 class="font-medium">{{ item.label }}</h3>
-                <p class="mt-2 text-sm text-gray-800 dark:text-gray-400">
+                <p class="mt-2 text-sm text-gray-800 dark:text-gray-300">
                   {{ item.description }}
                 </p>
               </div>
