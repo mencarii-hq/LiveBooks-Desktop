@@ -30,18 +30,31 @@
         <feather-icon name="x" class="w-4 h-4" />
       </Button>
 
-      <!-- Save & Submit Buttons -->
-      <Button v-if="doc?.canSave" :icon="true" type="primary" @click="sync">
-        {{ t`Save` }}
-      </Button>
-      <Button
-        v-else-if="doc?.canSubmit"
-        :icon="true"
-        type="primary"
-        @click="submit"
-      >
-        {{ t`Submit` }}
-      </Button>
+      <div class="flex items-center gap-2">
+        <Button
+          v-if="showChartOfAccountsDeleteButton"
+          @click="deleteChartOfAccounts"
+        >
+          {{ chartOfAccountsDeleteLabel }}
+        </Button>
+        <!-- Save always when editable; Submit when ready. Validation runs on click. -->
+        <Button
+          v-if="doc?.canSubmit"
+          :icon="true"
+          type="primary"
+          @click="submit"
+        >
+          {{ t`Submit` }}
+        </Button>
+        <Button
+          v-else-if="showSaveButton"
+          :icon="true"
+          type="primary"
+          @click="sync"
+        >
+          {{ t`Save` }}
+        </Button>
+      </div>
     </div>
 
     <!-- Name and image -->
@@ -106,6 +119,7 @@ import FormControl from 'src/components/Controls/FormControl.vue';
 import TwoColumnForm from 'src/components/TwoColumnForm.vue';
 import SmartFillBox from 'src/components/SmartFillBox.vue';
 import { fyo } from 'src/initFyo';
+import { t } from 'fyo';
 import { shortcutsKey } from 'src/utils/injectionKeys';
 import { DocRef } from 'src/utils/types';
 import {
@@ -114,6 +128,8 @@ import {
   focusOrSelectFormControl,
 } from 'src/utils/ui';
 import { useDocShortcuts } from 'src/utils/vueUtils';
+import { ModelNameEnum } from 'models/types';
+import { deleteChartOfAccountsAccount } from 'src/utils/chartOfAccountsActions';
 import { computed, defineComponent, inject, ref } from 'vue';
 
 export default defineComponent({
@@ -165,6 +181,33 @@ export default defineComponent({
     };
   },
   computed: {
+    showChartOfAccountsDeleteButton(): boolean {
+      const doc = this.doc;
+      return !!(
+        doc?.inserted &&
+        this.schemaName === ModelNameEnum.Account &&
+        this.$route.path === '/chart-of-accounts'
+      );
+    },
+    chartOfAccountsDeleteLabel(): string {
+      return this.doc?.isGroup ? t`Delete Group` : t`Delete Account`;
+    },
+    showSaveButton(): boolean {
+      const doc = this.doc;
+      if (!doc) {
+        return false;
+      }
+      if (doc.schema.isChild) {
+        return false;
+      }
+      if (doc.isCancelled) {
+        return false;
+      }
+      if (doc.schema.isSubmittable && doc.isSubmitted) {
+        return false;
+      }
+      return true;
+    },
     letterPlaceHolder() {
       if (!this.doc) {
         return '';
@@ -266,6 +309,13 @@ export default defineComponent({
       }
 
       await commonDocSubmit(this.doc);
+    },
+    async deleteChartOfAccounts() {
+      const name = this.doc?.name;
+      if (!name) {
+        return;
+      }
+      await deleteChartOfAccountsAccount(name);
     },
     async routeToPrevious() {
       if (this.doc?.dirty && this.doc?.inserted) {

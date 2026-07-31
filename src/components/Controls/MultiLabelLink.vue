@@ -124,7 +124,7 @@ export default {
           {
             component: markRaw({
               template:
-                '<span class="text-gray-600 dark:text-gray-400">{{ t`No results found` }}</span>',
+                '<span class="text-gray-600 dark:text-gray-300">{{ t`No results found` }}</span>',
             }),
             action: () => {},
             actionOnly: true,
@@ -156,8 +156,58 @@ export default {
         }),
       };
     },
+    /**
+     * Links must not commit free-typed text onto the parent doc.
+     * Update the display only while typing; commit on select / Create.
+     */
+    onInput(e, toggleDropdown) {
+      if (this.isReadOnly) {
+        return;
+      }
+
+      if (!e.target.value || this.focInp) {
+        e.target.value = null;
+        this.focInp = false;
+        toggleDropdown(false);
+        return;
+      }
+
+      this.setLinkValue(e.target.value, true);
+      this.updateSuggestions(e.target.value);
+    },
+    async onBlur(label, toggleDropdown) {
+      this.isFocused = false;
+      this.isDropdownOpen = false;
+      if (toggleDropdown) {
+        toggleDropdown(false);
+      }
+
+      if (!label && !this.value) {
+        return;
+      }
+      if (!label) {
+        this.triggerChange('');
+        return;
+      }
+
+      const suggestions =
+        this.suggestions?.length > 0
+          ? this.suggestions
+          : await this.getSuggestions(label);
+      const match = suggestions.find(
+        (s) => !s.actionOnly && (s.label === label || s.value === label)
+      );
+      if (match) {
+        this.setSuggestion(match);
+        return;
+      }
+
+      this.setLinkValue(this.value);
+    },
     async openNewDoc() {
       const schemaName = this.df.target;
+      const fieldname = this.df.fieldname;
+      const parentDoc = this.doc;
       const name =
         this.linkValue || fyo.doc.getTemporaryName(fyo.schemaMap[schemaName]);
       const filters = await this.getCreateFilters();
@@ -166,10 +216,20 @@ export default {
       const doc = fyo.doc.getNewDoc(schemaName, { name, ...filters });
       openQuickEdit({ doc });
 
-      doc.once('afterSync', () => {
-        this.$router.back();
-        this.results = [];
-        this.triggerChange(doc.name);
+      // Nested quick-edit replaces this panel and destroys this Link.
+      // Set the parent Doc directly so the link survives remount.
+      doc.once('afterSync', async () => {
+        try {
+          if (parentDoc && fieldname) {
+            parentDoc.links ??= {};
+            parentDoc.links[fieldname] = doc;
+            await parentDoc.set(fieldname, doc.name);
+          }
+          this.triggerChange(doc.name);
+        } finally {
+          this.results = [];
+          this.$router.back();
+        }
       });
     },
     async getCreateFilters() {

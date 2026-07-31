@@ -22,7 +22,13 @@
       />
       <p
         v-if="schema.label && !(canShowBarcode || canShowExchangeRate)"
-        class="text-xl font-semibold items-center text-gray-600"
+        class="
+          text-xl
+          font-semibold
+          items-center
+          text-gray-600
+          dark:text-gray-100
+        "
       >
         {{ schema.label }}
       </p>
@@ -66,12 +72,12 @@
         </p>
         <feather-icon v-else name="more-horizontal" class="w-4 h-4" />
       </DropdownWithActions>
-      <Button v-if="doc?.canSave" type="primary" @click="sync">
-        {{ t`Save` }}
-      </Button>
-      <Button v-else-if="doc?.canSubmit" type="primary" @click="submit">{{
+      <Button v-if="doc?.canSubmit" type="primary" @click="submit">{{
         t`Submit`
       }}</Button>
+      <Button v-else-if="showSaveButton" type="primary" @click="sync">
+        {{ t`Save` }}
+      </Button>
     </template>
     <template #body>
       <FormHeader
@@ -145,7 +151,7 @@
           :class="
             key === activeTab
               ? 'text-gray-900 dark:text-gray-25 font-semibold border-t-2 border-gray-800 dark:border-gray-100'
-              : 'text-gray-700 dark:text-gray-200 '
+              : 'text-gray-700 dark:text-gray-100 '
           "
           :style="{
             paddingTop: key === activeTab ? 'calc(1rem - 2px)' : '1rem',
@@ -203,6 +209,7 @@ import {
   commonDocSubmit,
   commonDocSync,
   getDocFromNameIfExistsElseNew,
+  getDocReferenceLabel,
   getFieldsGroupedByTabAndSection,
   getFormRoute,
   getGroupedActionsForDoc,
@@ -273,6 +280,21 @@ export default defineComponent({
     };
   },
   computed: {
+    showSaveButton(): boolean {
+      if (!this.hasDoc) {
+        return false;
+      }
+      if (this.doc.schema.isChild) {
+        return false;
+      }
+      if (this.doc.isCancelled) {
+        return false;
+      }
+      if (this.doc.schema.isSubmittable && this.doc.isSubmitted) {
+        return false;
+      }
+      return true;
+    },
     canShowBarcode(): boolean {
       if (!this.fyo.singles.InventorySettings?.enableBarcodes) {
         return false;
@@ -356,12 +378,23 @@ export default defineComponent({
       return doc;
     },
     title(): string {
-      if (this.schema.isSubmittable && this.docOrNull?.notInserted) {
+      if (!this.docOrNull || this.docOrNull.notInserted) {
+        if (this.docOrNull) {
+          const titleField =
+            this.schema.linkDisplayField || this.schema.titleField || 'name';
+          if (titleField !== 'name') {
+            const title = this.docOrNull.get(titleField);
+            if (typeof title === 'string' && title.trim()) {
+              return title.trim();
+            }
+          }
+        }
         return this.t`New Entry`;
       }
 
-      return this.docOrNull?.name || this.t`New Entry`;
+      return getDocReferenceLabel(this.docOrNull);
     },
+
     schema(): Schema {
       const schema = this.fyo.schemaMap[this.schemaName];
       if (!schema) {
