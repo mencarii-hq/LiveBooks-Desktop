@@ -15,7 +15,8 @@ import {
   TargetField,
 } from 'schemas/types';
 import { getIsNullOrUndef, getMapFromList, getRandomString } from 'utils';
-import { markRaw, reactive } from 'vue';
+import { markRaw, reactive, ref, toRaw } from 'vue';
+import type { Ref } from 'vue';
 import { isPesa } from '../utils/index';
 import { getDbSyncError } from './errorHelpers';
 import {
@@ -45,6 +46,33 @@ import {
   ValidationMap,
 } from './types';
 import { validateOptions, validateRequired } from './validationFunction';
+
+/**
+ * Vue does not reliably re-render templates that read Doc getters
+ * (canSave/canSubmit) when underscore fields like `_dirty` flip on a
+ * reactive class instance. A WeakMap of refs gives render/computed a
+ * dependency that always invalidates when action state changes.
+ */
+const docActionRevMap = new WeakMap<object, Ref<number>>();
+
+function getDocActionRev(doc: object): Ref<number> {
+  const key = toRaw(doc);
+  let rev = docActionRevMap.get(key);
+  if (!rev) {
+    rev = ref(0);
+    docActionRevMap.set(key, rev);
+  }
+  return rev;
+}
+
+function trackDocAction(doc: object): void {
+  void getDocActionRev(doc).value;
+}
+
+function bumpDocAction(doc: object): void {
+  getDocActionRev(doc).value++;
+}
+
 export class Doc extends Observable<DocValue | Doc[]> {
   /* eslint-disable @typescript-eslint/no-floating-promises */
   name?: string;
@@ -180,6 +208,7 @@ export class Doc extends Observable<DocValue | Doc[]> {
   }
 
   get canSave() {
+    trackDocAction(this);
     const isSubmittable = this.schema.isSubmittable;
     if (isSubmittable && !!this.submitted) {
       return false;
@@ -201,6 +230,7 @@ export class Doc extends Observable<DocValue | Doc[]> {
   }
 
   get canSubmit() {
+    trackDocAction(this);
     if (!this.schema.isSubmittable) {
       return false;
     }
@@ -225,6 +255,7 @@ export class Doc extends Observable<DocValue | Doc[]> {
   }
 
   get canCancel() {
+    trackDocAction(this);
     if (!this.schema.isSubmittable) {
       return false;
     }
@@ -282,8 +313,10 @@ export class Doc extends Observable<DocValue | Doc[]> {
 
   _setDirty(value: boolean) {
     this._dirty = value;
+    bumpDocAction(this);
     if (this.schema.isChild && this.parentdoc) {
       this.parentdoc._dirty = value;
+      bumpDocAction(this.parentdoc);
     }
   }
 
@@ -641,6 +674,7 @@ export class Doc extends Observable<DocValue | Doc[]> {
 
     this._setDirty(false);
     this._notInserted = false;
+    bumpDocAction(this);
     this.fyo.doc.observer.trigger(`load:${this.schemaName}`, this.name);
   }
 
@@ -712,7 +746,7 @@ export class Doc extends Observable<DocValue | Doc[]> {
     this._clearValues();
     this._setValuesWithoutChecks(data, false);
     await this._setComputedValuesFromFormulas();
-    this._dirty = false;
+    this._setDirty(false);
     this.trigger('change', {
       doc: this,
     });
@@ -746,7 +780,7 @@ export class Doc extends Observable<DocValue | Doc[]> {
       this[fieldname] = null;
     }
 
-    this._dirty = true;
+    this._setDirty(true);
     this._notInserted = true;
   }
 
@@ -934,6 +968,7 @@ export class Doc extends Observable<DocValue | Doc[]> {
       doc = await this._update();
     }
     this._notInserted = false;
+    bumpDocAction(this);
     await this.trigger('afterSync');
     this.fyo.doc.observer.trigger(`sync:${this.schemaName}`, this.name);
 
