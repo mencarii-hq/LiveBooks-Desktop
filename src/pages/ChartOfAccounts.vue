@@ -1,6 +1,7 @@
 <template>
   <div class="flex flex-col h-full">
     <PageHeader :title="t`Chart of Accounts`">
+      <Button @click="exportCsv">{{ t`Export (CSV)` }}</Button>
       <Button v-if="!isAllExpanded" @click="expand">{{ t`Expand` }}</Button>
       <Button v-if="!isAllCollapsed" @click="collapse">{{
         t`Collapse`
@@ -36,7 +37,7 @@
           "
           :class="[
             account.level !== 0 ? 'text-base' : 'text-lg',
-            isQuickEditOpen(account) ? 'bg-gray-200 dark:bg-gray-900' : '',
+            isQuickEditOpen(account) ? 'bg-gray-200 dark:bg-gray-700' : '',
           ]"
           :style="getItemStyle(account.level)"
           @click="onClick(account)"
@@ -52,13 +53,35 @@
               {{ accountDisplay(account) }}
             </div>
 
-            <!-- Add Account Buttons on Group Hover -->
-            <div class="ms-6 hidden group-hover:block">
+            <!-- Row actions: always visible (muted), clearer on hover -->
+            <div
+              class="
+                ms-6
+                flex flex-wrap
+                items-center
+                opacity-60
+                group-hover:opacity-100
+                focus-within:opacity-100
+              "
+            >
+              <button
+                class="
+                  text-xs text-gray-800
+                  dark:text-gray-300
+                  hover:text-gray-900
+                  dark:hover:text-gray-100
+                  focus:outline-none
+                "
+                @click.stop="editAccount(account)"
+              >
+                {{ t`Edit` }}
+              </button>
               <button
                 v-if="account.isGroup"
                 class="
+                  ms-3
                   text-xs text-gray-800
-                  dark:text-gray-400
+                  dark:text-gray-300
                   hover:text-gray-900
                   dark:hover:text-gray-100
                   focus:outline-none
@@ -72,7 +95,7 @@
                 class="
                   ms-3
                   text-xs text-gray-800
-                  dark:text-gray-400
+                  dark:text-gray-300
                   hover:text-gray-900
                   dark:hover:text-gray-100
                   focus:outline-none
@@ -81,40 +104,13 @@
               >
                 {{ t`Add Group` }}
               </button>
-              <button
-                v-if="account.isGroup"
-                class="
-                  ms-3
-                  text-xs text-gray-800
-                  dark:text-gray-400
-                  hover:text-gray-900
-                  dark:hover:text-gray-100
-                  focus:outline-none
-                "
-                @click.stop="renameAccount(account)"
-              >
-                {{ t`Rename` }}
-              </button>
-              <button
-                class="
-                  ms-3
-                  text-xs text-gray-800
-                  dark:text-gray-400
-                  hover:text-gray-900
-                  dark:hover:text-gray-100
-                  focus:outline-none
-                "
-                @click.stop="deleteAccount(account)"
-              >
-                {{ account.isGroup ? t`Delete Group` : t`Delete Account` }}
-              </button>
             </div>
           </div>
 
           <!-- Account Balance String -->
           <p
             v-if="!account.isGroup"
-            class="ms-auto text-base text-gray-800 dark:text-gray-400"
+            class="ms-auto text-base text-gray-800 dark:text-gray-300"
           >
             {{ getBalanceString(account) }}
           </p>
@@ -146,9 +142,9 @@
               class="
                 focus:outline-none
                 bg-transparent
-                dark:placeholder-gray-600 dark:text-gray-400
+                dark:placeholder-gray-600 dark:text-gray-300
               "
-              :class="{ 'text-gray-600 dark:text-gray-400': insertingAccount }"
+              :class="{ 'text-gray-600 dark:text-gray-300': insertingAccount }"
               :placeholder="t`New Account`"
               type="text"
               :disabled="insertingAccount"
@@ -162,7 +158,7 @@
               class="
                 ms-4
                 text-xs text-gray-800
-                dark:text-gray-400
+                dark:text-gray-300
                 hover:text-gray-900
                 dark:hover:text-gray-100
                 focus:outline-none
@@ -178,7 +174,7 @@
               class="
                 ms-4
                 text-xs text-gray-800
-                dark:text-gray-400
+                dark:text-gray-300
                 hover:text-gray-900
                 dark:hover:text-gray-100
                 focus:outline-none
@@ -191,6 +187,88 @@
         </div>
       </template>
     </div>
+
+    <!-- Hard delete: type account/group name to confirm -->
+    <Modal :open-modal="!!cascadeDeleteTarget" @closemodal="closeCascadeDelete">
+      <div class="p-4 text-gray-900 dark:text-gray-100 w-form">
+        <h2 class="text-xl font-semibold select-none">
+          {{ t`Delete ${cascadeDeleteLabel}?` }}
+        </h2>
+        <p class="text-base mt-2">
+          <template v-if="isCascadeDelete">
+            {{
+              t`This permanently deletes this group and every account under it (${cascadeDeleteCount} total). It cannot be undone.`
+            }}
+          </template>
+          <template v-else-if="cascadeDeleteTarget?.isGroup">
+            {{ t`This permanently deletes this group. It cannot be undone.` }}
+          </template>
+          <template v-else>
+            {{ t`This permanently deletes this account. It cannot be undone.` }}
+          </template>
+        </p>
+        <p
+          v-if="isCascadeDelete"
+          class="text-sm text-red-600 dark:text-red-400 mt-2"
+        >
+          {{
+            t`Accounts that still have transactions or other links will be kept. If any remain, the group itself may not be deleted.`
+          }}
+        </p>
+        <div
+          v-if="isCascadeDelete && cascadeDeleteNames.length"
+          class="
+            mt-3
+            max-h-40
+            overflow-y-auto
+            text-sm text-gray-700
+            dark:text-gray-300
+            custom-scroll custom-scroll-thumb1
+            border
+            dark:border-gray-800
+            rounded
+            p-2
+          "
+        >
+          <p v-for="name in cascadeDeleteNames" :key="name">{{ name }}</p>
+        </div>
+        <p class="text-sm text-red-600 dark:text-red-400 mt-4">
+          {{ t`Type "${cascadeDeleteLabel}" to confirm.` }}
+        </p>
+        <input
+          v-model="cascadeConfirmInput"
+          type="text"
+          class="
+            mt-2
+            w-full
+            bg-gray-100
+            dark:bg-gray-800
+            focus:bg-gray-200
+            dark:focus:bg-gray-700
+            rounded-md
+            px-2
+            py-1.5
+            outline-none
+            text-base
+          "
+          :placeholder="cascadeDeleteLabel"
+          :disabled="cascadeDeleting"
+          @keydown.enter="confirmCascadeDelete"
+        />
+        <div class="flex justify-between mt-6">
+          <Button :disabled="cascadeDeleting" @click="closeCascadeDelete">{{
+            t`Cancel`
+          }}</Button>
+          <Button
+            type="primary"
+            :disabled="!canConfirmCascadeDelete || cascadeDeleting"
+            @click="confirmCascadeDelete"
+          >
+            {{ t`Delete Permanently` }}
+          </Button>
+        </div>
+      </div>
+    </Modal>
   </div>
 </template>
 <script lang="ts">
@@ -198,12 +276,14 @@ import { t } from 'fyo';
 import { isCredit } from 'models/helpers';
 import { ModelNameEnum } from 'models/types';
 import PageHeader from 'src/components/PageHeader.vue';
+import Modal from 'src/components/Modal.vue';
 import { fyo } from 'src/initFyo';
 import { languageDirectionKey } from 'src/utils/injectionKeys';
 import { docsPathMap } from 'src/utils/misc';
 import { docsPathRef } from 'src/utils/refs';
-import { commongDocDelete, openQuickEdit } from 'src/utils/ui';
+import { getSavePath, openQuickEdit, showExportInFolder } from 'src/utils/ui';
 import { getMapFromList, removeAtIndex } from 'utils/index';
+import { generateCSV } from 'utils/csvParser';
 import { defineComponent, nextTick } from 'vue';
 import Button from '../components/Button.vue';
 import { inject } from 'vue';
@@ -215,6 +295,12 @@ import { Component } from 'vue';
 import { uicolors } from 'src/utils/colors';
 import { showDialog } from 'src/utils/interactive';
 import { accountDisplayName } from 'utils/accountDisplay';
+import { getDbError, LinkValidationError } from 'fyo/utils/errors';
+import { Verb } from 'fyo/telemetry/types';
+import {
+  registerChartOfAccountsDelete,
+  unregisterChartOfAccountsDelete,
+} from 'src/utils/chartOfAccountsActions';
 
 type AccountItem = {
   name: string;
@@ -225,6 +311,7 @@ type AccountItem = {
   level: number;
   location: number[];
   isGroup?: boolean;
+  disabled?: boolean;
   children: AccountItem[];
   expanded: boolean;
   addingAccount: boolean;
@@ -237,6 +324,7 @@ export default defineComponent({
   components: {
     Button,
     PageHeader,
+    Modal,
   },
   props: {
     darkMode: { type: Boolean, default: false },
@@ -258,6 +346,10 @@ export default defineComponent({
       totals: {} as Record<string, { totalDebit: number; totalCredit: number }>,
       refetchTotals: false,
       settings: null as null | TreeViewSettings,
+      cascadeDeleteTarget: null as null | AccountItem,
+      cascadeDeleteItems: [] as AccountItem[],
+      cascadeConfirmInput: '',
+      cascadeDeleting: false,
     };
   },
   computed: {
@@ -284,8 +376,33 @@ export default defineComponent({
 
       return allAccounts;
     },
+    cascadeDeleteLabel() {
+      if (!this.cascadeDeleteTarget) {
+        return '';
+      }
+      return this.accountDisplay(this.cascadeDeleteTarget);
+    },
+    cascadeDeleteCount() {
+      return this.cascadeDeleteItems.length;
+    },
+    cascadeDeleteNames() {
+      return this.cascadeDeleteItems.map((a) => this.accountDisplay(a));
+    },
+    isCascadeDelete() {
+      return this.cascadeDeleteItems.length > 1;
+    },
+    canConfirmCascadeDelete() {
+      if (!this.cascadeDeleteTarget) {
+        return false;
+      }
+      return (
+        this.cascadeConfirmInput.trim() ===
+        this.accountDisplay(this.cascadeDeleteTarget)
+      );
+    },
   },
   async mounted() {
+    registerChartOfAccountsDelete((name) => this.deleteAccountByName(name));
     await this.setTotalDebitAndCredit();
     fyo.doc.observer.on('sync:AccountingLedgerEntry', () => {
       this.refetchTotals = true;
@@ -304,6 +421,7 @@ export default defineComponent({
     });
   },
   async activated() {
+    registerChartOfAccountsDelete((name) => this.deleteAccountByName(name));
     await this.fetchAccounts();
     if (fyo.store.isDevelopment) {
       // @ts-ignore
@@ -318,6 +436,7 @@ export default defineComponent({
     }
   },
   deactivated() {
+    unregisterChartOfAccountsDelete();
     docsPathRef.value = '';
   },
   methods: {
@@ -388,6 +507,7 @@ export default defineComponent({
       this.accounts = await this.getChildren();
     },
     async onClick(account: AccountItem) {
+      // Groups with children only expand/collapse; empty groups and leaves open Quick Edit.
       let shouldOpen = !account.isGroup;
       if (account.isGroup) {
         shouldOpen = !(await this.toggleChildren(account));
@@ -405,6 +525,9 @@ export default defineComponent({
         return;
       }
 
+      await this.editAccount(account);
+    },
+    async editAccount(account: AccountItem) {
       const doc = await fyo.doc.getDoc(ModelNameEnum.Account, account.name);
       this.setOpenAccountDocListener(doc, account);
       await openQuickEdit({ doc });
@@ -454,20 +577,24 @@ export default defineComponent({
         account.accountName = doc.accountName as string;
       }
       if (doc.accountType != null) {
-        account.accountType = doc.accountType as string;
+        account.accountType = doc.accountType as AccountType;
       }
       if (doc.rootType != null) {
-        account.rootType = doc.rootType as string;
+        account.rootType = doc.rootType as AccountRootType;
       }
       if (doc.isGroup != null) {
         account.isGroup = doc.isGroup as boolean;
       }
+      if (doc.disabled != null) {
+        account.disabled = doc.disabled as boolean;
+      }
     },
     findAccountItem(
       name: string,
-      accounts: AccountItem[] = this.accounts
+      accounts?: AccountItem[]
     ): AccountItem | undefined {
-      for (const a of accounts) {
+      const list = accounts ?? this.accounts;
+      for (const a of list) {
         if (a.name === name) {
           return a;
         }
@@ -482,9 +609,10 @@ export default defineComponent({
     },
     findAccountItemByAccountName(
       accountName: string,
-      accounts: AccountItem[] = this.accounts
+      accounts?: AccountItem[]
     ): AccountItem | undefined {
-      for (const a of accounts) {
+      const list = accounts ?? this.accounts;
+      for (const a of list) {
         if (a.accountName === accountName) {
           return a;
         }
@@ -500,38 +628,218 @@ export default defineComponent({
       }
       return undefined;
     },
-    async renameAccount(account: AccountItem) {
-      const doc = await fyo.doc.getDoc(ModelNameEnum.Account, account.name);
-      this.setOpenAccountDocListener(doc, account);
-      await openQuickEdit({ doc });
+    async deleteAccountByName(name: string) {
+      const account = this.findAccountItem(name);
+      if (!account) {
+        return;
+      }
+      await this.deleteAccount(account);
     },
     async deleteAccount(account: AccountItem) {
-      const canDelete = await this.canDeleteAccount(account);
-      if (!canDelete) {
+      // Hard gate for both leaves and groups: type name to confirm.
+      await this.openCascadeDelete(account);
+    },
+    async handleAccountDeleteError(e: unknown, account: AccountItem) {
+      if (!(e instanceof Error)) {
         return;
       }
 
-      const doc = await fyo.doc.getDoc(ModelNameEnum.Account, account.name);
-      this.setOpenAccountDocListener(doc, account);
+      if (getDbError(e) === LinkValidationError) {
+        await showDialog({
+          type: 'error',
+          title: t`Cannot Delete Account`,
+          detail: t`Cannot delete "${this.accountDisplay(
+            account
+          )}" because it has linked ledger entries or other references.`,
+        });
+        return;
+      }
 
-      await commongDocDelete(doc, false);
+      // Soften any remaining rethrows so delete never leaves an unhandled rejection.
+      await handleErrorWithDialog(e, undefined, false, true);
     },
-    async canDeleteAccount(account: AccountItem) {
-      if (account.isGroup && !account.children?.length) {
-        await this.fetchChildren(account);
+    async openCascadeDelete(account: AccountItem) {
+      const items = await this.collectSubtreePostOrder(account);
+      this.cascadeDeleteTarget = account;
+      this.cascadeDeleteItems = items;
+      this.cascadeConfirmInput = '';
+    },
+    closeCascadeDelete() {
+      if (this.cascadeDeleting) {
+        return;
+      }
+      this.cascadeDeleteTarget = null;
+      this.cascadeDeleteItems = [];
+      this.cascadeConfirmInput = '';
+    },
+    /** Leaves first, then groups — safe delete order for unused subtrees. */
+    async collectSubtreePostOrder(
+      account: AccountItem
+    ): Promise<AccountItem[]> {
+      await this.fetchChildren(account);
+      const result: AccountItem[] = [];
+      for (const child of account.children ?? []) {
+        result.push(...(await this.collectSubtreePostOrder(child)));
+      }
+      result.push(account);
+      return result;
+    },
+    async confirmCascadeDelete() {
+      if (!this.canConfirmCascadeDelete || !this.cascadeDeleteTarget) {
+        return;
       }
 
-      if (!account.children?.length) {
-        return true;
+      this.cascadeDeleting = true;
+      const target = this.cascadeDeleteTarget;
+      const wasGroup = !!target.isGroup;
+      const wasCascade = this.cascadeDeleteItems.length > 1;
+      const items = [...this.cascadeDeleteItems];
+      const deleted: string[] = [];
+      const failed: string[] = [];
+
+      try {
+        for (const item of items) {
+          const label = this.accountDisplay(item);
+          if (item.isGroup) {
+            await this.fetchChildren(item, true);
+            if (item.children?.length) {
+              failed.push(
+                t`${label}: still has child accounts that could not be deleted`
+              );
+              continue;
+            }
+          }
+
+          try {
+            const doc = await fyo.doc.getDoc(ModelNameEnum.Account, item.name);
+            await doc.delete();
+            deleted.push(label);
+          } catch (e) {
+            if (e instanceof Error && getDbError(e) === LinkValidationError) {
+              failed.push(t`${label}: has transactions or other links`);
+            } else if (e instanceof Error) {
+              failed.push(t`${label}: ${e.message}`);
+            } else {
+              failed.push(t`${label}: delete failed`);
+            }
+          }
+        }
+      } finally {
+        this.cascadeDeleting = false;
+        this.closeCascadeDelete();
+        await this.fetchAccounts();
+        await this.setTotalDebitAndCredit();
       }
+
+      if (
+        deleted.includes(this.accountDisplay(target)) &&
+        this.$route.query.name === target.name
+      ) {
+        this.$router.back();
+      }
+
+      const detail: string[] = [];
+      if (deleted.length) {
+        detail.push(t`Deleted ${deleted.length} account(s).`);
+      }
+      if (failed.length) {
+        detail.push(t`${failed.length} account(s) could not be deleted:`);
+        detail.push(...failed.slice(0, 12));
+        if (failed.length > 12) {
+          detail.push(t`…and ${failed.length - 12} more`);
+        }
+      }
+
+      const successTitle =
+        wasCascade || wasGroup ? t`Group Deleted` : t`Account Deleted`;
 
       await showDialog({
-        type: 'error',
-        title: t`Cannot Delete Account`,
-        detail: t`${this.accountDisplay(account)} has linked child accounts.`,
+        type: failed.length ? 'warning' : 'success',
+        title: failed.length
+          ? t`Some Accounts Could Not Be Deleted`
+          : successTitle,
+        detail: detail.length ? detail : t`No accounts were deleted.`,
       });
+    },
+    async exportCsv() {
+      await this.setTotalDebitAndCredit();
 
-      return false;
+      const rows = (await fyo.db.getAll(ModelNameEnum.Account, {
+        fields: [
+          'name',
+          'accountName',
+          'parentAccount',
+          'isGroup',
+          'rootType',
+          'accountType',
+          'disabled',
+        ],
+        orderBy: 'accountName',
+        order: 'asc',
+      })) as {
+        name: string;
+        accountName?: string;
+        parentAccount?: string | null;
+        isGroup?: boolean;
+        rootType?: string;
+        accountType?: string;
+        disabled?: boolean;
+      }[];
+
+      const nameById = getMapFromList(
+        rows.map((r) => ({
+          name: r.name,
+          accountName: r.accountName,
+        })),
+        'name'
+      ) as Record<string, { name: string; accountName?: string }>;
+
+      const header = [
+        t`Account Name`,
+        t`Root Type`,
+        t`Account Type`,
+        t`Parent`,
+        t`Is Group`,
+        t`Disabled`,
+        t`Balance`,
+      ];
+
+      const matrix: unknown[][] = [header];
+      for (const row of rows) {
+        const parent = row.parentAccount
+          ? accountDisplayName(
+              nameById[row.parentAccount] ?? { name: row.parentAccount }
+            )
+          : '';
+        const balance = this.getBalance({
+          name: row.name,
+          rootType: row.rootType as AccountRootType,
+        } as AccountItem);
+
+        matrix.push([
+          accountDisplayName(row),
+          row.rootType ?? '',
+          row.accountType ?? '',
+          parent,
+          row.isGroup ? t`Yes` : t`No`,
+          row.disabled ? t`Yes` : t`No`,
+          balance,
+        ]);
+      }
+
+      const { canceled, filePath } = await getSavePath(
+        'chart-of-accounts',
+        'csv'
+      );
+      if (canceled || !filePath) {
+        return;
+      }
+
+      await ipc.saveData(generateCSV(matrix), filePath);
+      fyo.telemetry.log(Verb.Exported, ModelNameEnum.Account, {
+        extension: 'csv',
+      });
+      showExportInFolder(t`Export Successful`, filePath);
     },
     removeAccount(
       name: string,
@@ -604,6 +912,7 @@ export default defineComponent({
           'isGroup',
           'rootType',
           'accountType',
+          'disabled',
         ],
         orderBy: 'accountName',
         order: 'asc',
