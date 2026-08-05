@@ -87,6 +87,16 @@ export default {
       if (insideClick) {
         return;
       }
+      // Nested Select/Dropdown menus Teleport to body; a click there is
+      // outside this panel's DOM but still part of the open UI.
+      const target = e.target;
+      if (
+        target &&
+        typeof target.closest === 'function' &&
+        target.closest('.popover-container')
+      ) {
+        return;
+      }
       this.close();
     };
 
