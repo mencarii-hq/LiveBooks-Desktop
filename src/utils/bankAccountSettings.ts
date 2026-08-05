@@ -152,6 +152,14 @@ export async function disconnectPlaidItemLocalAndRemote(
 export async function archiveBankAccount(
   accountName: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  const bal = await ledgerSignedBalanceForAccount(accountName);
+  if (bal != null && Math.abs(bal) > 0.005) {
+    return {
+      ok: false,
+      error:
+        'This account still has a balance in your books. Record a transfer to zero it before archiving.',
+    };
+  }
   const ex = await excludeUnmatchedFeedLinesForAccount(
     accountName,
     'archived_account'
@@ -164,6 +172,25 @@ export async function archiveBankAccount(
   await acc.set('disabled', true);
   await acc.sync();
   return { ok: true };
+}
+
+export async function unarchiveBankAccount(
+  accountName: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const acc = await fyo.doc.getDoc(ModelNameEnum.Account, accountName);
+    if (!acc.get('disabled')) {
+      return { ok: true };
+    }
+    await acc.set('disabled', false);
+    await acc.sync();
+    return { ok: true };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : 'Could not restore account.',
+    };
+  }
 }
 
 export async function deleteEmptyBankAccount(

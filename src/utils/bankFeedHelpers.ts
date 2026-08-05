@@ -13,6 +13,7 @@ export type BankCoaAccount = {
   name: string;
   accountName?: string;
   rootType?: string;
+  disabled?: boolean;
 };
 
 export type ManualFeedLine = {
@@ -134,13 +135,26 @@ export function isManualBankAccount(
 
 export async function loadAllBankCoaAccounts(): Promise<BankCoaAccount[]> {
   return (await fyo.db.getAll(ModelNameEnum.Account, {
-    fields: ['name', 'accountName', 'rootType'],
+    fields: ['name', 'accountName', 'rootType', 'disabled'],
     filters: {
       accountType: AccountTypeEnum.Bank,
       isGroup: false,
       disabled: false,
     },
   })) as BankCoaAccount[];
+}
+
+/** Archived (disabled) bank leaf accounts — for restore UI on Bank Feed Settings. */
+export async function loadArchivedBankCoaAccounts(): Promise<BankCoaAccount[]> {
+  const rows = (await fyo.db.getAll(ModelNameEnum.Account, {
+    fields: ['name', 'accountName', 'rootType', 'disabled'],
+    filters: {
+      accountType: AccountTypeEnum.Bank,
+      isGroup: false,
+      disabled: true,
+    },
+  })) as BankCoaAccount[];
+  return rows.map((r) => ({ ...r, disabled: true }));
 }
 
 function normalizeDate(raw: unknown): string {

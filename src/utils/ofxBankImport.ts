@@ -31,6 +31,7 @@ function parseOfxDate(raw: string): string {
   return '';
 }
 
+/** Tag values are captured literally; XML entities are not resolved (safe vs billion-laughs). */
 function readTag(block: string, tag: string): string {
   const re = new RegExp(`<${tag}>([^\\r\\n<]*)`, 'i');
   const m = block.match(re);
