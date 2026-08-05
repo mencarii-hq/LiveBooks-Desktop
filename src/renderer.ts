@@ -31,6 +31,7 @@ import { runWhenIdle } from './utils/runWhenIdle';
     isDevelopment,
     appEnv,
     platform,
+    arch,
     version,
     telemetryEnabled,
     updaterEnabled,
@@ -40,6 +41,7 @@ import { runWhenIdle } from './utils/runWhenIdle';
   fyo.store.appEnv = appEnv;
   fyo.store.appVersion = version;
   fyo.store.platform = platform;
+  fyo.store.arch = arch || '';
   fyo.store.telemetryEnabled = telemetryEnabled;
   fyo.store.updaterEnabled = updaterEnabled;
   const platformName = getPlatformName(platform);

@@ -177,6 +177,8 @@ export function getCreateFiltersFromListViewFilters(filters: QueryFilter) {
     createFilters[key] = value;
   }
 
+  delete createFilters['accountType'];
+
   return createFilters;
 }
 

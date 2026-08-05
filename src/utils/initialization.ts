@@ -12,6 +12,7 @@ import {
   getRandomString,
   getValueMapFromList,
 } from 'utils/index';
+import { invalidateUsCaCompanyCache } from 'utils/regional';
 
 export async function initializeInstance(
   dbPath: string,
@@ -41,6 +42,7 @@ export async function initializeInstance(
   await pruneStaleLocalMutations(fyo).catch(() => undefined);
   await setOpenCount(fyo);
   await setCurrencySymbols(fyo);
+  invalidateUsCaCompanyCache();
 }
 
 async function closeDbIfConnected(fyo: Fyo) {

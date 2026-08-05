@@ -12,6 +12,7 @@ import {
 import { Field, FieldTypeEnum } from 'schemas/types';
 import { accountDisplayName } from 'utils/accountDisplay';
 import { QueryFilter } from 'utils/db/types';
+import { isUsCaCompany } from 'utils/regional';
 
 type ReferenceType =
   | ModelNameEnum.SalesInvoice
@@ -297,8 +298,14 @@ export class GeneralLedger extends LedgerReport {
   getFilters() {
     const refTypeOptions = [
       { label: t`All`, value: 'All' },
-      { label: t`Sales Invoices`, value: 'SalesInvoice' },
-      { label: t`Purchase Invoices`, value: 'PurchaseInvoice' },
+      {
+        label: isUsCaCompany(this.fyo) ? t`Invoices` : t`Sales Invoices`,
+        value: 'SalesInvoice',
+      },
+      {
+        label: isUsCaCompany(this.fyo) ? t`Bills` : t`Purchase Invoices`,
+        value: 'PurchaseInvoice',
+      },
       { label: t`Payments`, value: 'Payment' },
       { label: t`Journal Entries`, value: 'JournalEntry' },
     ];

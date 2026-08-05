@@ -5,8 +5,10 @@ import { ValidationError } from 'fyo/utils/errors';
 import { t } from 'fyo/utils/translation';
 import { SelectOption } from 'schemas/types';
 import { getCountryInfo } from 'utils/misc';
+import { invalidateAndEmitRegionalLabelsChanged } from 'utils/regional';
 
 export default class SystemSettings extends Doc {
+  _countryCodeBeforeSync?: string;
   dateFormat?: string;
   locale?: string;
   displayPrecision?: number;
@@ -30,6 +32,18 @@ export default class SystemSettings extends Doc {
       );
     },
   };
+
+  beforeSync() {
+    this._countryCodeBeforeSync = this.countryCode;
+  }
+
+  afterSync() {
+    const before = (this._countryCodeBeforeSync ?? '').trim().toLowerCase();
+    const after = (this.countryCode ?? '').trim().toLowerCase();
+    if (before !== after) {
+      invalidateAndEmitRegionalLabelsChanged();
+    }
+  }
 
   static lists: ListsMap = {
     locale() {

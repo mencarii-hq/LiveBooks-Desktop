@@ -1,5 +1,6 @@
 import { t } from 'fyo';
 import { routeFilters } from 'src/utils/filters';
+import { isUsCaCompany } from 'utils/regional';
 import { fyo } from '../initFyo';
 import { SidebarConfig, SidebarItem, SidebarRoot } from './types';
 
@@ -193,27 +194,29 @@ function getCompleteSidebar(): SidebarConfig {
       ],
     },
     {
-      label: t`Sales`,
+      label: isUsCaCompany(fyo) ? t`Receivables` : t`Sales`,
       name: 'sales',
       icon: 'sales',
       route: '/list/SalesInvoice',
       items: [
         {
-          label: t`Sales Quotes`,
+          label: isUsCaCompany(fyo) ? t`Quotes` : t`Sales Quotes`,
           name: 'sales-quotes',
           route: '/list/SalesQuote',
           schemaName: 'SalesQuote',
         },
         {
-          label: t`Sales Invoices`,
+          label: isUsCaCompany(fyo) ? t`Invoices` : t`Sales Invoices`,
           name: 'sales-invoices',
           route: '/list/SalesInvoice',
           schemaName: 'SalesInvoice',
         },
         {
-          label: t`Sales Payments`,
+          label: isUsCaCompany(fyo) ? t`Payments` : t`Sales Payments`,
           name: 'payments',
-          route: `/list/Payment/${t`Sales Payments`}`,
+          route: `/list/Payment/${
+            isUsCaCompany(fyo) ? t`Payments (Receivables)` : t`Sales Payments`
+          }`,
           schemaName: 'Payment',
           filters: routeFilters.SalesPayments,
         },
@@ -225,9 +228,11 @@ function getCompleteSidebar(): SidebarConfig {
           filters: routeFilters.Customers,
         },
         {
-          label: t`Sales Items`,
+          label: isUsCaCompany(fyo) ? t`Items` : t`Sales Items`,
           name: 'sales-items',
-          route: `/list/Item/${t`Sales Items`}`,
+          route: `/list/Item/${
+            isUsCaCompany(fyo) ? t`Items (Receivables)` : t`Sales Items`
+          }`,
           schemaName: 'Item',
           filters: routeFilters.SalesItems,
         },
@@ -262,21 +267,23 @@ function getCompleteSidebar(): SidebarConfig {
       ] as SidebarItem[],
     },
     {
-      label: t`Purchases`,
+      label: isUsCaCompany(fyo) ? t`Payables` : t`Purchases`,
       name: 'purchases',
       icon: 'purchase',
       route: '/list/PurchaseInvoice',
       items: [
         {
-          label: t`Purchase Invoices`,
+          label: isUsCaCompany(fyo) ? t`Bills` : t`Purchase Invoices`,
           name: 'purchase-invoices',
           route: '/list/PurchaseInvoice',
           schemaName: 'PurchaseInvoice',
         },
         {
-          label: t`Purchase Payments`,
+          label: isUsCaCompany(fyo) ? t`Payments` : t`Purchase Payments`,
           name: 'payments',
-          route: `/list/Payment/${t`Purchase Payments`}`,
+          route: `/list/Payment/${
+            isUsCaCompany(fyo) ? t`Payments (Payables)` : t`Purchase Payments`
+          }`,
           schemaName: 'Payment',
           filters: routeFilters.PurchasePayments,
         },
@@ -288,9 +295,11 @@ function getCompleteSidebar(): SidebarConfig {
           filters: routeFilters.Suppliers,
         },
         {
-          label: t`Purchase Items`,
+          label: isUsCaCompany(fyo) ? t`Items` : t`Purchase Items`,
           name: 'purchase-items',
-          route: `/list/Item/${t`Purchase Items`}`,
+          route: `/list/Item/${
+            isUsCaCompany(fyo) ? t`Items (Payables)` : t`Purchase Items`
+          }`,
           schemaName: 'Item',
           filters: routeFilters.PurchaseItems,
         },

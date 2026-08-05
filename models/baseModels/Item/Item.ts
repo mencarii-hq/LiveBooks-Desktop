@@ -17,6 +17,7 @@ import {
   salesIncomeAccountId,
   serviceIncomeAccountId,
 } from 'utils/ids/coaAccountLookup';
+import { isUsCaCompany } from 'utils/regional';
 
 interface UOMConversionItem {
   name: string;
@@ -228,7 +229,7 @@ export class Item extends Doc {
     return [
       {
         group: fyo.t`Create`,
-        label: fyo.t`Sales Invoice`,
+        label: isUsCaCompany(fyo) ? fyo.t`Invoice` : fyo.t`Sales Invoice`,
         condition: (doc) => !doc.notInserted && doc.for !== 'Purchases',
         action: async (doc, router) => {
           const invoice = fyo.doc.getNewDoc('SalesInvoice');
@@ -242,7 +243,7 @@ export class Item extends Doc {
       },
       {
         group: fyo.t`Create`,
-        label: fyo.t`Purchase Invoice`,
+        label: isUsCaCompany(fyo) ? fyo.t`Bill` : fyo.t`Purchase Invoice`,
         condition: (doc) => !doc.notInserted && doc.for !== 'Sales',
         action: async (doc, router) => {
           const invoice = fyo.doc.getNewDoc('PurchaseInvoice');

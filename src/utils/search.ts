@@ -7,6 +7,7 @@ import { OptionField } from 'schemas/types';
 import { createFilters, routeFilters } from 'src/utils/filters';
 import { GetAllOptions } from 'utils/db/types';
 import { safeParseFloat } from 'utils/index';
+import { isUsCaCompany } from 'utils/regional';
 import { RouteLocationRaw } from 'vue-router';
 import { fuzzyMatch } from '.';
 import { getFormRoute, routeTo } from './ui';
@@ -109,12 +110,12 @@ function getCreateList(fyo: Fyo): SearchItem[] {
 
   const filteredCreateList = [
     {
-      label: t`Sales Payment`,
+      label: isUsCaCompany(fyo) ? t`Payments (Receivables)` : t`Sales Payment`,
       schemaName: ModelNameEnum.Payment,
       create: createFilters.SalesPayments,
     },
     {
-      label: t`Purchase Payment`,
+      label: isUsCaCompany(fyo) ? t`Payments (Payables)` : t`Purchase Payment`,
       schemaName: ModelNameEnum.Payment,
       create: createFilters.PurchasePayments,
     },
@@ -134,12 +135,12 @@ function getCreateList(fyo: Fyo): SearchItem[] {
       create: createFilters.Party,
     },
     {
-      label: t`Sales Item`,
+      label: isUsCaCompany(fyo) ? t`Items (Receivables)` : t`Sales Item`,
       schemaName: ModelNameEnum.Item,
       create: createFilters.SalesItems,
     },
     {
-      label: t`Purchase Item`,
+      label: isUsCaCompany(fyo) ? t`Items (Payables)` : t`Purchase Item`,
       schemaName: ModelNameEnum.Item,
       create: createFilters.PurchaseItems,
     },
@@ -259,18 +260,24 @@ function getListViewList(fyo: Fyo): SearchItem[] {
       filters: routeFilters.Party,
     },
     {
-      label: t`Sales Items`,
-      route: `/list/Item/${t`Sales Items`}`,
+      label: isUsCaCompany(fyo) ? t`Items (Receivables)` : t`Sales Items`,
+      route: `/list/Item/${
+        isUsCaCompany(fyo) ? t`Items (Receivables)` : t`Sales Items`
+      }`,
       filters: routeFilters.SalesItems,
     },
     {
-      label: t`Sales Payments`,
-      route: `/list/Payment/${t`Sales Payments`}`,
+      label: isUsCaCompany(fyo) ? t`Payments (Receivables)` : t`Sales Payments`,
+      route: `/list/Payment/${
+        isUsCaCompany(fyo) ? t`Payments (Receivables)` : t`Sales Payments`
+      }`,
       filters: routeFilters.SalesPayments,
     },
     {
-      label: t`Purchase Items`,
-      route: `/list/Item/${t`Purchase Items`}`,
+      label: isUsCaCompany(fyo) ? t`Items (Payables)` : t`Purchase Items`,
+      route: `/list/Item/${
+        isUsCaCompany(fyo) ? t`Items (Payables)` : t`Purchase Items`
+      }`,
       filters: routeFilters.PurchaseItems,
     },
     {
@@ -279,8 +286,10 @@ function getListViewList(fyo: Fyo): SearchItem[] {
       filters: routeFilters.Items,
     },
     {
-      label: t`Purchase Payments`,
-      route: `/list/Payment/${t`Purchase Payments`}`,
+      label: isUsCaCompany(fyo) ? t`Payments (Payables)` : t`Purchase Payments`,
+      route: `/list/Payment/${
+        isUsCaCompany(fyo) ? t`Payments (Payables)` : t`Purchase Payments`
+      }`,
       filters: routeFilters.PurchasePayments,
     },
   ].map((i) => {
@@ -396,6 +405,11 @@ export class Search {
     this.keywords = {};
     this.searchables = {};
     this._nonDocSearchList = getNonDocSearchList(fyo);
+  }
+
+  refreshNonDocSearchList() {
+    this._nonDocSearchList = getNonDocSearchList(this.fyo);
+    this._groupLabelMap = undefined;
   }
 
   /**

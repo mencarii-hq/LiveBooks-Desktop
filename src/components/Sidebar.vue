@@ -368,6 +368,7 @@ import { SidebarConfig, SidebarItem, SidebarRoot } from 'src/utils/types';
 import { routeTo, toggleSidebar } from 'src/utils/ui';
 import { openFeedbackSurvey } from 'src/utils/feedbackSurvey';
 import { livebooksDesktopDisplayName } from 'utils/livebooksAppEnv';
+import { REGIONAL_LABELS_CHANGED_EVENT } from 'utils/regional';
 import { defineComponent, inject } from 'vue';
 import router from '../router';
 import Button from './Button.vue';
@@ -413,6 +414,7 @@ export default defineComponent({
       > | null,
       onLivebooksCloudAppRefreshBound: null as (() => void) | null,
       onDocumentVisibilityBound: null as (() => void) | null,
+      onRegionalLabelsChangedBound: null as (() => void) | null,
       unsubscribeLivebooksSubscription: null as (() => void) | null,
     } as {
       companyName: string;
@@ -430,6 +432,7 @@ export default defineComponent({
       > | null;
       onLivebooksCloudAppRefreshBound: (() => void) | null;
       onDocumentVisibilityBound: (() => void) | null;
+      onRegionalLabelsChangedBound: (() => void) | null;
       unsubscribeLivebooksSubscription: (() => void) | null;
     };
   },
@@ -513,6 +516,15 @@ export default defineComponent({
     };
     document.addEventListener('visibilitychange', this.onDocumentVisibilityBound);
 
+    this.onRegionalLabelsChangedBound = async () => {
+      this.groups = await getSidebarConfig();
+      this.setActiveGroup();
+    };
+    document.addEventListener(
+      REGIONAL_LABELS_CHANGED_EVENT,
+      this.onRegionalLabelsChangedBound
+    );
+
     this.unsubscribeLivebooksSubscription = subscribeLivebooksSubscription(
       (s) => this.applyLivebooksSubscriptionSnapshot(s)
     );
@@ -536,6 +548,12 @@ export default defineComponent({
       document.removeEventListener(
         'visibilitychange',
         this.onDocumentVisibilityBound
+      );
+    }
+    if (this.onRegionalLabelsChangedBound) {
+      document.removeEventListener(
+        REGIONAL_LABELS_CHANGED_EVENT,
+        this.onRegionalLabelsChangedBound
       );
     }
     if (this.livebooksCloudReachabilityDebounce) {
