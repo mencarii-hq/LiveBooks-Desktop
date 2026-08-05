@@ -95,7 +95,7 @@
             </div>
             <Row
               class="flex-1 text-gray-700 dark:text-gray-300 h-row-mid"
-              :column-count="7"
+              :ratio="[1.4, 1.2, 1.2, 1.2, 1, 1, 1]"
               gap="1rem"
             >
               <div class="cell-header">{{ t`Date` }}</div>
@@ -156,10 +156,12 @@
                     flex-1
                     h-row-mid
                   "
-                  :column-count="7"
+                  :ratio="[1.4, 1.2, 1.2, 1.2, 1, 1, 1]"
                   @click="openRow(row)"
                 >
-                  <div class="cell-body">{{ row.date }}</div>
+                  <div class="cell-body" :title="formatRegisterDate(row.date)">
+                    {{ formatRegisterDate(row.date) }}
+                  </div>
                   <div class="cell-body">{{ row.payee }}</div>
                   <div class="cell-body">{{ row.category }}</div>
                   <div class="cell-body">{{ row.memo }}</div>
@@ -258,8 +260,8 @@ export default defineComponent({
         fieldtype: 'Link',
         target: 'Account',
         fieldname: 'bankAccount',
-        label: this.t`Bank account`,
-        placeholder: this.t`Bank account`,
+        label: this.t`Bank`,
+        placeholder: this.t`Bank`,
         filters: {
           isGroup: false,
           accountType: ['in', [AccountTypeEnum.Bank, AccountTypeEnum.Cash]],
@@ -312,6 +314,36 @@ export default defineComponent({
     accountLabel(id?: string) {
       if (!id) return '';
       return this.accountNameById[id] || id;
+    },
+    formatRegisterDate(iso: string): string {
+      if (!iso) {
+        return '';
+      }
+      const dt = DateTime.fromISO(String(iso).slice(0, 10), { zone: 'utc' });
+      if (!dt.isValid) {
+        return String(iso);
+      }
+      // e.g. August 5, 2026 — English month, day number, year (no weekday)
+      return dt.setLocale('en').toFormat('MMMM d, yyyy');
+    },
+    normalizeRegisterDate(value: unknown): string {
+      if (value == null || value === '') {
+        return '';
+      }
+      if (value instanceof Date) {
+        const dt = DateTime.fromJSDate(value);
+        return dt.isValid ? dt.toISODate() || '' : '';
+      }
+      const raw = String(value).trim();
+      if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+        return raw.slice(0, 10);
+      }
+      const fromIso = DateTime.fromISO(raw);
+      if (fromIso.isValid) {
+        return fromIso.toISODate() || '';
+      }
+      const fromJs = DateTime.fromJSDate(new Date(raw));
+      return fromJs.isValid ? fromJs.toISODate() || '' : raw;
     },
     async restoreBankAndLoad(forceAccounts: boolean) {
       if (forceAccounts || !this.bankAccounts.length) {
@@ -501,7 +533,7 @@ export default defineComponent({
               : undefined;
           rows.push({
             key: ale.name,
-            date: String(ale.date || '').slice(0, 10),
+            date: this.normalizeRegisterDate(ale.date),
             payee: payInfo?.party || ale.party || '',
             category: payInfo?.category || '',
             memo: payInfo?.memo || '',
