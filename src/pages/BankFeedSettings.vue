@@ -367,44 +367,26 @@
                   </td>
                   <td class="p-3 text-start" @click.stop>
                     <div class="flex flex-col gap-1 max-w-xs">
-                      <select
-                        v-model="
-                          chartSelections[selKey(row.item_id, acc.account_id)]
+                      <FormControl
+                        :border="true"
+                        size="small"
+                        :show-label="false"
+                        :df="chartMappingField(row.item_id, acc.account_id)"
+                        :value="
+                          chartSelections[
+                            selKey(row.item_id, acc.account_id)
+                          ] || ''
                         "
-                        :disabled="isPlaidAccountFeedDisconnected(row, acc)"
-                        class="
-                          border
-                          rounded
-                          px-2
-                          py-1
-                          w-full
-                          text-sm
-                          dark:bg-gray-800 dark:border-gray-600
-                          disabled:opacity-60 disabled:cursor-not-allowed
-                        "
-                      >
-                        <option value="">{{ t`Select bank account…` }}</option>
-                        <option
-                          v-for="coa in chartBankAccounts"
-                          :key="coa.name"
-                          :value="coa.name"
-                          :disabled="
-                            isChartAccountTakenByOther(
+                        :read-only="isPlaidAccountFeedDisconnected(row, acc)"
+                        @change="
+                          (v) =>
+                            onChartSelectionChange(
                               row.item_id,
                               acc.account_id,
-                              coa.name
+                              v as string | null
                             )
-                          "
-                        >
-                          {{
-                            chartOptionLabel(
-                              row.item_id,
-                              acc.account_id,
-                              coa.name
-                            )
-                          }}
-                        </option>
-                      </select>
+                        "
+                      />
                     </div>
                   </td>
                   <td class="p-3 text-start" @click.stop>
@@ -679,10 +661,12 @@
 
 <script lang="ts">
 import Button from 'src/components/Button.vue';
+import FormControl from 'src/components/Controls/FormControl.vue';
 import DropdownWithActions from 'src/components/DropdownWithActions.vue';
 import PageHeader from 'src/components/PageHeader.vue';
 import type { Action } from 'fyo/model/types';
 import { t } from 'fyo';
+import { Field } from 'schemas/types';
 import { fyo } from 'src/initFyo';
 import { showDialog, showToast } from 'src/utils/interactive';
 import {
@@ -747,7 +731,7 @@ const OPENING_BALANCE_EQUITY_NAME = 'Opening Balance Equity';
 
 export default defineComponent({
   name: 'BankFeedSettings',
-  components: { PageHeader, Button, DropdownWithActions },
+  components: { PageHeader, Button, DropdownWithActions, FormControl },
   data() {
     return {
       bookId: '' as string,
@@ -1703,6 +1687,42 @@ export default defineComponent({
       }
       const ownerLabel = owner.plaidDisplayLabel || owner.plaidAccountId;
       return t`${label} — already mapped to ${ownerLabel}`;
+    },
+    chartMappingField(itemId: string, plaidAccountId: string): Field {
+      const selected =
+        this.chartSelections[this.selKey(itemId, plaidAccountId)] ?? '';
+      const options = this.chartBankAccounts
+        .filter((coa) => {
+          if (coa.name === selected) {
+            return true;
+          }
+          return !this.isChartAccountTakenByOther(
+            itemId,
+            plaidAccountId,
+            coa.name
+          );
+        })
+        .map((coa) => ({
+          label: this.chartOptionLabel(itemId, plaidAccountId, coa.name),
+          value: coa.name,
+        }));
+      return {
+        fieldtype: 'AutoComplete',
+        fieldname: 'chartAccount',
+        placeholder: t`Select bank account…`,
+        options,
+      } as Field;
+    },
+    onChartSelectionChange(
+      itemId: string,
+      plaidAccountId: string,
+      value: string | null
+    ) {
+      const key = this.selKey(itemId, plaidAccountId);
+      this.chartSelections = {
+        ...this.chartSelections,
+        [key]: value || '',
+      };
     },
     async savePlaidMapping(itemId: string, acc: PlaidLinkedAccountRow) {
       const row = this.feedItems.find((r) => r.item_id === itemId);

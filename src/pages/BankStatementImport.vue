@@ -109,29 +109,16 @@
         </ul>
       </section>
 
-      <div>
-        <label class="block text-sm font-medium mb-1">{{
-          t`Bank account`
-        }}</label>
-        <select
-          v-model="bankAccount"
-          :disabled="bankAccountLocked"
-          class="
-            border
-            rounded
-            px-2
-            py-1
-            w-full
-            max-w-md
-            dark:bg-gray-900 dark:border-gray-700
-          "
-        >
-          <option value="">{{ t`Select…` }}</option>
-          <option v-for="a in bankAccounts" :key="a.name" :value="a.name">
-            {{ accountLabel(a) }}
-          </option>
-        </select>
-      </div>
+      <FormControl
+        class="max-w-md"
+        :border="true"
+        size="small"
+        :show-label="true"
+        :df="bankAccountField"
+        :value="bankAccount"
+        :read-only="bankAccountLocked"
+        @change="(v) => (bankAccount = String(v || ''))"
+      />
 
       <div>
         <Button type="secondary" @click="pickFile">{{
@@ -190,57 +177,30 @@
       <div v-if="headers.length && fileKind === 'csv'" class="space-y-2">
         <h2 class="text-sm font-medium">{{ t`Column mapping` }}</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-          <div>
-            <label>{{ t`Which column is the Date?` }}</label>
-            <select
-              v-model="idxDate"
-              class="
-                border
-                rounded
-                w-full
-                dark:bg-gray-800 dark:border-gray-600
-              "
-            >
-              <option v-for="(h, i) in headers" :key="'d' + i" :value="i">
-                {{ h || '(' + i + ')' }}
-              </option>
-            </select>
-          </div>
-          <div>
-            <label>{{ t`Which column is the Description?` }}</label>
-            <select
-              v-model="idxDesc"
-              class="
-                border
-                rounded
-                w-full
-                dark:bg-gray-800 dark:border-gray-600
-              "
-            >
-              <option v-for="(h, i) in headers" :key="'s' + i" :value="i">
-                {{ h || '(' + i + ')' }}
-              </option>
-            </select>
-          </div>
-          <div>
-            <label>{{ t`Which column is the Amount?` }}</label>
-            <select
-              v-model="idxAmount"
-              class="
-                border
-                rounded
-                w-full
-                dark:bg-gray-800 dark:border-gray-600
-              "
-            >
-              <option :value="-1">
-                {{ t`— use debit/credit (advanced) —` }}
-              </option>
-              <option v-for="(h, i) in headers" :key="'a' + i" :value="i">
-                {{ h || '(' + i + ')' }}
-              </option>
-            </select>
-          </div>
+          <FormControl
+            :border="true"
+            size="small"
+            :show-label="true"
+            :df="idxDateField"
+            :value="String(idxDate)"
+            @change="(v) => (idxDate = Number(v))"
+          />
+          <FormControl
+            :border="true"
+            size="small"
+            :show-label="true"
+            :df="idxDescField"
+            :value="String(idxDesc)"
+            @change="(v) => (idxDesc = Number(v))"
+          />
+          <FormControl
+            :border="true"
+            size="small"
+            :show-label="true"
+            :df="idxAmountField"
+            :value="String(idxAmount)"
+            @change="(v) => (idxAmount = Number(v))"
+          />
         </div>
         <button
           v-if="isFeedCsvMapping"
@@ -258,57 +218,30 @@
           v-if="!isFeedCsvMapping || showAdvancedCsv"
           class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm"
         >
-          <div>
-            <label>{{ t`Debit column (optional)` }}</label>
-            <select
-              v-model="idxDebit"
-              class="
-                border
-                rounded
-                w-full
-                dark:bg-gray-800 dark:border-gray-600
-              "
-            >
-              <option :value="-1">{{ t`—` }}</option>
-              <option v-for="(h, i) in headers" :key="'db' + i" :value="i">
-                {{ h || '(' + i + ')' }}
-              </option>
-            </select>
-          </div>
-          <div>
-            <label>{{ t`Credit column (optional)` }}</label>
-            <select
-              v-model="idxCredit"
-              class="
-                border
-                rounded
-                w-full
-                dark:bg-gray-800 dark:border-gray-600
-              "
-            >
-              <option :value="-1">{{ t`—` }}</option>
-              <option v-for="(h, i) in headers" :key="'cr' + i" :value="i">
-                {{ h || '(' + i + ')' }}
-              </option>
-            </select>
-          </div>
-          <div>
-            <label>{{ t`Reference column (optional)` }}</label>
-            <select
-              v-model="idxRef"
-              class="
-                border
-                rounded
-                w-full
-                dark:bg-gray-800 dark:border-gray-600
-              "
-            >
-              <option :value="-1">{{ t`—` }}</option>
-              <option v-for="(h, i) in headers" :key="'r' + i" :value="i">
-                {{ h || '(' + i + ')' }}
-              </option>
-            </select>
-          </div>
+          <FormControl
+            :border="true"
+            size="small"
+            :show-label="true"
+            :df="idxDebitField"
+            :value="String(idxDebit)"
+            @change="(v) => (idxDebit = Number(v))"
+          />
+          <FormControl
+            :border="true"
+            size="small"
+            :show-label="true"
+            :df="idxCreditField"
+            :value="String(idxCredit)"
+            @change="(v) => (idxCredit = Number(v))"
+          />
+          <FormControl
+            :border="true"
+            size="small"
+            :show-label="true"
+            :df="idxRefField"
+            :value="String(idxRef)"
+            @change="(v) => (idxRef = Number(v))"
+          />
         </div>
       </div>
 
@@ -392,8 +325,10 @@
 
 <script lang="ts">
 import Button from 'src/components/Button.vue';
+import FormControl from 'src/components/Controls/FormControl.vue';
 import PageHeader from 'src/components/PageHeader.vue';
 import { t } from 'fyo';
+import { Field } from 'schemas/types';
 import { fyo } from 'src/initFyo';
 import { showToast } from 'src/utils/interactive';
 import { LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT } from 'src/utils/livebooksCloud';
@@ -507,7 +442,7 @@ function parseRowDate(raw: string): string {
 
 export default defineComponent({
   name: 'BankStatementImport',
-  components: { PageHeader, Button },
+  components: { PageHeader, Button, FormControl },
   data() {
     return {
       bankAccount: '',
@@ -570,6 +505,79 @@ export default defineComponent({
     },
     headers(): string[] {
       return this.matrix[0] ?? [];
+    },
+    headerColumnOptions(): { label: string; value: string }[] {
+      return this.headers.map((h, i) => ({
+        label: h || `(${i})`,
+        value: String(i),
+      }));
+    },
+    optionalColumnOptions(): { label: string; value: string }[] {
+      return [{ label: t`—`, value: '-1' }, ...this.headerColumnOptions];
+    },
+    bankAccountField(): Field {
+      return {
+        fieldtype: 'Link',
+        target: 'Account',
+        fieldname: 'bankAccount',
+        label: t`Bank account`,
+        placeholder: t`Select…`,
+        filters: {
+          isGroup: false,
+          accountType: AccountTypeEnum.Bank,
+        },
+      } as Field;
+    },
+    idxDateField(): Field {
+      return {
+        fieldtype: 'AutoComplete',
+        fieldname: 'idxDate',
+        label: t`Which column is the Date?`,
+        options: this.headerColumnOptions,
+      } as Field;
+    },
+    idxDescField(): Field {
+      return {
+        fieldtype: 'AutoComplete',
+        fieldname: 'idxDesc',
+        label: t`Which column is the Description?`,
+        options: this.headerColumnOptions,
+      } as Field;
+    },
+    idxAmountField(): Field {
+      return {
+        fieldtype: 'AutoComplete',
+        fieldname: 'idxAmount',
+        label: t`Which column is the Amount?`,
+        options: [
+          { label: t`— use debit/credit (advanced) —`, value: '-1' },
+          ...this.headerColumnOptions,
+        ],
+      } as Field;
+    },
+    idxDebitField(): Field {
+      return {
+        fieldtype: 'AutoComplete',
+        fieldname: 'idxDebit',
+        label: t`Debit column (optional)`,
+        options: this.optionalColumnOptions,
+      } as Field;
+    },
+    idxCreditField(): Field {
+      return {
+        fieldtype: 'AutoComplete',
+        fieldname: 'idxCredit',
+        label: t`Credit column (optional)`,
+        options: this.optionalColumnOptions,
+      } as Field;
+    },
+    idxRefField(): Field {
+      return {
+        fieldtype: 'AutoComplete',
+        fieldname: 'idxRef',
+        label: t`Reference column (optional)`,
+        options: this.optionalColumnOptions,
+      } as Field;
     },
     previewBundle(): {
       rows: Row[];

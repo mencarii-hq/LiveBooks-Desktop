@@ -507,43 +507,15 @@
               />
             </label>
             <label class="block sm:col-span-1 lg:col-span-2">
-              <span class="text-xs text-gray-600 dark:text-gray-300">{{
-                t`Category`
-              }}</span>
-              <select
-                v-model="addRow.category"
-                class="
-                  mt-0.5
-                  w-full
-                  border border-gray-300
-                  dark:border-gray-700
-                  rounded
-                  p-1.5
-                  text-sm
-                  bg-white
-                  dark:bg-gray-800 dark:text-gray-100
-                "
-              >
-                <option value="">{{ t`Pick a category…` }}</option>
-                <optgroup :label="t`Expense`">
-                  <option
-                    v-for="c in categoryOptions.expense"
-                    :key="`e-${c}`"
-                    :value="c"
-                  >
-                    {{ c }}
-                  </option>
-                </optgroup>
-                <optgroup :label="t`Income`">
-                  <option
-                    v-for="c in categoryOptions.income"
-                    :key="`i-${c}`"
-                    :value="c"
-                  >
-                    {{ c }}
-                  </option>
-                </optgroup>
-              </select>
+              <FormControl
+                class="mt-0.5"
+                :border="true"
+                size="small"
+                :show-label="true"
+                :df="categoryField"
+                :value="addRow.category"
+                @change="(v) => (addRow.category = String(v || ''))"
+              />
             </label>
             <label class="block sm:col-span-1">
               <span class="text-xs text-gray-600 dark:text-gray-300">{{
@@ -595,6 +567,8 @@
 <script lang="ts">
 import Button from 'src/components/Button.vue';
 import PageHeader from 'src/components/PageHeader.vue';
+import FormControl from 'src/components/Controls/FormControl.vue';
+import { Field } from 'schemas/types';
 import { t } from 'fyo';
 import { fyo } from 'src/initFyo';
 import { ModelNameEnum } from 'models/types';
@@ -667,7 +641,7 @@ function sortEntryRows(a: EntryRow, b: EntryRow): number {
 
 export default defineComponent({
   name: 'BankReconcile',
-  components: { PageHeader, Button },
+  components: { PageHeader, Button, FormControl },
   props: {
     name: { type: String, required: true },
   },
@@ -763,6 +737,24 @@ export default defineComponent({
         .filter((e) => e.signed > 0)
         .slice()
         .sort(sortEntryRows);
+    },
+    categoryField(): Field {
+      return {
+        fieldtype: 'AutoComplete',
+        fieldname: 'category',
+        label: this.t`Category`,
+        placeholder: this.t`Pick a category…`,
+        options: [
+          ...this.categoryOptions.expense.map((c) => ({
+            label: `${this.t`Expense`} · ${c}`,
+            value: c,
+          })),
+          ...this.categoryOptions.income.map((c) => ({
+            label: `${this.t`Income`} · ${c}`,
+            value: c,
+          })),
+        ],
+      } as Field;
     },
   },
   watch: {

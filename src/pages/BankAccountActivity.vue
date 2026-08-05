@@ -495,46 +495,18 @@
                 >
                   {{ manualAmountLabel(line) }}
                 </td>
-                <td class="p-2 border-b dark:border-gray-800">
-                  <select
-                    v-model="categorySelections[manualLineKey(line)]"
-                    class="
-                      border
-                      rounded
-                      px-1
-                      py-0.5
-                      text-xs
-                      max-w-[14rem]
-                      dark:bg-gray-800 dark:border-gray-600
+                <td class="p-2 border-b dark:border-gray-800 max-w-[14rem]">
+                  <FormControl
+                    :border="true"
+                    size="small"
+                    :show-label="false"
+                    :df="categoryFieldForLine(line)"
+                    :value="categorySelections[manualLineKey(line)] || ''"
+                    @change="
+                      (v) =>
+                        setManualCategory(manualLineKey(line), String(v || ''))
                     "
-                    :disabled="manualPendingRowKey === manualLineKey(line)"
-                  >
-                    <option value="">{{ t`Select category…` }}</option>
-                    <optgroup
-                      v-if="categoryOptions.expense.length"
-                      :label="t`Expense`"
-                    >
-                      <option
-                        v-for="acc in categoryOptions.expense"
-                        :key="acc.name"
-                        :value="acc.name"
-                      >
-                        {{ categoryLabel(acc) }}
-                      </option>
-                    </optgroup>
-                    <optgroup
-                      v-if="categoryOptions.income.length"
-                      :label="t`Income`"
-                    >
-                      <option
-                        v-for="acc in categoryOptions.income"
-                        :key="acc.name"
-                        :value="acc.name"
-                      >
-                        {{ categoryLabel(acc) }}
-                      </option>
-                    </optgroup>
-                  </select>
+                  />
                 </td>
                 <td class="p-2 border-b dark:border-gray-800 whitespace-nowrap">
                   <Button
@@ -799,6 +771,8 @@
 <script lang="ts">
 import Button from 'src/components/Button.vue';
 import PageHeader from 'src/components/PageHeader.vue';
+import FormControl from 'src/components/Controls/FormControl.vue';
+import { Field } from 'schemas/types';
 import { t } from 'fyo';
 import { showDialog, showToast } from 'src/utils/interactive';
 import {
@@ -858,7 +832,7 @@ type CategoryOption = { name: string; accountName?: string };
 
 export default defineComponent({
   name: 'BankAccountActivity',
-  components: { PageHeader, Button },
+  components: { PageHeader, Button, FormControl },
   props: {
     accountName: { type: String, required: true },
   },
@@ -948,6 +922,27 @@ export default defineComponent({
     visibleRetractedMatched(): RetractedMatchedRow[] {
       return this.retractedMatched;
     },
+    flatCategoryOptions() {
+      return [
+        ...this.categoryOptions.expense.map((acc) => ({
+          label: `${this.t`Expense`} · ${this.categoryLabel(acc)}`,
+          value: acc.name,
+        })),
+        ...this.categoryOptions.income.map((acc) => ({
+          label: `${this.t`Income`} · ${this.categoryLabel(acc)}`,
+          value: acc.name,
+        })),
+      ];
+    },
+    categoryField(): Field {
+      return {
+        fieldtype: 'AutoComplete',
+        fieldname: 'categoryAccount',
+        label: this.t`Category`,
+        placeholder: this.t`Select category…`,
+        options: this.flatCategoryOptions,
+      } as Field;
+    },
   },
   watch: {
     accountName: {
@@ -1003,6 +998,16 @@ export default defineComponent({
     t,
     categoryLabel(acc: CategoryOption) {
       return accountDisplayName(acc);
+    },
+    categoryFieldForLine(line: ManualFeedLine): Field {
+      const pending = this.manualPendingRowKey === this.manualLineKey(line);
+      return {
+        ...this.categoryField,
+        readOnly: pending,
+      } as Field;
+    },
+    setManualCategory(key: string, value: string) {
+      this.categorySelections = { ...this.categorySelections, [key]: value };
     },
     promptBankFeedTotp(): Promise<string | null> {
       openLivebooksCloudMfaStepUp();
