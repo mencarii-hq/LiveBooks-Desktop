@@ -49,8 +49,11 @@ export async function checkForAppUpdates(
   updateCheckInFlight = true;
   try {
     await autoUpdater.checkForUpdates();
+    // Keep the lock until update-available / update-not-available / error
+    // handlers finish — checkForUpdates() resolves before consent dialogs.
     return { status: 'started' };
   } catch (error) {
+    updateCheckInFlight = false;
     pendingNotAvailableDialog = false;
     if (isNetworkError(error as Error)) {
       return { status: 'error', reason: 'network' };
@@ -61,8 +64,6 @@ export async function checkForAppUpdates(
       status: 'error',
       reason: error instanceof Error ? error.message : String(error),
     };
-  } finally {
-    updateCheckInFlight = false;
   }
 }
 
@@ -75,6 +76,7 @@ export default function registerAutoUpdaterListeners(main: Main) {
   autoUpdater.autoInstallOnAppQuit = false;
 
   autoUpdater.on('error', (error) => {
+    updateCheckInFlight = false;
     pendingNotAvailableDialog = false;
     if (isNetworkError(error)) {
       return;
@@ -85,59 +87,79 @@ export default function registerAutoUpdaterListeners(main: Main) {
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   autoUpdater.on('update-not-available', async () => {
-    if (!pendingNotAvailableDialog) {
-      return;
-    }
+    try {
+      if (!pendingNotAvailableDialog) {
+        return;
+      }
 
-    pendingNotAvailableDialog = false;
-    await dialog.showMessageBox({
-      type: 'info',
-      title: 'No Updates',
-      message: "You're on the latest version",
-      buttons: ['OK'],
-    });
+      pendingNotAvailableDialog = false;
+      await dialog.showMessageBox({
+        type: 'info',
+        title: 'No Updates',
+        message: "You're on the latest version",
+        buttons: ['OK'],
+      });
+    } finally {
+      updateCheckInFlight = false;
+    }
   });
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   autoUpdater.on('update-available', async (info: UpdateInfo) => {
     pendingNotAvailableDialog = false;
-    const nextVersion = info.version;
+    let downloadStarted = false;
+    try {
+      const nextVersion = info.version;
 
-    const option = await dialog.showMessageBox({
-      type: 'info',
-      title: 'Update Available',
-      message: `A new version (${nextVersion}) is available.`,
-      buttons: ['Update now', 'Not now'],
-      defaultId: 0,
-      cancelId: 1,
-    });
+      const option = await dialog.showMessageBox({
+        type: 'info',
+        title: 'Update Available',
+        message: `A new version (${nextVersion}) is available.`,
+        buttons: ['Update now', 'Not now'],
+        defaultId: 0,
+        cancelId: 1,
+      });
 
-    if (option.response !== 0) {
-      const intervalMs = resolveUpdaterCheckIntervalMs();
-      declinedUntil = Date.now() + intervalMs;
-      autoUpdater.autoInstallOnAppQuit = false;
-      return;
+      if (option.response !== 0) {
+        const intervalMs = resolveUpdaterCheckIntervalMs();
+        declinedUntil = Date.now() + intervalMs;
+        autoUpdater.autoInstallOnAppQuit = false;
+        return;
+      }
+
+      declinedUntil = 0;
+      autoUpdater.autoInstallOnAppQuit = true;
+      downloadStarted = true;
+      await autoUpdater.downloadUpdate();
+    } catch (error) {
+      updateCheckInFlight = false;
+      emitMainProcessError(error);
+    } finally {
+      // Hold lock through download + restart prompt when user accepted update.
+      if (!downloadStarted) {
+        updateCheckInFlight = false;
+      }
     }
-
-    declinedUntil = 0;
-    autoUpdater.autoInstallOnAppQuit = true;
-    await autoUpdater.downloadUpdate();
   });
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   autoUpdater.on('update-downloaded', async () => {
-    const option = await dialog.showMessageBox({
-      type: 'info',
-      title: 'Update Downloaded',
-      message: 'Restart LiveBooks Desktop to install update?',
-      buttons: ['Yes', 'No'],
-    });
+    try {
+      const option = await dialog.showMessageBox({
+        type: 'info',
+        title: 'Update Downloaded',
+        message: 'Restart LiveBooks Desktop to install update?',
+        buttons: ['Yes', 'No'],
+      });
 
-    if (option.response === 1) {
-      return;
+      if (option.response === 1) {
+        return;
+      }
+
+      autoUpdater.quitAndInstall();
+    } finally {
+      updateCheckInFlight = false;
     }
-
-    autoUpdater.quitAndInstall();
   });
 
   if (!main.isDevelopment && main.updaterEnabled) {
