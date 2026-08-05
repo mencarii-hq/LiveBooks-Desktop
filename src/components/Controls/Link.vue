@@ -238,6 +238,12 @@ export default {
         (s) => !s.actionOnly && (s.label === label || s.value === label)
       );
       if (match) {
+        // Already committed on select — refresh label only (same as empty-label
+        // path). Parent setSuggestion always re-emits and reloads parents.
+        if (match.value === this.value) {
+          await this.setLinkValue(this.value);
+          return;
+        }
         this.setSuggestion(match);
         return;
       }
