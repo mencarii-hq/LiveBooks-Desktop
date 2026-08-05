@@ -177,7 +177,7 @@ function getCompleteSidebar(): SidebarConfig {
       route: '/bank-feeds',
       items: [
         {
-          label: t`Live Feeds`,
+          label: t`Feeds`,
           name: 'bank-live-feeds',
           route: '/bank-feeds',
         },

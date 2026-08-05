@@ -76,7 +76,7 @@
             :key="item.label"
             class="
               text-base
-              h-10
+              h-8
               ps-10
               cursor-pointer
               flex
@@ -656,12 +656,8 @@ export default defineComponent({
           }
 
           if (g.items) {
-            let activeItem = g.items.filter(
-              ({ route, schemaName }) =>
-                route === fullPath ||
-                fullPath.startsWith(route) ||
-                (schemaName === 'PrintTemplate' &&
-                  fullPath.startsWith('/template-builder'))
+            let activeItem = g.items.filter((item) =>
+              this.isSidebarRouteMatch(fullPath.split('?')[0], item)
             );
 
             if (activeItem.length) {
@@ -672,24 +668,53 @@ export default defineComponent({
         fallBackGroup ??
         this.groups[0];
     },
-    isItemActive(item: SidebarItem) {
-      const { path: currentRoute, params } = this.$route;
-      const routeMatch = currentRoute === item.route;
+    isSidebarRouteMatch(currentPath: string, item: SidebarItem) {
+      const { params } = this.$route;
+      const route = item.route;
 
-      const schemaNameMatch =
-        item.schemaName && params.schemaName === item.schemaName;
-
-      const printTemplateBuilderMatch =
-        item.schemaName === 'PrintTemplate' &&
-        currentRoute.startsWith('/template-builder');
-
-      const isMatch =
-        routeMatch || schemaNameMatch || printTemplateBuilderMatch;
-      if (params.name && item.schemaName && !isMatch) {
-        return currentRoute.includes(`${item.schemaName}/${params.name}`);
+      if (currentPath === route || currentPath.startsWith(route + '/')) {
+        return true;
       }
 
-      return isMatch;
+      // Nested bank reconcile screens live under /bank-reconcile/:name
+      if (
+        route === '/reconcile' &&
+        currentPath.startsWith('/bank-reconcile')
+      ) {
+        return true;
+      }
+
+      // Statement import is part of the Feeds flow
+      if (
+        route === '/bank-feeds' &&
+        currentPath.startsWith('/bank-statement-import')
+      ) {
+        return true;
+      }
+
+      if (item.schemaName && params.schemaName === item.schemaName) {
+        return true;
+      }
+
+      if (
+        item.schemaName === 'PrintTemplate' &&
+        currentPath.startsWith('/template-builder')
+      ) {
+        return true;
+      }
+
+      if (
+        params.name &&
+        item.schemaName &&
+        currentPath.includes(`${item.schemaName}/${params.name}`)
+      ) {
+        return true;
+      }
+
+      return false;
+    },
+    isItemActive(item: SidebarItem) {
+      return this.isSidebarRouteMatch(this.$route.path, item);
     },
     isGroupActive(group: SidebarRoot) {
       return this.activeGroup && group.label === this.activeGroup.label;
