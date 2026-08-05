@@ -30,7 +30,7 @@
             <div class="flex flex-col gap-2">
               <div
                 v-for="(filter, i) in draftFilters"
-                :key="filter.fieldname + getRandomString()"
+                :key="`${i}-${filter.fieldname}`"
                 class="flex items-center justify-between text-base gap-2"
               >
                 <div
@@ -194,7 +194,6 @@
 <script lang="ts">
 import { Field, FieldTypeEnum } from 'schemas/types';
 import { fyo } from 'src/initFyo';
-import { getRandomString } from 'utils';
 import { defineComponent, PropType } from 'vue';
 import Button from './Button.vue';
 import Data from './Controls/Data.vue';
@@ -374,7 +373,6 @@ export default defineComponent({
   },
 
   methods: {
-    getRandomString,
     cloneFilters(filters: Filter[]): Filter[] {
       return JSON.parse(JSON.stringify(filters)) as Filter[];
     },
@@ -426,6 +424,7 @@ export default defineComponent({
 
     applyFilters() {
       this.emitFilterChange();
+      this.$refs.filterPopover?.close?.();
     },
 
     removeFilter(index: number): void {
@@ -502,7 +501,7 @@ export default defineComponent({
         }
       }
 
-      this.$emit('change', filters);
+      this.$emit('change', JSON.parse(JSON.stringify(filters)));
       this.filters = this.cloneFilters(this.newFilters);
     },
   },
