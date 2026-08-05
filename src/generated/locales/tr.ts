@@ -235,9 +235,6 @@ const languageMap: LanguageMap = {
   'Chart of Accounts': {
     translation: 'Hesap Planı',
   },
-  Cheque: {
-    translation: 'Çek',
-  },
   'City / Town': {
     translation: 'Şehir',
   },
@@ -385,9 +382,6 @@ const languageMap: LanguageMap = {
   },
   Dashboard: {
     translation: 'Gösterge paneli',
-  },
-  'Database file: ${0}': {
-    translation: 'Veritabanı dosyası: ${0}',
   },
   Date: {
     translation: 'Tarih',
@@ -1550,9 +1544,6 @@ const languageMap: LanguageMap = {
   },
   'View Sales': {
     translation: 'Satışları Görüntüle',
-  },
-  'Welcome to Frappe Books': {
-    translation: "Frappe Books'a hoş geldiniz",
   },
   'Write Off': {
     translation: 'Askıya Al',

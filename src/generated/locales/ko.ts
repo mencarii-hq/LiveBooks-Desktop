@@ -204,9 +204,6 @@ const languageMap: LanguageMap = {
   'Central Tax': {
     translation: '국세',
   },
-  'Change DB': {
-    translation: 'DB 변경',
-  },
   'Change File': {
     translation: '파일 바꾸기',
   },
@@ -221,9 +218,6 @@ const languageMap: LanguageMap = {
   },
   'Chart of Accounts': {
     translation: '회계 계통도',
-  },
-  Cheque: {
-    translation: '수표',
   },
   'City / Town': {
     translation: '시/군/구',
@@ -380,9 +374,6 @@ const languageMap: LanguageMap = {
   },
   Dashboard: {
     translation: '대시보드',
-  },
-  'Database file: ${0}': {
-    translation: 'DB 파일: ${0}',
   },
   Date: {
     translation: '날짜',
@@ -1580,9 +1571,6 @@ const languageMap: LanguageMap = {
   },
   'View Sales': {
     translation: '판매 보기',
-  },
-  'Welcome to Frappe Books': {
-    translation: 'Frappe Books 에 오신것을 환영합니다',
   },
   'Write Off': {
     translation: '공제',

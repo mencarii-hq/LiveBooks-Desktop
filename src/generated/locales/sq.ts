@@ -55,254 +55,11 @@ const languageMap: LanguageMap = {
   '${0} filters applied': {
     translation: '${0} filtra të aplikuar',
   },
-  '${0} has linked child accounts.': {
-    translation: '${0} ka llogari të varura.',
-  },
   '${0} of type ${1} does not exist': {
     translation: '${0} i llojit ${1} nuk ekziston',
   },
-  'Allow to bypass filters': {
-    translation: 'Lejo anashkalimin e filtrave',
-  },
-  Currency: {
-    translation: 'Monedha',
-  },
-  Customizations: {
-    translation: 'Personalizime',
-  },
-  'Dark mode': {
-    translation: 'Modaliteti i errët',
-  },
-  'Date Format': {
-    translation: 'Formati i datës',
-  },
-  Defaults: {
-    translation: 'Parazgjedhje',
-  },
-  General: {
-    translation: 'Përgjithshme',
-  },
-  Print: {
-    translation: 'Shtypje',
-  },
   Accounts: {
     translation: 'Llogaritë',
-  },
-  Features: {
-    translation: 'Veçoritë',
-  },
-  'Full Name': {
-    translation: 'Emri i plotë',
-  },
-  'Company Name': {
-    translation: 'Emri i kompanisë',
-  },
-  'Bank Name': {
-    translation: 'Emri i bankës',
-  },
-  Country: {
-    translation: 'Vendi',
-  },
-  'Select Country': {
-    translation: 'Zgjidh vendin',
-  },
-  'Write Off Account': {
-    translation: 'Llogaria e shlyerjes',
-  },
-  'Round Off Account': {
-    translation: 'Llogaria e rrumbullakimit',
-  },
-  'Discount Account': {
-    translation: 'Llogaria e zbritjeve',
-  },
-  'Display Precision': {
-    translation: 'Saktësia e shfaqjes',
-  },
-  'Hide Get Started': {
-    translation: 'Fshih udhëzuesin fillestar',
-  },
-  Locale: {
-    translation: 'Lokale',
-  },
-  'Enable Discount Accounting': {
-    translation: 'Aktivo kontabilitetin e zbritjeve',
-  },
-  'Enable Inventory': {
-    translation: 'Aktivo inventarin',
-  },
-  'Enable Price List': {
-    translation: 'Aktivo listën e çmimeve',
-  },
-  'Enable Invoice Returns': {
-    translation: 'Aktivo kthimet e faturave',
-  },
-  'Enable Form Customization': {
-    translation: 'Aktivo personalizimin e formës',
-  },
-  'Enable ERPNext Sync': {
-    translation: 'Aktivo sinkronizimin me ERPNext',
-  },
-  'Enable Lead': {
-    translation: 'Aktivo gjenerimin e kontakteve',
-  },
-  'Enable Pricing Rule': {
-    translation: 'Aktivo rregullat e çmimit',
-  },
-  'Enable Item Enquiry': {
-    translation: 'Aktivo kërkesat për artikuj',
-  },
-  'Enable Loyalty Program': {
-    translation: 'Aktivo programin e besnikërisë',
-  },
-  'Enable Coupon Code': {
-    translation: 'Aktivo kodet e kuponit',
-  },
-  'Enable Item Group': {
-    translation: 'Aktivo grupet e artikujve',
-  },
-  'Enable POS Without Inventory': {
-    translation: 'Aktivo POS pa inventar',
-  },
-  'Enable Partial Payment': {
-    translation: 'Aktivo pagesën e pjesshme',
-  },
-  'Fiscal Year Start Date': {
-    translation: 'Data e fillimit të vitit fiskal',
-  },
-  'Fiscal Year End Date': {
-    translation: 'Data e përfundimit të vitit fiskal',
-  },
-  'Setup Complete': {
-    translation: 'Konfigurimi i përfunduar',
-  },
-  'Auto Payments': {
-    translation: 'Pagesa automatike',
-  },
-  'Sales Payment Account': {
-    translation: 'Llogaria e pagesave të shitjes',
-  },
-  'Purchase Payment Account': {
-    translation: 'Llogaria e pagesave të blerjes',
-  },
-  'Auto Stock Transfer': {
-    translation: 'Transferte automatike të stokut',
-  },
-  'Shipment Location': {
-    translation: 'Lokacioni i dërgesës',
-  },
-  'Purchase Receipt Location': {
-    translation: 'Lokacioni i pranimit të blerjes',
-  },
-  'Number Series': {
-    translation: 'Seritë e numrave',
-  },
-  'Sales Invoice Number Series': {
-    translation: 'Seria e numrave të faturave të shitjes',
-  },
-  'Purchase Invoice Number Series': {
-    translation: 'Seria e numrave të faturave të blerjes',
-  },
-  'Journal Entry Number Series': {
-    translation: 'Seria e numrave të regjistrimeve ditar',
-  },
-  'Payment Number Series': {
-    translation: 'Seria e numrave të pagesave',
-  },
-  'Sales Quote Number Series': {
-    translation: 'Seria e numrave të ofertave të shitjes',
-  },
-  Terms: {
-    translation: 'Kushtet',
-  },
-  'Sales Invoice Terms': {
-    translation: 'Kushtet e faturës së shitjes',
-  },
-  'Purchase Invoice Terms': {
-    translation: 'Kushtet e faturës së blerjes',
-  },
-  Contacts: {
-    translation: 'Kontaktet',
-  },
-  Phone: {
-    translation: 'Telefoni',
-  },
-  Address: {
-    translation: 'Adresa',
-  },
-  Color: {
-    translation: 'Ngjyra',
-  },
-  Font: {
-    translation: 'Shkronja',
-  },
-  'Display Logo in Invoice': {
-    translation: 'Shfaq logon në faturë',
-  },
-  'Display Amount In Words': {
-    translation: 'Shfaq shumën me fjalë',
-  },
-  'Display Time In Invoice': {
-    translation: 'Shfaq kohën në faturë',
-  },
-  'Display Description In Invoice': {
-    translation: 'Shfaq përshkrimin në faturë',
-  },
-  'Application of Funds (Assets)': {
-    translation: 'Përdorimi i fondeve (Aktivet)',
-  },
-  Expenses: {
-    translation: 'Shpenzime',
-  },
-  Income: {
-    translation: 'Të ardhura',
-  },
-  'Source of Funds (Liabilities)': {
-    translation: 'Burimi i fondeve (Detyrimet)',
-  },
-  'Current Assets': {
-    translation: 'Aktive qarkulluese',
-  },
-  'Fixed Assets': {
-    translation: 'Aktive fikse',
-  },
-  Investments: {
-    translation: 'Investime',
-  },
-  'Temporary Accounts': {
-    translation: 'Llogari të përkohshme',
-  },
-  'Direct Expenses': {
-    translation: 'Shpenzime të drejtpërdrejta',
-  },
-  'Indirect Expenses': {
-    translation: 'Shpenzime indirekte',
-  },
-  'Direct Income': {
-    translation: 'Të ardhura të drejtpërdrejta',
-  },
-  'Indirect Income': {
-    translation: 'Të ardhura indirekte',
-  },
-  'Capital Account': {
-    translation: 'Llogaria e kapitalit',
-  },
-  'Current Liabilities': {
-    translation: 'Detyrimet afatshkurtra',
-  },
-  'Number Display': {
-    translation: 'Shfaqja e numrave',
-  },
-  'Remove Filter': {
-    translation: 'Hiq filtrin',
-  },
-  System: {
-    translation: 'Sistemi',
-  },
-  'System Settings': {
-    translation: 'Cilësimet e Sistemit',
-  },
-  Version: {
-    translation: 'Versioni',
   },
   'Add Account': {
     translation: 'Shto Llogari',
@@ -313,17 +70,35 @@ const languageMap: LanguageMap = {
   'Add Row': {
     translation: 'Shto Rresht',
   },
+  Address: {
+    translation: 'Adresa',
+  },
   Alert: {
     translation: 'Kujdes',
+  },
+  'Allow to bypass filters': {
+    translation: 'Lejo anashkalimin e filtrave',
   },
   Amount: {
     translation: 'Shumë',
   },
+  'Application of Funds (Assets)': {
+    translation: 'Përdorimi i fondeve (Aktivet)',
+  },
   Apply: {
     translation: 'Apliko',
   },
+  'Auto Payments': {
+    translation: 'Pagesa automatike',
+  },
+  'Auto Stock Transfer': {
+    translation: 'Transferte automatike të stokut',
+  },
   'Balance Sheet': {
     translation: 'Bilanci',
+  },
+  'Bank Name': {
+    translation: 'Emri i bankës',
   },
   Batch: {
     translation: 'Lot',
@@ -340,14 +115,41 @@ const languageMap: LanguageMap = {
   Clear: {
     translation: 'Pastro',
   },
+  Color: {
+    translation: 'Ngjyra',
+  },
+  'Company Name': {
+    translation: 'Emri i kompanisë',
+  },
+  Contacts: {
+    translation: 'Kontaktet',
+  },
   Continue: {
     translation: 'Vazhdo',
+  },
+  Country: {
+    translation: 'Vendi',
   },
   Create: {
     translation: 'Krijo',
   },
+  Currency: {
+    translation: 'Monedha',
+  },
+  'Current Assets': {
+    translation: 'Aktive qarkulluese',
+  },
+  'Current Liabilities': {
+    translation: 'Detyrimet afatshkurtra',
+  },
   Customers: {
     translation: 'Klientët',
+  },
+  Customizations: {
+    translation: 'Personalizime',
+  },
+  'Dark mode': {
+    translation: 'Modaliteti i errët',
   },
   Dashboard: {
     translation: 'Paneli',
@@ -355,11 +157,41 @@ const languageMap: LanguageMap = {
   Date: {
     translation: 'Data',
   },
+  'Date Format': {
+    translation: 'Formati i datës',
+  },
   Default: {
     translation: 'Default',
   },
+  Defaults: {
+    translation: 'Parazgjedhje',
+  },
   Delete: {
     translation: 'Fshi',
+  },
+  'Direct Expenses': {
+    translation: 'Shpenzime të drejtpërdrejta',
+  },
+  'Direct Income': {
+    translation: 'Të ardhura të drejtpërdrejta',
+  },
+  'Discount Account': {
+    translation: 'Llogaria e zbritjeve',
+  },
+  'Display Amount In Words': {
+    translation: 'Shfaq shumën me fjalë',
+  },
+  'Display Description In Invoice': {
+    translation: 'Shfaq përshkrimin në faturë',
+  },
+  'Display Logo in Invoice': {
+    translation: 'Shfaq logon në faturë',
+  },
+  'Display Precision': {
+    translation: 'Saktësia e shfaqjes',
+  },
+  'Display Time In Invoice': {
+    translation: 'Shfaq kohën në faturë',
   },
   'Does Not Contain': {
     translation: 'Nuk përmban',
@@ -367,20 +199,59 @@ const languageMap: LanguageMap = {
   Done: {
     translation: 'U krye',
   },
-  Download: {
-    translation: 'Shkarko',
-  },
   Draft: {
     translation: 'Draft',
   },
   Edit: {
     translation: 'Redakto',
   },
+  'Enable Coupon Code': {
+    translation: 'Aktivo kodet e kuponit',
+  },
+  'Enable Discount Accounting': {
+    translation: 'Aktivo kontabilitetin e zbritjeve',
+  },
+  'Enable ERPNext Sync': {
+    translation: 'Aktivo sinkronizimin me ERPNext',
+  },
+  'Enable Form Customization': {
+    translation: 'Aktivo personalizimin e formës',
+  },
+  'Enable Inventory': {
+    translation: 'Aktivo inventarin',
+  },
+  'Enable Invoice Returns': {
+    translation: 'Aktivo kthimet e faturave',
+  },
+  'Enable Item Enquiry': {
+    translation: 'Aktivo kërkesat për artikuj',
+  },
+  'Enable Item Group': {
+    translation: 'Aktivo grupet e artikujve',
+  },
+  'Enable Lead': {
+    translation: 'Aktivo gjenerimin e kontakteve',
+  },
+  'Enable Loyalty Program': {
+    translation: 'Aktivo programin e besnikërisë',
+  },
+  'Enable Partial Payment': {
+    translation: 'Aktivo pagesën e pjesshme',
+  },
+  'Enable Price List': {
+    translation: 'Aktivo listën e çmimeve',
+  },
+  'Enable Pricing Rule': {
+    translation: 'Aktivo rregullat e çmimit',
+  },
   'Entry Type': {
     translation: 'Lloji i Regjistrimit',
   },
   Error: {
     translation: 'Gabim',
+  },
+  Expenses: {
+    translation: 'Shpenzime',
   },
   Export: {
     translation: 'Eksporto',
@@ -391,14 +262,38 @@ const languageMap: LanguageMap = {
   'Export Successful': {
     translation: 'Eksportimi ishte i suksesshëm',
   },
+  Features: {
+    translation: 'Veçoritë',
+  },
   Filter: {
     translation: 'Filtër',
+  },
+  'Fiscal Year End Date': {
+    translation: 'Data e përfundimit të vitit fiskal',
+  },
+  'Fiscal Year Start Date': {
+    translation: 'Data e fillimit të vitit fiskal',
+  },
+  'Fixed Assets': {
+    translation: 'Aktive fikse',
+  },
+  Font: {
+    translation: 'Shkronja',
+  },
+  'Full Name': {
+    translation: 'Emri i plotë',
+  },
+  General: {
+    translation: 'Përgjithshme',
   },
   'General Ledger': {
     translation: 'Libri Kryesor',
   },
   Help: {
     translation: 'Ndihmë',
+  },
+  'Hide Get Started': {
+    translation: 'Fshih udhëzuesin fillestar',
   },
   'Hide Month/Year': {
     translation: 'Fshih Muaj/Vit',
@@ -409,8 +304,17 @@ const languageMap: LanguageMap = {
   'Import Wizard': {
     translation: 'Asistenti i Importit',
   },
-  'Invalid barcode value ${barcode}.': {
-    translation: 'Vlerë barkodi e pavlefshme ${barcode}.',
+  Income: {
+    translation: 'Të ardhura',
+  },
+  'Indirect Expenses': {
+    translation: 'Shpenzime indirekte',
+  },
+  'Indirect Income': {
+    translation: 'Të ardhura indirekte',
+  },
+  Investments: {
+    translation: 'Investime',
   },
   Invoice: {
     translation: 'Faturë',
@@ -430,6 +334,9 @@ const languageMap: LanguageMap = {
   Items: {
     translation: 'Artikujt',
   },
+  'Journal Entry Number Series': {
+    translation: 'Seria e numrave të regjistrimeve ditar',
+  },
   Language: {
     translation: 'Gjuha',
   },
@@ -442,11 +349,8 @@ const languageMap: LanguageMap = {
   'Loading...': {
     translation: 'Duke u ngarkuar...',
   },
-  Login: {
-    translation: 'Hyrje',
-  },
-  Logout: {
-    translation: 'Dalje',
+  Locale: {
+    translation: 'Lokale',
   },
   'Make Entry': {
     translation: 'Krijo Regjistrim',
@@ -475,8 +379,11 @@ const languageMap: LanguageMap = {
   'Not Found': {
     translation: 'Nuk u gjet',
   },
-  Ok: {
-    translation: 'Në rregull',
+  'Number Display': {
+    translation: 'Shfaqja e numrave',
+  },
+  'Number Series': {
+    translation: 'Seritë e numrave',
   },
   'Open Folder': {
     translation: 'Hap Dosjen',
@@ -493,14 +400,29 @@ const languageMap: LanguageMap = {
   Payment: {
     translation: 'Pagesë',
   },
+  'Payment Number Series': {
+    translation: 'Seria e numrave të pagesave',
+  },
   Payments: {
     translation: 'Pagesa',
+  },
+  Phone: {
+    translation: 'Telefoni',
   },
   'Please Wait': {
     translation: 'Ju lutem prisni',
   },
+  Print: {
+    translation: 'Shtypje',
+  },
   'Profit and Loss': {
     translation: 'Fitim dhe Humbje',
+  },
+  'Purchase Invoice Number Series': {
+    translation: 'Seria e numrave të faturave të blerjes',
+  },
+  'Purchase Invoice Terms': {
+    translation: 'Kushtet e faturës së blerjes',
   },
   'Purchase Invoices': {
     translation: 'Fatura Blerjeje',
@@ -508,14 +430,23 @@ const languageMap: LanguageMap = {
   'Purchase Items': {
     translation: 'Artikuj Blerjeje',
   },
+  'Purchase Payment Account': {
+    translation: 'Llogaria e pagesave të blerjes',
+  },
   'Purchase Payments': {
     translation: 'Pagesa Blerjeje',
+  },
+  'Purchase Receipt Location': {
+    translation: 'Lokacioni i pranimit të blerjes',
   },
   Purchases: {
     translation: 'Blerje',
   },
   Quantity: {
     translation: 'Sasi',
+  },
+  'Remove Filter': {
+    translation: 'Hiq filtrin',
   },
   Report: {
     translation: 'Raport',
@@ -529,17 +460,32 @@ const languageMap: LanguageMap = {
   Return: {
     translation: 'Kthim',
   },
+  'Round Off Account': {
+    translation: 'Llogaria e rrumbullakimit',
+  },
+  'Sales Invoice Number Series': {
+    translation: 'Seria e numrave të faturave të shitjes',
+  },
+  'Sales Invoice Terms': {
+    translation: 'Kushtet e faturës së shitjes',
+  },
+  'Sales Payment Account': {
+    translation: 'Llogaria e pagesave të shitjes',
+  },
+  'Sales Quote Number Series': {
+    translation: 'Seria e numrave të ofertave të shitjes',
+  },
   Save: {
     translation: 'Ruaj',
   },
   'Save as PDF': {
     translation: 'Ruaj si PDF',
   },
-  Search: {
-    translation: 'Kërko',
-  },
   Select: {
     translation: 'Zgjidh',
+  },
+  'Select Country': {
+    translation: 'Zgjidh vendin',
   },
   'Select File': {
     translation: 'Zgjidh Skedarin',
@@ -553,14 +499,20 @@ const languageMap: LanguageMap = {
   Setup: {
     translation: 'Konfigurim',
   },
+  'Setup Complete': {
+    translation: 'Konfigurimi i përfunduar',
+  },
   'Setup Wizard': {
     translation: 'Asistenti i Konfigurimit',
   },
-  Shipments: {
-    translation: 'Dërgesa',
+  'Shipment Location': {
+    translation: 'Lokacioni i dërgesës',
   },
   'Show Month/Year': {
     translation: 'Shfaq Muaj/Vit',
+  },
+  'Source of Funds (Liabilities)': {
+    translation: 'Burimi i fondeve (Detyrimet)',
   },
   'Stock Balance': {
     translation: 'Bilanci i Stokut',
@@ -577,8 +529,20 @@ const languageMap: LanguageMap = {
   Suppliers: {
     translation: 'Furnitorët',
   },
+  System: {
+    translation: 'Sistemi',
+  },
+  'System Settings': {
+    translation: 'Cilësimet e Sistemit',
+  },
   Taxes: {
     translation: 'Taksa',
+  },
+  'Temporary Accounts': {
+    translation: 'Llogari të përkohshme',
+  },
+  Terms: {
+    translation: 'Kushtet',
   },
   'Trial Balance': {
     translation: 'Bilanci Provë',
@@ -586,17 +550,17 @@ const languageMap: LanguageMap = {
   Unpaid: {
     translation: 'E papaguar',
   },
-  Update: {
-    translation: 'Përditëso',
-  },
-  Upload: {
-    translation: 'Ngarko',
-  },
   Value: {
     translation: 'Vlerë',
   },
+  Version: {
+    translation: 'Versioni',
+  },
   View: {
     translation: 'Shiko',
+  },
+  'Write Off Account': {
+    translation: 'Llogaria e shlyerjes',
   },
   Yes: {
     translation: 'Po',

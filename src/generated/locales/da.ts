@@ -55,9 +55,6 @@ const languageMap: LanguageMap = {
   '${0} filters applied': {
     translation: '${0} filtre anvendt',
   },
-  '${0} has linked child accounts.': {
-    translation: '${0} har tilknyttede underkonti.',
-  },
   '${0} of type ${1} does not exist': {
     translation: '${0} av type ${1} findes ikke',
   },
@@ -286,9 +283,6 @@ const languageMap: LanguageMap = {
   'An error occurred.': {
     translation: 'Der opstod en fejl.',
   },
-  'Applicable anywhere in Frappe Books': {
-    translation: 'Gælder overalt i Frappe Books',
-  },
   'Applicable when Quick Search is open': {
     translation: 'Gælder, når Quick Search er åben',
   },
@@ -485,9 +479,6 @@ const languageMap: LanguageMap = {
   'Central Tax': {
     translation: 'Central skat',
   },
-  'Change DB': {
-    translation: 'Skift DB',
-  },
   'Change File': {
     translation: 'Skift fil',
   },
@@ -510,9 +501,6 @@ const languageMap: LanguageMap = {
   Check: {
     translation: 'Kontrollere',
   },
-  Cheque: {
-    translation: 'Check',
-  },
   'City / Town': {
     translation: 'By / By',
   },
@@ -524,9 +512,6 @@ const languageMap: LanguageMap = {
   },
   Close: {
     translation: 'Luk',
-  },
-  'Close Frappe Books and try manually.': {
-    translation: 'Luk Frappe Books og prøv manuelt.',
   },
   'Close POS Shift': {
     translation: 'Luk POS-skift',
@@ -659,9 +644,6 @@ const languageMap: LanguageMap = {
   'Create Sales Invoice': {
     translation: 'Opret salgsfaktura',
   },
-  'Create a demo company to try out Frappe Books': {
-    translation: 'Opret et demo-selskab for at prøve Frappe Books',
-  },
   'Create a new company and store it on your computer': {
     translation: 'Opret et nyt selskab og gem det på din computer',
   },
@@ -765,9 +747,6 @@ const languageMap: LanguageMap = {
   },
   'Database Error': {
     translation: 'Databasefejl',
-  },
-  'Database file: ${0}': {
-    translation: 'Databasefil: ${0}',
   },
   Date: {
     translation: 'Dato',
@@ -990,9 +969,6 @@ const languageMap: LanguageMap = {
   'Enable Serial Number': {
     translation: 'Aktivér serienummer',
   },
-  'Enable Stock Returns': {
-    translation: 'Aktivér lagerretur',
-  },
   'Enable UOM Conversion': {
     translation: 'Aktivér enhedsomregning',
   },
@@ -1123,9 +1099,6 @@ const languageMap: LanguageMap = {
   'File selection failed': {
     translation: 'Filvalg mislykkedes',
   },
-  Fill: {
-    translation: 'Fyld',
-  },
   Filter: {
     translation: 'Filtrer',
   },
@@ -1185,9 +1158,6 @@ const languageMap: LanguageMap = {
   },
   'Fraction Units': {
     translation: 'Brøkenheder',
-  },
-  'Frappe Books does not have access to the selected file: ${0}': {
-    translation: 'Frappe Books har ikke adgang til den valgte fil: ${0}',
   },
   'Freight and Forwarding Charges': {
     translation: 'Frakt og videresendingsgebyrer',
@@ -2000,9 +1970,6 @@ const languageMap: LanguageMap = {
   'Payroll Payable': {
     translation: 'Løn til udbetaling',
   },
-  'Pending Qty. ${0}': {
-    translation: 'Afventende antal ${0}',
-  },
   'Pending qty. ${0}': {
     translation: 'Afventende antal ${0}',
   },
@@ -2289,9 +2256,6 @@ const languageMap: LanguageMap = {
   References: {
     translation: 'Referencer',
   },
-  'Reload Frappe Books?': {
-    translation: 'Genindlæs Frappe Bøger?',
-  },
   Report: {
     translation: 'Rapport',
   },
@@ -2463,9 +2427,6 @@ const languageMap: LanguageMap = {
   },
   Saved: {
     translation: 'Gemt',
-  },
-  'Search an Item': {
-    translation: 'Søg efter en vare',
   },
   'Secured Loans': {
     translation: 'Sikrede lån',
@@ -2799,9 +2760,6 @@ const languageMap: LanguageMap = {
   },
   'Submit ${0}?': {
     translation: 'Indsend ${0}?',
-  },
-  'Submit & Print': {
-    translation: 'Indsend og udskriv',
   },
   'Submit entries?': {
     translation: 'Indsend poster?',
@@ -3174,9 +3132,6 @@ const languageMap: LanguageMap = {
   },
   We: {
     translation: 'Vi',
-  },
-  'Welcome to Frappe Books': {
-    translation: 'Velkommen til Frappe Books',
   },
   'Width (in cm)': {
     translation: 'Bredde (i cm)',

@@ -54,9 +54,6 @@ const languageMap: LanguageMap = {
   '${0} filters applied': {
     translation: '已套用 ${0} 個篩選條件',
   },
-  '${0} has linked child accounts.': {
-    translation: '${0} 已連結子科目',
-  },
   '${0} of type ${1} does not exist': {
     translation: '類型為 ${1} 的 ${0} 不存在',
   },
@@ -273,9 +270,6 @@ const languageMap: LanguageMap = {
   'An error occurred.': {
     translation: '發生錯誤。',
   },
-  'Applicable anywhere in Frappe Books': {
-    translation: '適用於 Frappe Books 的任何地方',
-  },
   'Applicable when Quick Search is open': {
     translation: '快速搜尋開啟時適用',
   },
@@ -456,9 +450,6 @@ const languageMap: LanguageMap = {
   'Central Tax': {
     translation: '中央稅率',
   },
-  'Change DB': {
-    translation: '更改資料庫',
-  },
   'Change File': {
     translation: '更改檔案',
   },
@@ -491,9 +482,6 @@ const languageMap: LanguageMap = {
   },
   Close: {
     translation: '關閉',
-  },
-  'Close Frappe Books and try manually.': {
-    translation: '關閉 Frappe Books 並手動嘗試',
   },
   'Close Quick Search': {
     translation: '關閉快速搜尋',
@@ -603,9 +591,6 @@ const languageMap: LanguageMap = {
   'Create Sales Invoice': {
     translation: '建立銷售訂單',
   },
-  'Create a demo company to try out Frappe Books': {
-    translation: '建立一個示範公司以試用 Frappe Books',
-  },
   'Create a new company and store it on your computer': {
     translation: '建立一個新公司並儲存在您的電腦',
   },
@@ -707,9 +692,6 @@ const languageMap: LanguageMap = {
   },
   'Database Error': {
     translation: '資料庫錯誤',
-  },
-  'Database file: ${0}': {
-    translation: '資料庫檔案：${0}',
   },
   Date: {
     translation: '日期',
@@ -916,9 +898,6 @@ const languageMap: LanguageMap = {
   'Enable Serial Number': {
     translation: '啟用序號',
   },
-  'Enable Stock Returns': {
-    translation: '啟用庫存退貨',
-  },
   'Enable UOM Conversion': {
     translation: '啟用單位換算',
   },
@@ -1045,9 +1024,6 @@ const languageMap: LanguageMap = {
   'File selection failed': {
     translation: '檔案選擇失敗',
   },
-  Fill: {
-    translation: '填滿',
-  },
   Filter: {
     translation: '篩選',
   },
@@ -1104,9 +1080,6 @@ const languageMap: LanguageMap = {
   },
   'Fraction Units': {
     translation: '分數單位',
-  },
-  'Frappe Books does not have access to the selected file: ${0}': {
-    translation: 'Frappe Books 無法存取所選檔案：${0}',
   },
   'Freight and Forwarding Charges': {
     translation: '運費與轉運費用',
@@ -1836,9 +1809,6 @@ const languageMap: LanguageMap = {
   'Payroll Payable': {
     translation: '應付薪資',
   },
-  'Pending Qty. ${0}': {
-    translation: '待收數量 ${0}',
-  },
   'Pending qty. ${0}': {
     translation: '待收數量 ${0}',
   },
@@ -2111,9 +2081,6 @@ const languageMap: LanguageMap = {
   },
   References: {
     translation: '關聯資料',
-  },
-  'Reload Frappe Books?': {
-    translation: '重新載入 Frappe Books？',
   },
   Report: {
     translation: '報表',
@@ -2925,9 +2892,6 @@ const languageMap: LanguageMap = {
   },
   We: {
     translation: '我們',
-  },
-  'Welcome to Frappe Books': {
-    translation: '歡迎使用 Frappe Books',
   },
   'Width (in cm)': {
     translation: '寬度（公分）',

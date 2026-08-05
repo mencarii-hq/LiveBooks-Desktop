@@ -285,9 +285,6 @@ const languageMap: LanguageMap = {
   'Central Tax': {
     translation: 'કેન્દ્રીય કર',
   },
-  'Change DB': {
-    translation: 'ડીબી બદલો',
-  },
   'Change File': {
     translation: 'ફાઈલ બદલો',
   },
@@ -302,9 +299,6 @@ const languageMap: LanguageMap = {
   },
   'Chart of Accounts': {
     translation: 'હિસાબી આલેખ',
-  },
-  Cheque: {
-    translation: 'ચેક',
   },
   'City / Town': {
     translation: 'શહેર / ગામ',
@@ -474,9 +468,6 @@ const languageMap: LanguageMap = {
   },
   'Database Error': {
     translation: 'ડેટાબેઝ ચૂક',
-  },
-  'Database file: ${0}': {
-    translation: 'ડેટાબેઝ ફાઇલ: ${0}',
   },
   Date: {
     translation: 'તારીખ',
@@ -1961,9 +1952,6 @@ const languageMap: LanguageMap = {
   },
   We: {
     translation: 'બુધ',
-  },
-  'Welcome to Frappe Books': {
-    translation: 'Frappe Books પર આપનું સ્વાગત છે',
   },
   'Write Off': {
     translation: 'ખારીજ',

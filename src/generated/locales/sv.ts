@@ -54,9 +54,6 @@ const languageMap: LanguageMap = {
   '${0} filters applied': {
     translation: '${0} filter tillämpade',
   },
-  '${0} has linked child accounts.': {
-    translation: '${0} har länkade barnkonton.',
-  },
   '${0} of type ${1} does not exist': {
     translation: '${0} av typ ${1} finns inte',
   },
@@ -93,14 +90,8 @@ const languageMap: LanguageMap = {
   '${0} value ${1} does not exist.': {
     translation: '${0} värde ${1} finns inte.',
   },
-  '0.00%': {
-    translation: '0.00%',
-  },
   '03-23-2022': {
     translation: '03-23-2022',
-  },
-  '03/23/22': {
-    translation: '03/23/22',
   },
   '1 filter applied': {
     translation: '1 filter applicerat',
@@ -286,9 +277,6 @@ const languageMap: LanguageMap = {
     },
   'An error occurred.': {
     translation: 'Ett fel uppstod.',
-  },
-  'Applicable anywhere in Frappe Books': {
-    translation: 'Tillämpligt överallt i Frappe Books',
   },
   'Applicable when Quick Search is open': {
     translation: 'Tillämpligt när Snabbsök är öppen',
@@ -487,9 +475,6 @@ const languageMap: LanguageMap = {
   'Central Tax': {
     translation: 'Central skatt',
   },
-  'Change DB': {
-    translation: 'Ändra Databas',
-  },
   'Change File': {
     translation: 'Ändra Fil',
   },
@@ -512,9 +497,6 @@ const languageMap: LanguageMap = {
   Check: {
     translation: 'Kontrollera',
   },
-  Cheque: {
-    translation: 'Check',
-  },
   'City / Town': {
     translation: 'Stad / Ort',
   },
@@ -526,9 +508,6 @@ const languageMap: LanguageMap = {
   },
   Close: {
     translation: 'Stäng',
-  },
-  'Close Frappe Books and try manually.': {
-    translation: 'Stäng Frappe Books och försök manuellt.',
   },
   'Close POS Shift': {
     translation: 'Stäng POS Skift',
@@ -661,9 +640,6 @@ const languageMap: LanguageMap = {
   'Create Sales Invoice': {
     translation: 'Skapa försäljningsfaktura',
   },
-  'Create a demo company to try out Frappe Books': {
-    translation: 'Skapa ett demoföretag för att prova Frappe Books',
-  },
   'Create a new company and store it on your computer': {
     translation: 'Skapa ett nytt företag och lagra det på din dator',
   },
@@ -767,9 +743,6 @@ const languageMap: LanguageMap = {
   },
   'Database Error': {
     translation: 'Databasfel',
-  },
-  'Database file: ${0}': {
-    translation: 'Databasfil: ${0}',
   },
   Date: {
     translation: 'Datum',
@@ -992,9 +965,6 @@ const languageMap: LanguageMap = {
   'Enable Serial Number': {
     translation: 'Aktivera serienummer',
   },
-  'Enable Stock Returns': {
-    translation: 'Aktivera  aktieavkastning',
-  },
   'Enable UOM Conversion': {
     translation: 'Aktivera UOM-konvertering',
   },
@@ -1125,9 +1095,6 @@ const languageMap: LanguageMap = {
   'File selection failed': {
     translation: 'Filval misslyckades',
   },
-  Fill: {
-    translation: 'Fyll',
-  },
   Filter: {
     translation: 'Filtrera',
   },
@@ -1184,9 +1151,6 @@ const languageMap: LanguageMap = {
   },
   'Fraction Units': {
     translation: 'Fraktionsenheter',
-  },
-  'Frappe Books does not have access to the selected file: ${0}': {
-    translation: 'Frappe Books har inte tillgång till den valda filen: ${0}',
   },
   'Freight and Forwarding Charges': {
     translation: 'Frakt- och vidarebefordringsavgifter',
@@ -1600,9 +1564,6 @@ const languageMap: LanguageMap = {
   'Manufacture Date': {
     translation: 'Tillverkningsdatum',
   },
-  '03/22/22': {
-    translation: '03/22/22',
-  },
   March: {
     translation: 'Mars',
   },
@@ -1983,9 +1944,6 @@ const languageMap: LanguageMap = {
   'Payroll Payable': {
     translation: 'Betalningsbara löner',
   },
-  'Pending Qty. ${0}': {
-    translation: 'Väntande antal ${0}',
-  },
   'Pending qty. ${0}': {
     translation: 'Väntande antal. ${0}',
   },
@@ -2271,9 +2229,6 @@ const languageMap: LanguageMap = {
   References: {
     translation: 'Referenser',
   },
-  'Reload Frappe Books?': {
-    translation: 'Ladda om Frappe Books?',
-  },
   Report: {
     translation: 'Rapportera',
   },
@@ -2442,9 +2397,6 @@ const languageMap: LanguageMap = {
   },
   Saved: {
     translation: 'Sparad',
-  },
-  'Search an Item': {
-    translation: 'Sök efter artikel',
   },
   'Secured Loans': {
     translation: 'Säkrade lån',
@@ -2780,9 +2732,6 @@ const languageMap: LanguageMap = {
   },
   'Submit ${0}?': {
     translation: 'Skicka in ${0}?',
-  },
-  'Submit & Print': {
-    translation: 'Skicka in & Skriv ut',
   },
   'Submit entries?': {
     translation: 'Skicka in poster?',
@@ -3157,9 +3106,6 @@ const languageMap: LanguageMap = {
   },
   We: {
     translation: 'Vi',
-  },
-  'Welcome to Frappe Books': {
-    translation: 'Välkommen till Frappe Books',
   },
   'Width (in cm)': {
     translation: 'Bredd (cm)',

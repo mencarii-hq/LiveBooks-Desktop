@@ -3,6 +3,9 @@
 import type { LanguageMap } from 'utils/types';
 
 const languageMap: LanguageMap = {
+  '${0}': {
+    translation: '${0}',
+  },
   '${0} ${1} already exists.': {
     translation: '${0} ${1} موجودة من قبل.',
   },
@@ -18,11 +21,17 @@ const languageMap: LanguageMap = {
   '${0} account not set in Inventory Settings.': {
     translation: '${0} لم يتم تعيين الحساب في إعدادات المخزون.',
   },
+  '${0} already applied.': {
+    translation: 'تم تطبيق ${0} بالفعل.',
+  },
   '${0} already saved': {
     translation: '${0} تم حفظ بالفعل',
   },
   '${0} already submitted': {
     translation: '${0} تم الارسال بالفعل',
+  },
+  '${0} before ${1}': {
+    translation: '${0} قبل ${1}',
   },
   '${0} cancelled': {
     translation: '${0} تم الالغاء',
@@ -54,11 +63,11 @@ const languageMap: LanguageMap = {
   '${0} filters applied': {
     translation: '${0} تم تطبيق الفيلتر',
   },
-  '${0} has linked child accounts.': {
-    translation: '${0} لديه حسابات فرعية مرتبطة.',
-  },
   '${0} of type ${1} does not exist': {
     translation: '${0} من النوع ${1} غير موجود',
+  },
+  '${0} only has ${1} points': {
+    translation: '${0} لديه ${1} نقطة فقط',
   },
   '${0} out of ${1}': {
     translation: '${0} من أصل ${1}',
@@ -66,17 +75,20 @@ const languageMap: LanguageMap = {
   '${0} party ${1} is different from ${2}': {
     translation: '${0} الطرف ${1} يختلف عن ${2}',
   },
+  '${0} quantity ${1} added.': {
+    translation: 'تمت إضافة كمية ${1} من ${0}.',
+  },
   '${0} quantity 1 added.': {
     translation: 'تمت إضافة كمية ${0} عدد 1.',
   },
   '${0} row added.': {
     translation: 'تمت إضافة صف ${0}.',
   },
-  '${0} rows added.': {
-    translation: 'تمت إضافة ${0} صفوف.',
-  },
   '${0} rows': {
     translation: '${0} صفوف',
+  },
+  '${0} rows added.': {
+    translation: 'تمت إضافة ${0} صفوف.',
   },
   '${0} saved': {
     translation: 'تم حفظ ${0}',
@@ -93,14 +105,44 @@ const languageMap: LanguageMap = {
   '${0} value ${1} does not exist.': {
     translation: 'قيمة ${0} ${1} غير موجودة.',
   },
+  '0%': {
+    translation: '0%',
+  },
+  '03-23-2022': {
+    translation: '03-23-2022',
+  },
+  '03/23/2022': {
+    translation: '03/23/2022',
+  },
   '1 filter applied': {
     translation: 'تم تطبيق فلتر واحد',
+  },
+  '2022-03-23': {
+    translation: '2022-03-23',
   },
   '23 Mar, 2022': {
     translation: '23 Mar, 2022',
   },
+  '23-03-2022': {
+    translation: '23-03-2022',
+  },
+  '23.03.2022': {
+    translation: '23.03.2022',
+  },
+  '23/03/2022': {
+    translation: '23/03/2022',
+  },
+  '9888900000': {
+    translation: '9888900000',
+  },
   'A submittable entry is deleted only if it is in the cancelled state.': {
     translation: 'يُحذف الإدخال القابل للتسجيل فقط إذا كان في حالة ملغاة.',
+  },
+  'API Base URL': {
+    translation: 'عنوان URL الأساسي لواجهة برمجة التطبيقات',
+  },
+  Account: {
+    translation: 'الحساب',
   },
   'Account ${0} does not exist.': {
     translation: 'الحساب ${0} غير موجود.',
@@ -114,8 +156,8 @@ const languageMap: LanguageMap = {
   'Account Type': {
     translation: 'نوع الحساب',
   },
-  Account: {
-    translation: 'الحساب',
+  Accounting: {
+    translation: 'المحاسبة',
   },
   'Accounting Entries': {
     translation: 'إدخالات المحاسبة',
@@ -126,17 +168,14 @@ const languageMap: LanguageMap = {
   'Accounting Settings': {
     translation: 'إعدادات المحاسبة',
   },
-  Accounting: {
-    translation: 'المحاسبة',
+  Accounts: {
+    translation: 'الحسابات',
   },
   'Accounts Payable': {
     translation: 'الحسابات الدائنة',
   },
   'Accounts Receivable': {
     translation: 'الحسابات المدينة',
-  },
-  Accounts: {
-    translation: 'الحسابات',
   },
   'Accumulated Depreciation': {
     translation: 'الاستهلاك المتراكم',
@@ -192,6 +231,9 @@ const languageMap: LanguageMap = {
   'Add products or services that you sell to your customers': {
     translation: 'أضف المنتجات أو الخدمات التي تبيعها لعملائك',
   },
+  'Add quote terms': {
+    translation: 'إضافة شروط عرض السعر',
+  },
   'Add transfer terms': {
     translation: 'إضافة شروط التحويل',
   },
@@ -206,6 +248,9 @@ const languageMap: LanguageMap = {
       translation:
         'الكمية الإضافية (${0}) المطلوبة${1} لإجراء تحويل خارجي للصنف ${2} من ${3} بتاريخ ${4}',
     },
+  Address: {
+    translation: 'العنوان',
+  },
   'Address Display': {
     translation: 'عرض العنوان',
   },
@@ -218,11 +263,11 @@ const languageMap: LanguageMap = {
   'Address Name': {
     translation: 'اسم العنوان',
   },
-  Address: {
-    translation: 'العنوان',
-  },
   'Administrative Expenses': {
     translation: 'مصاريف إدارية',
+  },
+  Alert: {
+    translation: 'تنبيه',
   },
   All: {
     translation: 'الكل',
@@ -230,11 +275,11 @@ const languageMap: LanguageMap = {
   'Allow to bypass filters': {
     translation: 'السماح بتجاوز عوامل التصفية',
   },
-  'Amount Paid': {
-    translation: 'المبلغ المدفوع',
-  },
   Amount: {
     translation: 'المبلغ',
+  },
+  'Amount Paid': {
+    translation: 'المبلغ المدفوع',
   },
   'Amount: ${0} and writeoff: ${1} is less than the total amount allocated to references: ${2}.':
     {
@@ -258,8 +303,8 @@ const languageMap: LanguageMap = {
   'An error occurred.': {
     translation: 'حدث خطأ',
   },
-  'Applicable anywhere in Frappe Books': {
-    translation: 'ينطبق في أي مكان ضمن Frappe Books',
+  And: {
+    translation: 'و',
   },
   'Applicable when POS is open': {
     translation: 'ينطبق عند فتح نقطة البيع',
@@ -279,8 +324,20 @@ const languageMap: LanguageMap = {
   'Application of Funds (Assets)': {
     translation: 'تطبيق الأموال (الأصول)',
   },
+  'Applied Coupon Codes': {
+    translation: 'رموز القسائم المطبقة',
+  },
+  'Applied Items': {
+    translation: 'الأصناف المطبقة',
+  },
+  Apply: {
+    translation: 'تطبيق',
+  },
   'Apply Discount After Tax': {
     translation: 'تطبيق الخصم بعد الضريبة',
+  },
+  'Apply Price List': {
+    translation: 'تطبيق قائمة الأسعار',
   },
   'Apply and view changes made to the print template': {
     translation: 'تطبيق وعرض التغييرات التي تم إجراؤها على قالب الطباعة',
@@ -306,6 +363,9 @@ const languageMap: LanguageMap = {
   August: {
     translation: 'أغسطس',
   },
+  'Auth Token': {
+    translation: 'رمز المصادقة',
+  },
   'Auto Payments': {
     translation: 'المدفوعات التلقائية',
   },
@@ -315,14 +375,20 @@ const languageMap: LanguageMap = {
   Autocomplete: {
     translation: 'الإكمال التلقائي',
   },
-  'Back Reference': {
-    translation: 'مرجع خلفي',
+  'Available Loyalty Points': {
+    translation: 'نقاط الولاء المتاحة',
   },
   Back: {
     translation: 'رجوع',
   },
+  'Back Reference': {
+    translation: 'مرجع خلفي',
+  },
   'Bad import data, could not read file.': {
     translation: 'بيانات استيراد غير صحيحة، تعذر قراءة الملف.',
+  },
+  Balance: {
+    translation: 'الرصيد',
   },
   'Balance Amount': {
     translation: 'مبلغ الرصيد',
@@ -330,8 +396,8 @@ const languageMap: LanguageMap = {
   'Balance Sheet': {
     translation: 'الميزانية العمومية',
   },
-  Balance: {
-    translation: 'الرصيد',
+  Bank: {
+    translation: 'بنك',
   },
   'Bank Accounts': {
     translation: 'حسابات بنكية',
@@ -345,11 +411,14 @@ const languageMap: LanguageMap = {
   'Bank Overdraft Account': {
     translation: 'حساب مصرفي السحب على المكشوف',
   },
-  Bank: {
-    translation: 'بنك',
-  },
   Barcode: {
     translation: 'الباركود',
+  },
+  'Barcode ${0} has an invalid length.': {
+    translation: 'يحتوي الرمز الشريطي ${0} على طول غير صالح.',
+  },
+  'Barcode must be exactly 12 digits.': {
+    translation: 'يجب أن يتكون الباركود من 12 رقمًا بالضبط.',
   },
   'Base Grand Total': {
     translation: 'إجمالي المبلغ الأساسي',
@@ -357,14 +426,17 @@ const languageMap: LanguageMap = {
   'Based On': {
     translation: 'استنادًا إلى',
   },
+  Batch: {
+    translation: 'دفعة',
+  },
+  'Batch ${0} does not belong to Item ${1}': {
+    translation: 'الدفعة ${0} لا تنتمي إلى العنصر ${1}',
+  },
   'Batch not set for row ${0}.': {
     translation: 'لم يتم تعيين الدفعة للصف ${0}.',
   },
   'Batch set for row ${0}.': {
     translation: 'تم تعيين الدفعة للصف ${0}.',
-  },
-  Batch: {
-    translation: 'دفعة',
   },
   'Bill Created': {
     translation: 'تم إنشاء الفاتورة',
@@ -372,32 +444,41 @@ const languageMap: LanguageMap = {
   Billing: {
     translation: 'الفوترة',
   },
+  Billion: {
+    translation: 'مليار',
+  },
   Black: {
     translation: 'أسود',
   },
   Blue: {
     translation: 'أزرق',
   },
-  'Both From and To Location cannot be undefined': {
-    translation: 'لا يمكن أن يكون كل من موقع الإرسال والاستلام غير محدد',
-  },
   Both: {
     translation: 'كلاهما',
+  },
+  'Both From and To Location cannot be undefined': {
+    translation: 'لا يمكن أن يكون كل من موقع الإرسال والاستلام غير محدد',
   },
   Buildings: {
     translation: 'المباني',
   },
-  Buy: {
-    translation: 'شراء',
+  'Can Change Discount': {
+    translation: 'يمكن تغيير الخصم',
+  },
+  'Can Change Rate': {
+    translation: 'يمكن تغيير السعر',
+  },
+  Cancel: {
+    translation: 'إلغاء',
   },
   'Cancel ${0}?': {
     translation: 'إلغاء ${0}؟',
   },
+  'Cancel Button Colour': {
+    translation: 'لون زر الإلغاء',
+  },
   'Cancel or Delete an entry.': {
     translation: 'إلغاء أو حذف إدخال.',
-  },
-  Cancel: {
-    translation: 'إلغاء',
   },
   Cancelled: {
     translation: 'ملغاة',
@@ -405,11 +486,11 @@ const languageMap: LanguageMap = {
   'Cannot Commit Error': {
     translation: 'لا يمكن تنفيذ الالتزام (خطأ)',
   },
-  'Cannot Delete Account': {
-    translation: 'لا يمكن حذف الحساب',
-  },
   'Cannot Delete': {
     translation: 'لا يمكن الحذف',
+  },
+  'Cannot Delete Account': {
+    translation: 'لا يمكن حذف الحساب',
   },
   'Cannot Export': {
     translation: 'لا يمكن التصدير',
@@ -420,14 +501,17 @@ const languageMap: LanguageMap = {
   'Cannot Open File': {
     translation: 'لا يمكن فتح الملف',
   },
+  'Cannot add an item to a submitted invoice.': {
+    translation: 'لا يمكن إضافة صنف إلى فاتورة مُرسلة.',
+  },
   'Cannot cancel ${0} ${1} because of the following ${2}: ${3}': {
     translation: 'لا يمكن إلغاء ${0} ${1} بسبب ${2} التالي: ${3}',
   },
   'Cannot cancel ${0} because of the following ${1}: ${2}': {
     translation: 'لا يمكن إلغاء ${0} بسبب ${1} التالي: ${2}',
   },
-  'Cannot delete ${0} \\"${1}\\" because of linked entries.': {
-    translation: 'لا يمكن حذف ${0} \\"${1}\\" بسبب إدخالات مرتبطة.',
+  'Cannot delete ${0} "${1}" because of linked entries.': {
+    translation: 'لا يمكن حذف ${0} "${1}" بسبب الإدخالات المرتبطة.',
   },
   'Cannot open file': {
     translation: 'لا يمكن فتح الملف',
@@ -444,6 +528,9 @@ const languageMap: LanguageMap = {
   'Capital Stock': {
     translation: 'رأس المال',
   },
+  Cash: {
+    translation: 'نقد',
+  },
   'Cash Denominations': {
     translation: 'الفئات النقدية',
   },
@@ -456,17 +543,14 @@ const languageMap: LanguageMap = {
   'Cash In Hand': {
     translation: 'نقد في اليد',
   },
-  Cash: {
-    translation: 'نقد',
-  },
   Cashflow: {
     translation: 'التدفق النقدي',
   },
+  Ceil: {
+    translation: 'تقريب لأعلى',
+  },
   'Central Tax': {
     translation: 'الضرائب المركزية',
-  },
-  'Change DB': {
-    translation: 'تغيير قاعدة البيانات',
   },
   'Change File': {
     translation: 'تغيير الملف',
@@ -490,20 +574,32 @@ const languageMap: LanguageMap = {
   Check: {
     translation: 'تحقق',
   },
-  Cheque: {
-    translation: 'شيك مصرفي',
+  'Check Digits': {
+    translation: 'التحقق من الأرقام',
   },
   'City / Town': {
     translation: 'المدينة / البلدة',
   },
+  Classic: {
+    translation: 'كلاسيكي',
+  },
   Clear: {
     translation: 'مسح',
+  },
+  'Clear Synced Data From ERPNext SyncQueue': {
+    translation: 'مسح البيانات المتزامنة من قائمة مزامنة ERPNext',
   },
   'Clearance Date': {
     translation: 'تاريخ التخليص',
   },
-  'Close Frappe Books and try manually.': {
-    translation: 'أغلق Frappe Books وحاول يدويًا.',
+  'Clearance Date not set.': {
+    translation: 'تاريخ التخليص غير محدد.',
+  },
+  'Clicking continue will remove all the selected items.': {
+    translation: 'سيؤدي النقر فوق "متابعة" إلى إزالة كافة العناصر المحددة.',
+  },
+  Close: {
+    translation: 'إغلاق',
   },
   'Close POS Shift': {
     translation: 'إغلاق مناوبة نقطة البيع',
@@ -511,7 +607,7 @@ const languageMap: LanguageMap = {
   'Close Quick Search': {
     translation: 'إغلاق البحث السريع',
   },
-  Close: {
+  Closing: {
     translation: 'إغلاق',
   },
   'Closing ${0} Amount can not be negative.': {
@@ -529,29 +625,38 @@ const languageMap: LanguageMap = {
   'Closing Amounts': {
     translation: 'مبالغ الاغلاق',
   },
-  'Closing Cash In Denominations': {
-    translation: 'إغلاق النقدية بالفئات',
-  },
   'Closing Cash': {
     translation: 'الاغلاق النقدي',
+  },
+  'Closing Cash In Denominations': {
+    translation: 'إغلاق النقدية بالفئات',
   },
   'Closing Date': {
     translation: 'تاريخ الإغلاق',
   },
-  Closing: {
-    translation: 'إغلاق',
-  },
   Collapse: {
     translation: 'طي',
   },
+  'Collection Factor': {
+    translation: 'معامل التحصيل',
+  },
+  'Collection Rules': {
+    translation: 'قواعد التحصيل',
+  },
   Color: {
     translation: 'اللون',
+  },
+  Colour: {
+    translation: 'لون',
   },
   'Commission on Sales': {
     translation: 'عمولة المبيعات',
   },
   Common: {
     translation: 'عام',
+  },
+  Company: {
+    translation: 'الشركة',
   },
   'Company Logo': {
     translation: 'شعار الشركة',
@@ -562,9 +667,6 @@ const languageMap: LanguageMap = {
   'Company Setup': {
     translation: 'إعداد الشركة',
   },
-  Company: {
-    translation: 'الشركة',
-  },
   Completed: {
     translation: 'مكتمل',
   },
@@ -574,11 +676,17 @@ const languageMap: LanguageMap = {
   'Consolidate Columns': {
     translation: 'دمج الأعمدة',
   },
+  Contact: {
+    translation: 'جهة الاتصال',
+  },
   Contacts: {
     translation: 'بيانات الاتصال',
   },
   Contains: {
     translation: 'يحتوي',
+  },
+  Continue: {
+    translation: 'متابعة',
   },
   'Continue submitting Sales Invoice?': {
     translation: 'هل تريد الاستمرار في تسجيل فاتورة المبيعات؟',
@@ -591,6 +699,9 @@ const languageMap: LanguageMap = {
   },
   'Conversion Factor': {
     translation: 'عامل التحويل',
+  },
+  Converted: {
+    translation: 'تم التحويل',
   },
   'Cost Of Goods Sold Acc.': {
     translation: 'حساب تكلفة البضاعة المباعة',
@@ -608,23 +719,38 @@ const languageMap: LanguageMap = {
   'Counter Cash Account': {
     translation: 'حساب النقدية في الخزينة',
   },
+  Country: {
+    translation: 'البلد',
+  },
   'Country Code': {
     translation: 'رمز البلد',
   },
   'Country code used to initialize regional settings.': {
     translation: 'رمز البلد يُستخدم لتهيئة الإعدادات الإقليمية',
   },
-  Country: {
-    translation: 'البلد',
+  'Coupon ${0} is not applicable for applied items.': {
+    translation: 'القسيمة ${0} غير قابلة للتطبيق على الأصناف المطبقة.',
+  },
+  'Coupon Code': {
+    translation: 'رمز القسيمة',
+  },
+  'Coupon Name': {
+    translation: 'اسم القسيمة',
+  },
+  Coupons: {
+    translation: 'القسائم',
   },
   Courier: {
     translation: 'خدمة التوصيل',
   },
+  'Cr.': {
+    translation: 'دائن',
+  },
   'Cr. ${0}': {
     translation: 'دائن ${0}',
   },
-  'Cr.': {
-    translation: 'دائن',
+  Create: {
+    translation: 'إنشاء',
   },
   'Create Demo': {
     translation: 'إنشاء نموذج تجريبي',
@@ -632,20 +758,17 @@ const languageMap: LanguageMap = {
   'Create Payment.': {
     translation: 'إنشاء دفعة.',
   },
-  'Create Purchase Invoice': {
-    translation: 'إنشاء فاتورة مشتريات',
-  },
   'Create Purchase': {
     translation: 'إنشاء مشتريات',
+  },
+  'Create Purchase Invoice': {
+    translation: 'إنشاء فاتورة مشتريات',
   },
   'Create Sale': {
     translation: 'إنشاء مبيعات',
   },
   'Create Sales Invoice': {
     translation: 'إنشاء فاتورة مبيعات',
-  },
-  'Create a demo company to try out Frappe Books': {
-    translation: 'أنشئ شركة تجريبية لتجربة Frappe Books',
   },
   'Create a new company and store it on your computer': {
     translation: 'أنشئ شركة جديدة وخزّنها على جهازك',
@@ -665,14 +788,11 @@ const languageMap: LanguageMap = {
   'Create your first sales invoice for the created customer': {
     translation: 'أنشئ أول فاتورة مبيعات للعميل الذي تم إنشاؤه',
   },
-  Create: {
-    translation: 'إنشاء',
+  Created: {
+    translation: 'تم الإنشاء',
   },
   'Created By': {
     translation: 'تم الإنشاء بواسطة',
-  },
-  Created: {
-    translation: 'تم الإنشاء',
   },
   'Creating Items and Parties': {
     translation: 'إنشاء الأصناف والأطراف',
@@ -683,32 +803,32 @@ const languageMap: LanguageMap = {
   'Creating Purchase Invoices': {
     translation: 'إنشاء فواتير المشتريات',
   },
+  Credit: {
+    translation: 'الائتمان',
+  },
   'Credit Card Entry': {
     translation: 'إدخال بطاقة ائتمان',
   },
   'Credit Note': {
     translation: 'إشعار دائن',
   },
-  Credit: {
-    translation: 'الائتمان',
-  },
   Creditors: {
     translation: 'الدائنون',
+  },
+  Currency: {
+    translation: 'العملة',
   },
   'Currency Name': {
     translation: 'اسم العملة',
   },
-  Currency: {
-    translation: 'العملة',
+  Current: {
+    translation: 'الحالي',
   },
   'Current Assets': {
     translation: 'الأصول المتداولة',
   },
   'Current Liabilities': {
     translation: 'الخصوم المتداولة',
-  },
-  Current: {
-    translation: 'الحالي',
   },
   'Custom Field': {
     translation: 'حقل مخصص',
@@ -722,14 +842,17 @@ const languageMap: LanguageMap = {
   'Custom Hex': {
     translation: 'قيمة سداسية مخصصة',
   },
+  Customer: {
+    translation: 'العميل',
+  },
   'Customer Created': {
     translation: 'تم إنشاء العميل',
   },
   'Customer Currency': {
     translation: 'عملة العميل',
   },
-  Customer: {
-    translation: 'العميل',
+  'Customer has no loyalty points to redeem': {
+    translation: 'ليس لدى العميل أي نقاط ولاء لاستبدالها',
   },
   Customers: {
     translation: 'العملاء',
@@ -752,11 +875,14 @@ const languageMap: LanguageMap = {
   Data: {
     translation: 'البيانات',
   },
+  'Data Sync Interval (In Minutes)': {
+    translation: 'فاصل مزامنة البيانات (بالدقائق)',
+  },
   'Database Error': {
     translation: 'خطأ في قاعدة البيانات',
   },
-  'Database file: ${0}': {
-    translation: 'ملف قاعدة البيانات: ${0}',
+  Date: {
+    translation: 'التاريخ',
   },
   'Date Format': {
     translation: 'تنسيق التاريخ',
@@ -764,17 +890,14 @@ const languageMap: LanguageMap = {
   'Date Time': {
     translation: 'التاريخ والوقت',
   },
-  Date: {
-    translation: 'التاريخ',
-  },
   Day: {
     translation: 'اليوم',
   },
-  'Debit Note': {
-    translation: 'إشعار مدين',
-  },
   Debit: {
     translation: 'مدين',
+  },
+  'Debit Note': {
+    translation: 'إشعار مدين',
   },
   Debtors: {
     translation: 'المدينون',
@@ -785,6 +908,9 @@ const languageMap: LanguageMap = {
   'Decrease print template display scale': {
     translation: 'تقليل مقياس عرض قالب الطباعة',
   },
+  Default: {
+    translation: 'افتراضي',
+  },
   'Default Account': {
     translation: 'الحساب الافتراضي',
   },
@@ -794,11 +920,11 @@ const languageMap: LanguageMap = {
   'Default Location': {
     translation: 'الموقع الافتراضي',
   },
-  Default: {
-    translation: 'افتراضي',
-  },
   Defaults: {
     translation: 'الإعدادات الافتراضية',
+  },
+  Delete: {
+    translation: 'حذف',
   },
   'Delete ${0}?': {
     translation: 'حذف ${0}؟',
@@ -812,26 +938,29 @@ const languageMap: LanguageMap = {
   'Delete Group': {
     translation: 'حذف المجموعة',
   },
-  Delete: {
-    translation: 'حذف',
-  },
   Delivered: {
     translation: 'تم التسليم',
   },
   Denomination: {
     translation: 'الفئة',
   },
-  'Depreciation Entry': {
-    translation: 'قيد الإهلاك',
-  },
   Depreciation: {
     translation: 'الإهلاك',
+  },
+  'Depreciation Entry': {
+    translation: 'قيد الإهلاك',
   },
   Description: {
     translation: 'الوصف',
   },
   Details: {
     translation: 'التفاصيل',
+  },
+  'Device ID': {
+    translation: 'معرف الجهاز',
+  },
+  'Device is offline. Please connect to a network to continue.': {
+    translation: 'الجهاز غير متصل. يرجى الاتصال بالشبكة للمتابعة.',
   },
   'Difference Amount': {
     translation: 'مبلغ الفرق',
@@ -850,23 +979,29 @@ const languageMap: LanguageMap = {
   Disabled: {
     translation: 'معطّل',
   },
-  'Discount Account is not set.': {
-    translation: 'لم يتم تعيين حساب الخصم.',
-  },
   'Discount Account': {
     translation: 'حساب الخصم',
   },
-  'Discount Amount (${0}) cannot be greated than Amount (${1}).': {
-    translation: 'لا يمكن أن يكون مبلغ الخصم (${0}) أكبر من المبلغ (${1}).',
+  'Discount Account is not set.': {
+    translation: 'لم يتم تعيين حساب الخصم.',
   },
   'Discount Amount': {
     translation: 'مبلغ الخصم',
   },
-  'Discount Percent (${0}) cannot be greater than 100.': {
-    translation: 'لا يمكن أن تكون نسبة الخصم (${0}) أكبر من 100.',
+  'Discount Amount (${0}) cannot be greated than Amount (${1}).': {
+    translation: 'لا يمكن أن يكون مبلغ الخصم (${0}) أكبر من المبلغ (${1}).',
   },
   'Discount Percent': {
     translation: 'نسبة الخصم',
+  },
+  'Discount Percent (${0}) cannot be greater than 100.': {
+    translation: 'لا يمكن أن تكون نسبة الخصم (${0}) أكبر من 100.',
+  },
+  'Discount Percentage': {
+    translation: 'نسبة الخصم',
+  },
+  'Discount Type': {
+    translation: 'نوع الخصم',
   },
   'Discounted Amount': {
     translation: 'المبلغ بعد الخصم',
@@ -886,14 +1021,17 @@ const languageMap: LanguageMap = {
   'Display Logo in Invoice': {
     translation: 'عرض الشعار في الفاتورة',
   },
-  'Display Precision should have a value between 0 and 9.': {
-    translation: 'دقة العرض يجب أن تكون لها قيمة بين 0 و 9.',
-  },
   'Display Precision': {
     translation: 'دقة العرض',
   },
+  'Display Precision should have a value between 0 and 9.': {
+    translation: 'دقة العرض يجب أن تكون لها قيمة بين 0 و 9.',
+  },
   'Display Scale': {
     translation: 'مقياس العرض',
+  },
+  'Display Terms and Conditions': {
+    translation: 'عرض الشروط والأحكام',
   },
   'Display Time In Invoice': {
     translation: 'عرض الوقت في الفاتورة',
@@ -901,11 +1039,17 @@ const languageMap: LanguageMap = {
   'Dividends Paid': {
     translation: 'توزيعات أرباح مدفوعة',
   },
+  'Do not Contact': {
+    translation: 'عدم الاتصال',
+  },
   'Doc ${0} ${1} not set': {
     translation: 'لم يتم تعيين المستند ${0} ${1}',
   },
   Docs: {
     translation: 'المستندات',
+  },
+  'Document Name': {
+    translation: 'اسم المستند',
   },
   Documentation: {
     translation: 'التوثيق',
@@ -916,14 +1060,17 @@ const languageMap: LanguageMap = {
   Done: {
     translation: 'تم',
   },
-  'Dr. ${0}': {
-    translation: 'مدين ${0}',
-  },
   'Dr.': {
     translation: 'مدين',
   },
+  'Dr. ${0}': {
+    translation: 'مدين ${0}',
+  },
   Draft: {
     translation: 'مسودة',
+  },
+  Duplicate: {
+    translation: 'تكرار',
   },
   'Duplicate Entry': {
     translation: 'إدخال مكرر',
@@ -934,32 +1081,47 @@ const languageMap: LanguageMap = {
   'Duplicate columns found: ${0}': {
     translation: 'تم العثور على أعمدة مكررة: ${0}',
   },
-  Duplicate: {
-    translation: 'تكرار',
-  },
   'Duties and Taxes': {
     translation: 'الرسوم والضرائب',
   },
   'Dynamic Link': {
     translation: 'رابط ديناميكي',
   },
+  'ERPNext Sync Queue': {
+    translation: 'قائمة مزامنة ERPNext',
+  },
+  'ERPNext Sync Settings': {
+    translation: 'إعدادات مزامنة ERPNext',
+  },
   'Earnest Money': {
     translation: 'كسب المال',
+  },
+  Eight: {
+    translation: 'ثمانية',
+  },
+  Eighteen: {
+    translation: 'ثمانية عشر',
+  },
+  Eighty: {
+    translation: 'ثمانون',
   },
   'Electronic Equipments': {
     translation: 'معدات إلكترونية',
   },
-  'Email Address': {
-    translation: 'عنوان البريد الإلكتروني',
+  Eleven: {
+    translation: 'أحد عشر',
   },
   Email: {
     translation: 'البريد الإلكتروني',
   },
-  'Empty file selected': {
-    translation: 'تم اختيار ملف فارغ',
+  'Email Address': {
+    translation: 'عنوان البريد الإلكتروني',
   },
   Empty: {
     translation: 'فارغ',
+  },
+  'Empty file selected': {
+    translation: 'تم اختيار ملف فارغ',
   },
   'Enable Barcodes': {
     translation: 'تفعيل الباركود',
@@ -997,11 +1159,11 @@ const languageMap: LanguageMap = {
   'Enable Loyalty Program': {
     translation: 'تفعيل برنامج الولاء',
   },
-  'Enable POS Without Inventory': {
-    translation: 'تفعيل نقطة البيع بدون مخزون',
-  },
   'Enable Partial Payment': {
     translation: 'تفعيل الدفع الجزئي',
+  },
+  'Enable Partial payment to pay partial amount': {
+    translation: 'تمكين الدفع الجزئي لسداد جزء من المبلغ',
   },
   'Enable Point of Sale': {
     translation: 'تفعيل نقطة البيع',
@@ -1015,17 +1177,17 @@ const languageMap: LanguageMap = {
   'Enable Serial Number': {
     translation: 'تفعيل الأرقام التسلسلية',
   },
-  'Enable Stock Returns': {
-    translation: 'تفعيل إرجاع المخزون',
-  },
   'Enable UOM Conversion': {
     translation: 'تفعيل تحويل وحدات القياس',
+  },
+  Enabled: {
+    translation: 'مفعل',
   },
   'Enabled For': {
     translation: 'مفعل لـ',
   },
-  Enabled: {
-    translation: 'مفعل',
+  Endpoints: {
+    translation: 'نقاط النهاية',
   },
   'Enter Country to load States': {
     translation: 'اختار الدولة حتى يتم تحميل  المدن',
@@ -1036,8 +1198,14 @@ const languageMap: LanguageMap = {
   'Enter barcode': {
     translation: 'أدخل الباركود',
   },
+  'Enter weight barcode': {
+    translation: 'أدخل باركود الوزن',
+  },
   'Entertainment Expenses': {
     translation: 'مصاريف الترفيه',
+  },
+  Entry: {
+    translation: 'إدخال',
   },
   'Entry Currency': {
     translation: 'عملة الإدخال',
@@ -1057,9 +1225,6 @@ const languageMap: LanguageMap = {
   'Entry has Grand Total ${0}. Please verify amounts.': {
     translation:
       'الإدخال يحتوي على المجموع الكلي ${0}. يرجى التحقق من المبالغ.',
-  },
-  Entry: {
-    translation: 'إدخال',
   },
   Equity: {
     translation: 'حقوق الملكية',
@@ -1085,20 +1250,26 @@ const languageMap: LanguageMap = {
   'Expected Amount': {
     translation: 'المبلغ المتوقع',
   },
-  'Expense Account': {
-    translation: 'حساب المصروف',
-  },
   Expense: {
     translation: 'المصروف',
   },
-  'Expenses Included In Valuation': {
-    translation: 'المصروفات المدرجة في التقييم',
+  'Expense Account': {
+    translation: 'حساب المصروف',
   },
   Expenses: {
     translation: 'المصروفات',
   },
+  'Expenses Included In Valuation': {
+    translation: 'المصروفات المدرجة في التقييم',
+  },
   'Expiry Date': {
     translation: 'تاريخ الانتهاء',
+  },
+  'Expiry Duration': {
+    translation: 'مدة انتهاء الصلاحية',
+  },
+  Export: {
+    translation: 'تصدير',
   },
   'Export Failed': {
     translation: 'فشل التصدير',
@@ -1112,11 +1283,14 @@ const languageMap: LanguageMap = {
   'Export Wizard': {
     translation: 'معالج التصدير',
   },
-  Export: {
-    translation: 'تصدير',
+  'FBooks Integration Version': {
+    translation: 'إصدار تكامل FBooks',
   },
   Failed: {
     translation: 'فشل',
+  },
+  'Failed to load batches': {
+    translation: 'فشل تحميل الدفعات',
   },
   Fax: {
     translation: 'فاكس',
@@ -1127,8 +1301,17 @@ const languageMap: LanguageMap = {
   February: {
     translation: 'فبراير',
   },
+  'Fetch Data From ERPNext': {
+    translation: 'جلب البيانات من ERPNext',
+  },
+  'Fetch From ERPNext Queue': {
+    translation: 'جلب من قائمة ERPNext',
+  },
   Field: {
     translation: 'الحقل',
+  },
+  Fieldname: {
+    translation: 'اسم الحقل',
   },
   'Fieldname ${0} already exists for ${1}': {
     translation: 'اسم الحقل ${0} موجود بالفعل لـ ${1}',
@@ -1136,11 +1319,14 @@ const languageMap: LanguageMap = {
   'Fieldname ${0} already used for Custom Field ${1}': {
     translation: 'اسم الحقل ${0} مستخدم بالفعل للحقل المخصص ${1}',
   },
-  Fieldname: {
-    translation: 'اسم الحقل',
-  },
   Fieldtype: {
     translation: 'نوع الحقل',
+  },
+  Fifteen: {
+    translation: 'خمسة عشر',
+  },
+  Fifty: {
+    translation: 'خمسون',
   },
   'File ${0} does not exist.': {
     translation: 'الملف ${0} غير موجود.',
@@ -1148,11 +1334,14 @@ const languageMap: LanguageMap = {
   'File selection failed': {
     translation: 'فشل اختيار الملف',
   },
-  Fill: {
-    translation: 'ملء',
-  },
   Filter: {
     translation: 'التصفية',
+  },
+  'Filter by Group': {
+    translation: 'تصفية حسب المجموعة',
+  },
+  'Fiscal Year': {
+    translation: 'السنة المالية',
   },
   'Fiscal Year End Date': {
     translation: 'تاريخ نهاية السنة المالية',
@@ -1160,8 +1349,8 @@ const languageMap: LanguageMap = {
   'Fiscal Year Start Date': {
     translation: 'تاريخ بداية السنة المالية',
   },
-  'Fiscal Year': {
-    translation: 'السنة المالية',
+  Five: {
+    translation: 'خمسة',
   },
   'Fix Failed': {
     translation: 'فشل الإصلاح',
@@ -1174,6 +1363,9 @@ const languageMap: LanguageMap = {
   },
   Float: {
     translation: 'عدد عشري',
+  },
+  Floor: {
+    translation: 'تقريب لأسفل',
   },
   'Following cells have errors: ${0}.': {
     translation: 'الخلايا التالية تحتوي على أخطاء: ${0}.',
@@ -1202,20 +1394,38 @@ const languageMap: LanguageMap = {
   'Form Type': {
     translation: 'نوع النموذج',
   },
+  Forty: {
+    translation: 'أربعون',
+  },
+  Four: {
+    translation: 'أربعة',
+  },
+  Fourteen: {
+    translation: 'أربعة عشر',
+  },
   Fr: {
     translation: 'الجمعة',
-  },
-  'Fraction Units': {
-    translation: 'وحدات الكسر',
   },
   Fraction: {
     translation: 'كسر',
   },
-  'Frappe Books does not have access to the selected file: ${0}': {
-    translation: 'لا يملك Frappe Books صلاحية الوصول إلى الملف المحدد: ${0}',
+  'Fraction Units': {
+    translation: 'وحدات الكسر',
+  },
+  'Free Item': {
+    translation: 'صنف مجاني',
+  },
+  'Free item "${0}" was not added due to zero quantity': {
+    translation: 'لم تتم إضافة الصنف المجاني "${0}" لأن الكمية تساوي صفرًا',
+  },
+  'Free items out of stock: ${0}': {
+    translation: 'العناصر المجانية غير المتوفرة في المخزون: ${0}',
   },
   'Freight and Forwarding Charges': {
     translation: 'مصاريف الشحن',
+  },
+  From: {
+    translation: 'من',
   },
   'From Account': {
     translation: 'من الحساب',
@@ -1231,9 +1441,6 @@ const languageMap: LanguageMap = {
   },
   'From Year': {
     translation: 'من سنة',
-  },
-  From: {
-    translation: 'من',
   },
   'Full Name': {
     translation: 'الاسم الكامل',
@@ -1256,11 +1463,11 @@ const languageMap: LanguageMap = {
   'Gain/Loss on Asset Disposal': {
     translation: 'الربح / الخسارة من التصرف في الأصول',
   },
-  'General Ledger': {
-    translation: 'دفتر الأستاذ العام',
-  },
   General: {
     translation: 'عام',
+  },
+  'General Ledger': {
+    translation: 'دفتر الأستاذ العام',
   },
   'Get Started': {
     translation: 'ابدأ',
@@ -1289,11 +1496,11 @@ const languageMap: LanguageMap = {
   'Group By': {
     translation: 'تجميع حسب',
   },
-  'HSN/SAC Code': {
-    translation: 'رمز HSN/SAC',
-  },
   'HSN/SAC': {
     translation: 'HSN/SAC',
+  },
+  'HSN/SAC Code': {
+    translation: 'رمز HSN/SAC',
   },
   'Half Yearly': {
     translation: 'نصف سنوي',
@@ -1313,6 +1520,9 @@ const languageMap: LanguageMap = {
   Held: {
     translation: 'معلّقة',
   },
+  'Held Button Colour': {
+    translation: 'لون زر التعليق',
+  },
   Help: {
     translation: 'مساعدة',
   },
@@ -1331,6 +1541,9 @@ const languageMap: LanguageMap = {
   'Hide Month/Year': {
     translation: 'إخفاء الشهر/السنة',
   },
+  'Hide Unavailable Items': {
+    translation: 'إخفاء الأصناف غير المتاحة',
+  },
   'Hides the Get Started section from the sidebar. Change will be visible on restart or refreshing the app.':
     {
       translation:
@@ -1341,6 +1554,9 @@ const languageMap: LanguageMap = {
   },
   Hour: {
     translation: 'ساعة',
+  },
+  Hundred: {
+    translation: 'مائة',
   },
   INR: {
     translation: 'روبية هندية',
@@ -1354,6 +1570,9 @@ const languageMap: LanguageMap = {
       translation:
         'إذا كان نموذج الإدخال مفتوحًا، فسيتم إلغاء الإدخال. وإلا فستُزال العناصر المحددة.',
     },
+  'Ignore Pricing Rule': {
+    translation: 'تجاهل قاعدة التسعير',
+  },
   Image: {
     translation: 'صورة',
   },
@@ -1375,17 +1594,20 @@ const languageMap: LanguageMap = {
   'Importer not set, reload tool': {
     translation: 'لم يتم تعيين المستورد، يرجى إعادة تحميل الأداة',
   },
+  'In stock': {
+    translation: 'متوفر في المخزون',
+  },
   Inactive: {
     translation: 'غير نشط',
   },
   'Include Cancelled': {
     translation: 'تضمين الملغى',
   },
-  'Income Account': {
-    translation: 'حساب الدخل',
-  },
   Income: {
     translation: 'الدخل',
+  },
+  'Income Account': {
+    translation: 'حساب الدخل',
   },
   'Increase print template display scale': {
     translation: 'زيادة مقياس عرض قالب الطباعة',
@@ -1402,28 +1624,40 @@ const languageMap: LanguageMap = {
   Inflow: {
     translation: 'التدفق الداخل',
   },
+  'Initial Sync Data': {
+    translation: 'بيانات المزامنة الأولية',
+  },
   'Instance Id': {
     translation: 'معرّف المثيل',
   },
   'Insufficient Quantity': {
     translation: 'كمية غير كافية',
   },
+  'Insufficient Quantity.': {
+    translation: 'كمية غير كافية.',
+  },
   'Insufficient Quantity. Item ${0} has only ${1} quantities available. you selected ${2}':
     {
       translation:
         'كمية غير كافية. الصنف ${0} يحتوي فقط على ${1} كمية متاحة. لقد اخترت ${2}',
     },
-  'Insufficient Quantity.': {
-    translation: 'كمية غير كافية.',
-  },
   Int: {
     translation: 'عدد صحيح',
+  },
+  'Integration Error Log': {
+    translation: 'سجل أخطاء التكامل',
+  },
+  Interested: {
+    translation: 'مهتم',
   },
   'Intergrated Tax': {
     translation: 'ضريبة متكاملة',
   },
   'Internal Precision': {
     translation: 'الدقة الداخلية',
+  },
+  'Invalid HSN Code.': {
+    translation: 'رمز HSN غير صالح.',
   },
   'Invalid Key Error': {
     translation: 'خطأ في المفتاح',
@@ -1440,14 +1674,20 @@ const languageMap: LanguageMap = {
   'Invalid value found for ${0}': {
     translation: 'تم العثور على قيمة غير صالحة لـ ${0}',
   },
-  'Inventory Settings': {
-    translation: 'إعدادات المخزون',
-  },
   Inventory: {
     translation: 'المخزون',
   },
+  'Inventory Items': {
+    translation: 'أصناف المخزون',
+  },
+  'Inventory Settings': {
+    translation: 'إعدادات المخزون',
+  },
   Investments: {
     translation: 'استثمارات',
+  },
+  Invoice: {
+    translation: 'فاتورة',
   },
   'Invoice Created': {
     translation: 'الفاتورة المُنشأة',
@@ -1467,11 +1707,14 @@ const languageMap: LanguageMap = {
   'Invoice Value': {
     translation: 'قيمة الفاتورة',
   },
-  Invoice: {
-    translation: 'فاتورة',
-  },
   Invoices: {
     translation: 'الفواتير',
+  },
+  Is: {
+    translation: 'هو',
+  },
+  'Is Coupon Code Based': {
+    translation: 'يعتمد على رمز القسيمة',
   },
   'Is Custom': {
     translation: 'مُخصّص',
@@ -1479,17 +1722,20 @@ const languageMap: LanguageMap = {
   'Is Empty': {
     translation: 'فارغ',
   },
+  'Is Enabled': {
+    translation: 'مفعّل',
+  },
   'Is Group': {
     translation: 'مجموعة',
   },
   'Is Landscape': {
     translation: 'أفقي',
   },
-  'Is Not Empty': {
-    translation: 'ليس فارغ',
-  },
   'Is Not': {
     translation: 'ليس',
+  },
+  'Is Not Empty': {
+    translation: 'ليس فارغ',
   },
   'Is POS Shift Open': {
     translation: 'هل وردية نقطة البيع مفتوحة',
@@ -1497,14 +1743,23 @@ const languageMap: LanguageMap = {
   'Is Price List Enabled': {
     translation: 'هل قائمة الأسعار مفعّلة',
   },
+  'Is Pricing Rule Enabled': {
+    translation: 'هل قاعدة التسعير مفعّلة',
+  },
+  'Is Recursive': {
+    translation: 'متكرر',
+  },
   'Is Required': {
     translation: 'مطلوب',
+  },
+  'Is Sync Enabled': {
+    translation: 'هل المزامنة مفعّلة',
   },
   'Is Whole': {
     translation: 'كامل',
   },
-  Is: {
-    translation: 'هو',
+  Item: {
+    translation: 'صنف',
   },
   'Item ${0} has Zero Quantity': {
     translation: 'الصنف ${0} كميته صفر',
@@ -1515,11 +1770,26 @@ const languageMap: LanguageMap = {
   'Item ${0} is not a batched item': {
     translation: 'الصنف ${0} ليس عنصرًا مجمّعًا',
   },
+  'Item ${0} is out of stock (quantity is zero)': {
+    translation: 'العنصر ${0} غير متوفر في المخزون (الكمية صفر)',
+  },
+  'Item ${0} not found': {
+    translation: 'لم يتم العثور على العنصر ${0}',
+  },
   'Item ${0} not in Stock': {
     translation: 'الصنف ${0} غير متوفر في المخزون',
   },
+  'Item ${0} only has ${1} Quantity': {
+    translation: 'يحتوي العنصر ${0} على كمية ${1} فقط',
+  },
+  'Item ${0} only has ${1} Quantity in batch ${2}': {
+    translation: 'لا يتوفر من الصنف ${0} سوى كمية ${1} في الدفعة ${2}',
+  },
   'Item Code': {
     translation: 'رمز الصنف',
+  },
+  'Item Code Digits': {
+    translation: 'أرقام رمز العنصر',
   },
   'Item Description': {
     translation: 'وصف الصنف',
@@ -1527,11 +1797,23 @@ const languageMap: LanguageMap = {
   'Item Discounts': {
     translation: 'خصومات الصنف',
   },
+  'Item Enquiry': {
+    translation: 'استفسار عن الصنف',
+  },
+  'Item Group': {
+    translation: 'مجموعة الصنف',
+  },
   'Item Name': {
     translation: 'اسم الصنف',
   },
   'Item Prices': {
     translation: 'أسعار الصنف',
+  },
+  'Item Visibility': {
+    translation: 'ظهور الصنف',
+  },
+  'Item enquiry submitted': {
+    translation: 'تم إرسال استفسار الصنف',
   },
   'Item with From location not found': {
     translation: 'الصنف بموقع الإرسال غير موجود',
@@ -1542,8 +1824,8 @@ const languageMap: LanguageMap = {
   'Item with barcode ${0} not found.': {
     translation: 'الصنف بالباركود ${0} غير موجود.',
   },
-  Item: {
-    translation: 'صنف',
+  ItemCode: {
+    translation: 'رمز العنصر',
   },
   Items: {
     translation: 'العناصر',
@@ -1557,6 +1839,9 @@ const languageMap: LanguageMap = {
   'Journal Entries': {
     translation: 'القيود اليومية',
   },
+  'Journal Entry': {
+    translation: 'قيد يومية',
+  },
   'Journal Entry Account': {
     translation: 'حساب القيد اليومي',
   },
@@ -1565,9 +1850,6 @@ const languageMap: LanguageMap = {
   },
   'Journal Entry Print Template': {
     translation: 'قالب طباعة القيد اليومي',
-  },
-  'Journal Entry': {
-    translation: 'قيد يومية',
   },
   July: {
     translation: 'يوليو',
@@ -1587,6 +1869,9 @@ const languageMap: LanguageMap = {
   Language: {
     translation: 'اللغة',
   },
+  Lead: {
+    translation: 'عميل محتمل',
+  },
   'Left Index': {
     translation: 'الفهرس الأيسر',
   },
@@ -1605,20 +1890,20 @@ const languageMap: LanguageMap = {
   Limit: {
     translation: 'الحد',
   },
-  'Link Validation Error': {
-    translation: 'خطأ في التحقق من الرابط',
-  },
   Link: {
     translation: 'رابط',
+  },
+  'Link Validation Error': {
+    translation: 'خطأ في التحقق من الرابط',
   },
   'Linked Entries': {
     translation: 'إدخالات مرتبطة',
   },
-  'List View': {
-    translation: 'عرض القائمة',
-  },
   List: {
     translation: 'قائمة',
+  },
+  'List View': {
+    translation: 'عرض القائمة',
   },
   'Load an existing company from your computer': {
     translation: 'حمّل شركة موجودة من جهازك',
@@ -1641,17 +1926,29 @@ const languageMap: LanguageMap = {
   Locale: {
     translation: 'اللغة',
   },
-  'Location Name': {
-    translation: 'اسم الموقع',
-  },
   Location: {
     translation: 'الموقع',
+  },
+  'Location Name': {
+    translation: 'اسم الموقع',
   },
   Logo: {
     translation: 'الشعار',
   },
+  'Loyalty Point Entry': {
+    translation: 'قيد نقاط الولاء',
+  },
+  'Loyalty Points': {
+    translation: 'نقاط الولاء',
+  },
+  'Loyalty Points Redemption': {
+    translation: 'استرداد نقاط الولاء',
+  },
   'Loyalty Program': {
     translation: 'برنامج الولاء',
+  },
+  'Loyalty Program Tier': {
+    translation: 'شريحة برنامج الولاء',
   },
   'Make Entry': {
     translation: 'ادخال جديد',
@@ -1668,11 +1965,11 @@ const languageMap: LanguageMap = {
   'Mandatory Error': {
     translation: 'خطأ إلزامي',
   },
-  'Manufacture Date': {
-    translation: 'تاريخ التصنيع',
-  },
   Manufacture: {
     translation: 'التصنيع',
+  },
+  'Manufacture Date': {
+    translation: 'تاريخ التصنيع',
   },
   'Mar 23, 2022': {
     translation: '23 مارس 2022',
@@ -1695,29 +1992,76 @@ const languageMap: LanguageMap = {
   'Material Transfer': {
     translation: 'تحويل المواد',
   },
+  'Max Amount': {
+    translation: 'أقصى مبلغ',
+  },
+  'Max Qty (As Per Stock Unit)': {
+    translation: 'أقصى كمية (حسب وحدة المخزون)',
+  },
+  'Maximum Amount should be greater than the Minimum Amount.': {
+    translation: 'يجب أن يكون الحد الأقصى للمبلغ أكبر من الحد الأدنى للمبلغ.',
+  },
+  "Maximum Amount should be lesser than Pricing Rule's Maximum Amount": {
+    translation:
+      'يجب أن يكون الحد الأقصى للمبلغ أقل من الحد الأقصى للمبلغ الخاص بقاعدة التسعير',
+  },
+  'Maximum Quantity should be greater than the Minimum Quantity.': {
+    translation: 'يجب أن تكون الكمية القصوى أكبر من الكمية الدنيا.',
+  },
+  'Maximum Use': {
+    translation: 'الحد الأقصى للاستخدام',
+  },
   May: {
     translation: 'مايو',
   },
   Meter: {
     translation: 'متر',
   },
+  Million: {
+    translation: 'مليون',
+  },
+  'Min Amount': {
+    translation: 'أدنى مبلغ',
+  },
+  'Min Qty (As Per Stock Unit)': {
+    translation: 'أدنى كمية (حسب وحدة المخزون)',
+  },
+  "Minimum Amount should be greather than the Pricing Rule's Minimum Amount.": {
+    translation:
+      'يجب أن يكون الحد الأدنى للمبلغ أكبر من الحد الأدنى للمبلغ الخاص بقاعدة التسعير.',
+  },
+  'Minimum Amount should be less than the Maximum Amount.': {
+    translation: 'يجب أن يكون الحد الأدنى للمبلغ أقل من الحد الأقصى للمبلغ.',
+  },
+  'Minimum Quantity should be less than the Maximum Quantity.': {
+    translation: 'يجب أن يكون الحد الأدنى للكمية أقل من الحد الأقصى للكمية.',
+  },
+  'Minimum Total Spent': {
+    translation: 'الحد الأدنى لإجمالي الإنفاق',
+  },
   Misc: {
     translation: 'متفرقات',
-  },
-  'Miscellaneous Expenses': {
-    translation: 'مصاريف متنوعة',
   },
   Miscellaneous: {
     translation: 'متنوع',
   },
+  'Miscellaneous Expenses': {
+    translation: 'مصاريف متنوعة',
+  },
   Mo: {
     translation: 'الاثنين',
   },
-  'Modified By': {
-    translation: 'عُدّل بواسطة',
+  Mobile: {
+    translation: 'الهاتف المحمول',
+  },
+  Modern: {
+    translation: 'حديث',
   },
   Modified: {
     translation: 'معدّل',
+  },
+  'Modified By': {
+    translation: 'عُدّل بواسطة',
   },
   Monthly: {
     translation: 'شهري',
@@ -1725,14 +2069,14 @@ const languageMap: LanguageMap = {
   Months: {
     translation: 'أشهر',
   },
+  More: {
+    translation: 'المزيد',
+  },
   'More Filters': {
     translation: 'المزيد من عوامل التصفية',
   },
   'More shortcuts will be added soon.': {
     translation: 'سيتم إضافة المزيد من الاختصارات قريبًا',
-  },
-  More: {
-    translation: 'المزيد',
   },
   'Movement Type': {
     translation: 'نوع التنقل',
@@ -1749,11 +2093,11 @@ const languageMap: LanguageMap = {
   'Net Total': {
     translation: 'الإجمالي الصافي',
   },
-  'New ${0} ${1}': {
-    translation: 'جديد ${0} ${1}',
-  },
   'New ${0}': {
     translation: 'جديد ${0}',
+  },
+  'New ${0} ${1}': {
+    translation: 'جديد ${0} ${1}',
   },
   'New Account': {
     translation: 'حساب جديد',
@@ -1766,6 +2110,18 @@ const languageMap: LanguageMap = {
   },
   'New Template': {
     translation: 'قالب جديد',
+  },
+  Nine: {
+    translation: 'تسعة',
+  },
+  Nineteen: {
+    translation: 'تسعة عشر',
+  },
+  Ninety: {
+    translation: 'تسعون',
+  },
+  No: {
+    translation: 'لا',
   },
   'No Display Entries Found': {
     translation: 'لم يتم العثور على إدخالات للعرض',
@@ -1797,14 +2153,14 @@ const languageMap: LanguageMap = {
   'No results found': {
     translation: 'لم يتم العثور على نتائج',
   },
+  'No results found, disable filters': {
+    translation: 'لم يتم العثور على نتائج، عطّل عوامل التصفية',
+  },
   'No rows added. Select a file or add rows.': {
     translation: 'لم تتم إضافة أي صفوف. اختر ملفًا أو أضف صفوفًا.',
   },
   'No transactions yet': {
     translation: 'لا توجد معاملات حتى الآن',
-  },
-  No: {
-    translation: 'لا',
   },
   'Non Active Serial Number ${0} cannot be used as Manufacture raw material': {
     translation:
@@ -1820,6 +2176,9 @@ const languageMap: LanguageMap = {
   'Non Inactive Serial Number ${0} cannot be used for Material Receipt': {
     translation:
       'لا يمكن استخدام الرقم التسلسلي غير غير النشط ${0} في استلام المواد',
+  },
+  'Non-Inventory Items': {
+    translation: 'أصناف غير مخزنية',
   },
   None: {
     translation: 'لا شيء',
@@ -1872,8 +2231,14 @@ const languageMap: LanguageMap = {
   'Onboarding Complete': {
     translation: 'اكتمل الإعداد',
   },
+  One: {
+    translation: 'واحد',
+  },
   'Only From or To can be set for Manufacture': {
     translation: 'يمكن تعيين من أو إلى فقط لعملية التصنيع',
+  },
+  Open: {
+    translation: 'مفتوح',
   },
   'Open Count': {
     translation: 'فتح العدّ',
@@ -1887,11 +2252,11 @@ const languageMap: LanguageMap = {
   'Open POS Shift': {
     translation: 'فتح مناوبة نقطة البيع',
   },
-  'Open Print View if Print is available.': {
-    translation: 'فتح عرض الطباعة إذا كان الطباعة متاحة.',
-  },
   'Open Print View': {
     translation: 'فتح عرض الطباعة',
+  },
+  'Open Print View if Print is available.': {
+    translation: 'فتح عرض الطباعة إذا كان الطباعة متاحة.',
   },
   'Open Quick Search': {
     translation: 'فتح البحث السريع',
@@ -1917,11 +2282,17 @@ const languageMap: LanguageMap = {
   'Opening Amount': {
     translation: 'المبلغ الافتتاحي',
   },
+  'Opening Amounts': {
+    translation: 'أرصدة افتتاحية',
+  },
   'Opening Balance Equity': {
     translation: 'رصيد افتتاحي لحقوق الملكية',
   },
   'Opening Balances': {
     translation: 'الأرصدة الافتتاحية',
+  },
+  'Opening Cash': {
+    translation: 'نقدية افتتاحية',
   },
   'Opening Cash Amount can not be negative.': {
     translation: 'لا يمكن أن يكون مبلغ النقدية الافتتاحي سالبًا.',
@@ -1935,6 +2306,12 @@ const languageMap: LanguageMap = {
   'Opening Entry': {
     translation: 'القيد الافتتاحي',
   },
+  'Opening Shift': {
+    translation: 'وردية افتتاحية',
+  },
+  Opportunity: {
+    translation: 'فرصة',
+  },
   Options: {
     translation: 'الخيارات',
   },
@@ -1944,14 +2321,23 @@ const languageMap: LanguageMap = {
   Organisation: {
     translation: 'المؤسسة',
   },
+  'Out stock': {
+    translation: 'غير متوفر في المخزون',
+  },
   Outflow: {
     translation: 'التدفق الخارج',
+  },
+  Outstanding: {
+    translation: 'المتبقي',
   },
   'Outstanding Amount': {
     translation: 'المبلغ المستحق',
   },
-  Outstanding: {
-    translation: 'المتبقي',
+  POS: {
+    translation: 'نقطة البيع',
+  },
+  'POS Closing Shift': {
+    translation: 'وردية إغلاق نقطة البيع',
   },
   'POS Counter Cash Account is not set. Please set it on POS Settings': {
     translation:
@@ -1964,8 +2350,14 @@ const languageMap: LanguageMap = {
     translation:
       'لم يتم تعيين مخزون نقطة البيع. يرجى تعيينه في إعدادات نقطة البيع.',
   },
+  'POS Opening Shift': {
+    translation: 'وردية افتتاح نقطة البيع',
+  },
   'POS Print Template': {
     translation: 'قالب طباعة نقطة البيع',
+  },
+  'POS Profile': {
+    translation: 'ملف تعريف نقطة البيع',
   },
   'POS Settings': {
     translation: 'إعدادات نقطة البيع',
@@ -1973,12 +2365,12 @@ const languageMap: LanguageMap = {
   'POS Shift Amount': {
     translation: 'مبلغ وردية نقطة البيع',
   },
+  'POS UI': {
+    translation: 'واجهة نقطة البيع',
+  },
   'POS Write Off Account is not set. Please set it on POS Settings': {
     translation:
       'لم يتم تعيين حساب الإهلاك لنقطة البيع. يرجى تعيينه في إعدادات نقطة البيع.',
-  },
-  POS: {
-    translation: 'نقطة البيع',
   },
   'Pad Zeros': {
     translation: 'إضافة أصفار',
@@ -1986,20 +2378,29 @@ const languageMap: LanguageMap = {
   Page: {
     translation: 'صفحة',
   },
+  Paid: {
+    translation: 'مدفوع',
+  },
   'Paid ${0}': {
     translation: 'مدفوع ${0}',
   },
   'Paid Change': {
     translation: 'الباقي المدفوع',
   },
-  Paid: {
-    translation: 'مدفوع',
+  Paisa: {
+    translation: 'بيسة',
+  },
+  Parent: {
+    translation: 'الأصل',
   },
   'Parent Account': {
     translation: 'الحساب الأصل',
   },
-  Parent: {
-    translation: 'الأصل',
+  'Partly Paid': {
+    translation: 'مدفوع جزئيًا',
+  },
+  'Partly Paid ${0}': {
+    translation: 'مدفوع جزئيًا ${0}',
   },
   Party: {
     translation: 'مورد / عميل',
@@ -2010,8 +2411,20 @@ const languageMap: LanguageMap = {
   Pay: {
     translation: 'دفع',
   },
+  'Pay & Print': {
+    translation: 'الدفع والطباعة',
+  },
+  'Pay And Print Button Colour': {
+    translation: 'لون زر الدفع والطباعة',
+  },
+  'Pay Button Colour': {
+    translation: 'لون زر الدفع',
+  },
   Payable: {
     translation: 'دائن',
+  },
+  Payment: {
+    translation: 'الدفع',
   },
   'Payment ${0} is Saved': {
     translation: 'تم حفظ الدفع ${0}',
@@ -2057,17 +2470,14 @@ const languageMap: LanguageMap = {
       translation:
         'سيتم دفع ${0} من الحساب "${1}" إلى الحساب "${2}" عند التسجيل.',
     },
-  Payment: {
-    translation: 'الدفع',
-  },
   Payments: {
     translation: 'المدفوعات',
   },
   'Payroll Payable': {
     translation: 'الرواتب المستحقة الدفع',
   },
-  'Pending Qty. ${0}': {
-    translation: 'الكمية المعلقة ${0}',
+  'Pending qty. ${0}': {
+    translation: 'الكمية المعلقة: ${0}',
   },
   Periodicity: {
     translation: 'الدورية',
@@ -2084,17 +2494,23 @@ const languageMap: LanguageMap = {
   Pink: {
     translation: 'وردي',
   },
-  'Place of supply': {
-    translation: 'مكان التوريد',
-  },
   Place: {
     translation: 'مكان',
+  },
+  'Place of supply': {
+    translation: 'مكان التوريد',
   },
   'Plants and Machineries': {
     translation: 'المصانع والآليات',
   },
   'Please Wait': {
     translation: 'يرجى الانتظار',
+  },
+  'Please add a customer before saving': {
+    translation: 'الرجاء إضافة عميل قبل الحفظ',
+  },
+  'Please add items': {
+    translation: 'الرجاء إضافة أصناف',
   },
   'Please check Key Hints for valid key names': {
     translation: 'يرجى التحقق من تلميحات المفاتيح للأسماء الصحيحة للمفاتيح',
@@ -2111,6 +2527,18 @@ const languageMap: LanguageMap = {
   'Please select a Print Template': {
     translation: 'يرجى اختيار قالب للطباعة',
   },
+  'Please select a batch first': {
+    translation: 'الرجاء تحديد دفعة أولاً',
+  },
+  'Please select a customer': {
+    translation: 'الرجاء اختيار العميل',
+  },
+  'Please select a payment method before proceeding with payment.': {
+    translation: 'يرجى تحديد طريقة الدفع قبل متابعة الدفع.',
+  },
+  'Please select a payment method before submitting.': {
+    translation: 'يرجى تحديد طريقة الدفع قبل الإرسال.',
+  },
   'Please select a valid reference type.': {
     translation: 'يرجى اختيار نوع مرجع صالح.',
   },
@@ -2126,8 +2554,17 @@ const languageMap: LanguageMap = {
   'Point of Sale': {
     translation: 'نقطة البيع',
   },
+  'Points must be greater than 0': {
+    translation: 'يجب أن تكون النقاط أكبر من 0',
+  },
+  'Points must be greather than 0': {
+    translation: 'يجب أن تكون النقاط أكبر من 0',
+  },
   'Pos Print Width': {
     translation: 'عرض طباعة نقطة البيع',
+  },
+  'Pos Ui': {
+    translation: 'واجهة نقطة البيع',
   },
   'Postal Code': {
     translation: 'الرمز البريدي',
@@ -2141,17 +2578,41 @@ const languageMap: LanguageMap = {
   Prefix: {
     translation: 'بادئة',
   },
-  'Price List Item': {
-    translation: 'عنصر قائمة الأسعار',
+  'Price Discount': {
+    translation: 'خصم السعر',
+  },
+  'Price Discount Scheme': {
+    translation: 'مخطط خصم السعر',
+  },
+  'Price Discount Type': {
+    translation: 'نوع خصم السعر',
   },
   'Price List': {
     translation: 'قائمة الأسعار',
   },
+  'Price List Item': {
+    translation: 'عنصر قائمة الأسعار',
+  },
+  'Pricing Rule': {
+    translation: 'قاعدة التسعير',
+  },
+  'Pricing Rule Detail': {
+    translation: 'تفاصيل قاعدة التسعير',
+  },
+  'Pricing Rule Item': {
+    translation: 'عنصر قاعدة التسعير',
+  },
   'Prime Bank': {
     translation: 'البنك الرئيسي',
   },
+  Print: {
+    translation: 'طباعة',
+  },
   'Print ${0}': {
     translation: 'طباعة ${0}',
+  },
+  'Print Failed': {
+    translation: 'فشلت الطباعة',
   },
   'Print Settings': {
     translation: 'إعدادات الطباعة',
@@ -2159,14 +2620,17 @@ const languageMap: LanguageMap = {
   'Print Setup': {
     translation: 'إعداد الطباعة',
   },
+  'Print Successful': {
+    translation: 'تمت الطباعة بنجاح',
+  },
+  'Print Template': {
+    translation: 'قالب الطباعة',
+  },
   'Print Template Name not set': {
     translation: 'اسم قالب الطباعة غير معيّن',
   },
   'Print Template is empty': {
     translation: 'قالب الطباعة فارغ',
-  },
-  'Print Template': {
-    translation: 'قالب الطباعة',
   },
   'Print Templates': {
     translation: 'قوالب الطباعة',
@@ -2177,17 +2641,38 @@ const languageMap: LanguageMap = {
   'Print and Stationery': {
     translation: 'طباعة و المكتبة',
   },
-  Print: {
-    translation: 'طباعة',
+  Priority: {
+    translation: 'أولوية',
   },
   Product: {
     translation: 'منتج',
   },
+  'Product Discount': {
+    translation: 'خصم المنتج',
+  },
+  'Product Discount Scheme': {
+    translation: 'مخطط خصم المنتج',
+  },
+  Profile: {
+    translation: 'الملف الشخصي',
+  },
   'Profit And Loss': {
     translation: 'تقرير الربح والخسارة',
   },
+  'Profit and Loss': {
+    translation: 'الأرباح والخسائر',
+  },
+  Purchase: {
+    translation: 'شراء',
+  },
   'Purchase Acc.': {
     translation: 'حساب المبيعات',
+  },
+  'Purchase Amount': {
+    translation: 'مبلغ الشراء',
+  },
+  'Purchase Invoice': {
+    translation: 'فاتورة مشتريات',
   },
   'Purchase Invoice Item': {
     translation: 'عنصر فاتورة المشتريات',
@@ -2201,29 +2686,29 @@ const languageMap: LanguageMap = {
   'Purchase Invoice Terms': {
     translation: 'شروط فاتورة المشتريات',
   },
-  'Purchase Invoice': {
-    translation: 'فاتورة مشتريات',
-  },
   'Purchase Invoices': {
     translation: 'فاتورة مشتريات',
-  },
-  'Purchase Item Created': {
-    translation: 'تم إنشاء عنصر المشتريات',
   },
   'Purchase Item': {
     translation: 'عنصر المشتريات',
   },
+  'Purchase Item Created': {
+    translation: 'تم إنشاء عنصر المشتريات',
+  },
   'Purchase Items': {
     translation: 'عناصر المشتريات',
-  },
-  'Purchase Payment Account': {
-    translation: 'حساب دفع المشتريات',
   },
   'Purchase Payment': {
     translation: 'دفعة المشتريات',
   },
+  'Purchase Payment Account': {
+    translation: 'حساب دفع المشتريات',
+  },
   'Purchase Payments': {
     translation: 'مدفوعات المشتريات',
+  },
+  'Purchase Receipt': {
+    translation: 'ايصال  الشراء',
   },
   'Purchase Receipt Item': {
     translation: 'عنصر إيصال الشراء',
@@ -2240,12 +2725,6 @@ const languageMap: LanguageMap = {
   'Purchase Receipt Terms': {
     translation: 'شروط استلام المشتريات',
   },
-  'Purchase Receipt': {
-    translation: 'ايصال  الشراء',
-  },
-  Purchase: {
-    translation: 'شراء',
-  },
   Purchases: {
     translation: 'المشتريات',
   },
@@ -2255,11 +2734,11 @@ const languageMap: LanguageMap = {
   Purpose: {
     translation: 'الغرض',
   },
-  'Qty in Batch': {
-    translation: 'الكمية في الدفعة',
-  },
   Qty: {
     translation: 'الكمية',
+  },
+  'Qty in Batch': {
+    translation: 'الكمية في الدفعة',
   },
   'Qty. ${0}': {
     translation: 'الكمية ${0}',
@@ -2267,14 +2746,20 @@ const languageMap: LanguageMap = {
   'Qty. in Transfer Unit': {
     translation: 'الكمية في وحدة التحويل',
   },
+  Quantity: {
+    translation: 'الكمية',
+  },
   'Quantity (${0}) has to be greater than zero': {
     translation: 'يجب أن تكون الكمية (${0}) أكبر من صفر',
   },
+  'Quantity and Amount': {
+    translation: 'الكمية والمبلغ',
+  },
+  'Quantity must be greater than zero.': {
+    translation: 'يجب أن تكون الكمية أكبر من الصفر.',
+  },
   'Quantity needs to be set': {
     translation: 'يجب تعيين الكمية',
-  },
-  Quantity: {
-    translation: 'الكمية',
   },
   Quarterly: {
     translation: 'ربع سنوي',
@@ -2288,11 +2773,17 @@ const languageMap: LanguageMap = {
   'Quick edit error: ${0} entry has no name.': {
     translation: 'خطأ في التحرير السريع: الإدخال ${0} ليس له اسم.',
   },
-  'Quote Reference': {
-    translation: 'مرجع عرض السعر',
+  Quotation: {
+    translation: 'عرض سعر',
   },
   Quote: {
     translation: 'عرض سعر',
+  },
+  'Quote Reference': {
+    translation: 'مرجع عرض السعر',
+  },
+  Rate: {
+    translation: 'سعر',
   },
   'Rate (${0}) cannot be less zero.': {
     translation: 'لا يمكن أن يكون السعر (${0}) أقل من صفر.',
@@ -2306,9 +2797,6 @@ const languageMap: LanguageMap = {
   'Rate needs to be set': {
     translation: 'يجب تعيين السعر',
   },
-  Rate: {
-    translation: 'سعر',
-  },
   'Raw Value: ${0}': {
     translation: 'القيمة الخام: ${0}',
   },
@@ -2318,8 +2806,17 @@ const languageMap: LanguageMap = {
   Receive: {
     translation: 'استلام',
   },
+  Recent: {
+    translation: 'الأحدث',
+  },
+  'Recurse Every (As Per Transaction Unit)': {
+    translation: 'التكرار كل (حسب وحدة المعاملة)',
+  },
   Red: {
     translation: 'أحمر',
+  },
+  'Redeem Loyalty Points': {
+    translation: 'استرداد نقاط الولاء',
   },
   'Ref Name': {
     translation: 'اسم المرجع',
@@ -2339,8 +2836,14 @@ const languageMap: LanguageMap = {
   'Ref. Type': {
     translation: 'المرجع. النوع',
   },
+  Reference: {
+    translation: 'مرجع',
+  },
   'Reference Date': {
     translation: 'تاريخ المرجع',
+  },
+  'Reference Id not set.': {
+    translation: 'لم يتم تعيين معرف المرجع.',
   },
   'Reference Number': {
     translation: 'الرقم المرجعي',
@@ -2348,14 +2851,20 @@ const languageMap: LanguageMap = {
   'Reference Type': {
     translation: 'نوع المرجع',
   },
-  Reference: {
-    translation: 'مرجع',
-  },
   References: {
     translation: 'مراجع',
   },
-  'Reload Frappe Books?': {
-    translation: 'إعادة تحميل Frappe Books؟',
+  'Register Instance': {
+    translation: 'تسجيل المثيل',
+  },
+  'Remove Filter': {
+    translation: 'إزالة التصفية',
+  },
+  Replied: {
+    translation: 'تم الرد',
+  },
+  Report: {
+    translation: 'تقرير',
   },
   'Report Error': {
     translation: 'الإبلاغ عن خطأ',
@@ -2366,9 +2875,6 @@ const languageMap: LanguageMap = {
   'Report will use more than one page if required.': {
     translation: 'سيستخدم التقرير أكثر من صفحة إذا لزم الأمر.',
   },
-  Report: {
-    translation: 'تقرير',
-  },
   Reports: {
     translation: 'التقارير',
   },
@@ -2378,14 +2884,17 @@ const languageMap: LanguageMap = {
   'Retained Earnings': {
     translation: 'الأرباح المحتجزة',
   },
+  Return: {
+    translation: 'إرجاع',
+  },
   'Return Against': {
     translation: 'إرجاع مقابل',
   },
+  'Return Button Colour': {
+    translation: 'لون زر الإرجاع',
+  },
   'Return Issued': {
     translation: 'تم إصدار الإرجاع',
-  },
-  Return: {
-    translation: 'إرجاع',
   },
   'Reverse Chrg.': {
     translation: 'الرسوم العكسية',
@@ -2412,17 +2921,26 @@ const languageMap: LanguageMap = {
   'Root Type': {
     translation: 'نوع الجذر',
   },
-  'Round Off Account Not Found': {
-    translation: 'لم يتم العثور على حساب التقريب',
+  Round: {
+    translation: 'تقريب',
   },
-  'Round Off Account': {
-    translation: 'حساب التقريب',
+  'Round Free Item Quantity': {
+    translation: 'تقريب كمية الصنف المجاني',
   },
   'Round Off': {
     translation: 'تقريب',
   },
+  'Round Off Account': {
+    translation: 'حساب التقريب',
+  },
+  'Round Off Account Not Found': {
+    translation: 'لم يتم العثور على حساب التقريب',
+  },
   'Rounded Off': {
     translation: 'مُقرّب',
+  },
+  'Rounding Method': {
+    translation: 'طريقة التقريب',
   },
   'Row ${0}': {
     translation: 'صف ${0}',
@@ -2433,11 +2951,20 @@ const languageMap: LanguageMap = {
   Salary: {
     translation: 'الراتب',
   },
+  Sales: {
+    translation: 'المبيعات',
+  },
   'Sales Acc.': {
     translation: 'حساب المبيعات',
   },
   'Sales Expenses': {
     translation: 'مصاريف المبيعات',
+  },
+  'Sales Invoice': {
+    translation: 'فاتورة مبيعات',
+  },
+  'Sales Invoice ${0} is Saved': {
+    translation: 'تم حفظ فاتورة المبيعات ${0}',
   },
   'Sales Invoice ${0} is Submitted': {
     translation: 'تم تسجيل فاتورة المبيعات ${0}',
@@ -2457,29 +2984,29 @@ const languageMap: LanguageMap = {
   'Sales Invoice Terms': {
     translation: 'شروط فاتورة المبيعات',
   },
-  'Sales Invoice': {
-    translation: 'فاتورة مبيعات',
-  },
   'Sales Invoices': {
     translation: 'فواتير المبيعات',
-  },
-  'Sales Item Created': {
-    translation: 'تم انشاء صنف مبيعات',
   },
   'Sales Item': {
     translation: 'عنصر المبيعات',
   },
+  'Sales Item Created': {
+    translation: 'تم انشاء صنف مبيعات',
+  },
   'Sales Items': {
     translation: 'عناصر المبيعات',
-  },
-  'Sales Payment Account': {
-    translation: 'حساب دفع المبيعات',
   },
   'Sales Payment': {
     translation: 'دفعة المبيعات',
   },
+  'Sales Payment Account': {
+    translation: 'حساب دفع المبيعات',
+  },
   'Sales Payments': {
     translation: 'مدفوعات المبيعات',
+  },
+  'Sales Quote': {
+    translation: 'عرض سعر',
   },
   'Sales Quote Item': {
     translation: 'عنصر عرض السعر',
@@ -2490,35 +3017,38 @@ const languageMap: LanguageMap = {
   'Sales Quote Print Template': {
     translation: 'قالب طباعة عرض السعر',
   },
-  'Sales Quote': {
-    translation: 'عرض سعر',
-  },
   'Sales Quotes': {
     translation: 'عروض الأسعار',
   },
   'Sales and Purchase': {
     translation: 'المبيعات والمشتريات',
   },
-  Sales: {
-    translation: 'المبيعات',
+  Save: {
+    translation: 'حفظ',
   },
   'Save ${0}?': {
     translation: 'هل تريد حفظ ${0}؟',
   },
+  'Save Button Colour': {
+    translation: 'لون زر الحفظ',
+  },
   'Save Customizations': {
     translation: 'حفظ التخصيصات',
-  },
-  'Save Template File': {
-    translation: 'حفظ ملف النموذج',
   },
   'Save Template': {
     translation: 'حفظ النموذج',
   },
-  'Save as PDF Successful': {
-    translation: 'تم الحفظ كملف PDF بنجاح',
+  'Save Template File': {
+    translation: 'حفظ ملف النموذج',
+  },
+  'Save and Continue': {
+    translation: 'حفظ ومتابعة',
   },
   'Save as PDF': {
     translation: 'حفظ كملف PDF',
+  },
+  'Save as PDF Successful': {
+    translation: 'تم الحفظ كملف PDF بنجاح',
   },
   'Save changes made to ${0}?': {
     translation: 'هل تريد حفظ التغييرات التي أُجريت على ${0}؟',
@@ -2526,17 +3056,11 @@ const languageMap: LanguageMap = {
   'Save or Submit an entry.': {
     translation: 'احفظ أو سجّل إدخالًا.',
   },
-  Save: {
-    translation: 'حفظ',
-  },
   Saved: {
     translation: 'تم الحفظ',
   },
   'Search Item (Name or Barcode)': {
     translation: 'ابحث عن صنف (بالاسم أو الباركود)',
-  },
-  'Search an Item': {
-    translation: 'ابحث عن عنصر',
   },
   'Secured Loans': {
     translation: 'قروض مضمونة',
@@ -2544,11 +3068,17 @@ const languageMap: LanguageMap = {
   'Securities and Deposits': {
     translation: 'الأوراق المالية والودائع',
   },
+  Select: {
+    translation: 'تحديد',
+  },
   'Select CoA': {
     translation: 'حدد شهادة توثيق البرامج',
   },
   'Select Color': {
     translation: 'تحديد اللون',
+  },
+  'Select Colour': {
+    translation: 'اختر اللون',
   },
   'Select Country': {
     translation: 'تحديد الدولة',
@@ -2585,17 +3115,20 @@ const languageMap: LanguageMap = {
   'Select folder': {
     translation: 'تحديد مجلد',
   },
+  'Select the Batch': {
+    translation: 'حدد الدفعة',
+  },
   'Select the template type.': {
     translation: 'اختر نوع القالب.',
-  },
-  Select: {
-    translation: 'تحديد',
   },
   Selected: {
     translation: 'محدد',
   },
   September: {
     translation: 'سبتمبر',
+  },
+  'Serial Number': {
+    translation: 'الرقم التسلسلي',
   },
   'Serial Number ${0} does not belong to the item ${1}.': {
     translation: 'الرقم التسلسلي ${0} لا يخص الصنف ${1}.',
@@ -2615,6 +3148,17 @@ const languageMap: LanguageMap = {
   'Serial Number Description': {
     translation: 'وصف الرقم التسلسلي',
   },
+  'Serial Number Series': {
+    translation: 'سلسلة الأرقام التسلسلية',
+  },
+  'Serial Number Series cannot contain the following characters: /, ?, &, =, %':
+    {
+      translation:
+        'لا يمكن أن تحتوي سلسلة الأرقام التسلسلية على الأحرف التالية: /، ?، &، =، %',
+    },
+  'Serial Number Status': {
+    translation: 'حالة الرقم التسلسلي',
+  },
   'Serial Number is enabled for Item ${0}': {
     translation: 'تم تفعيل الرقم التسلسلي للصنف ${0}',
   },
@@ -2626,9 +3170,6 @@ const languageMap: LanguageMap = {
   },
   'Serial Number set for row ${0}.': {
     translation: 'تم تعيين الرقم التسلسلي للصف ${0}.',
-  },
-  'Serial Number': {
-    translation: 'الرقم التسلسلي',
   },
   Service: {
     translation: 'الخدمة',
@@ -2654,11 +3195,11 @@ const languageMap: LanguageMap = {
   'Set Template Type': {
     translation: 'تعيين نوع القالب',
   },
-  'Set Up Your Workspace': {
-    translation: 'إعداد مساحة العمل الخاصة بك',
-  },
   'Set Up': {
     translation: 'إعداد',
+  },
+  'Set Up Your Workspace': {
+    translation: 'إعداد مساحة العمل الخاصة بك',
   },
   'Set a Template value to see the Print Template': {
     translation: 'قم بتعيين قيمة القالب لرؤية قالب الطباعة',
@@ -2696,11 +3237,17 @@ const languageMap: LanguageMap = {
       translation:
         'يضبط الدقة الداخلية المستخدمة في الحسابات النقدية. الرقم الأعلى من 6 يجب أن يكون كافيًا لمعظم العملات',
     },
+  'Sets the theme of the app.': {
+    translation: 'يحدد سمة التطبيق.',
+  },
   'Setting Up Instance': {
     translation: 'إعداد المثيل',
   },
   Settings: {
     translation: 'الإعدادات',
+  },
+  Setup: {
+    translation: 'الإعداد',
   },
   'Setup Complete': {
     translation: 'اكتمل الإعداد',
@@ -2712,8 +3259,17 @@ const languageMap: LanguageMap = {
     translation:
       'إعداد الإعدادات الافتراضية للنظام مثل تنسيق التاريخ ودقة العرض',
   },
-  Setup: {
-    translation: 'الإعداد',
+  Seven: {
+    translation: 'سبعة',
+  },
+  Seventeen: {
+    translation: 'سبعة عشر',
+  },
+  Seventy: {
+    translation: 'سبعون',
+  },
+  Shipment: {
+    translation: 'الشحنة',
   },
   'Shipment ${0} is Submitted': {
     translation: 'تم تسجيل الشحنة ${0}',
@@ -2733,9 +3289,6 @@ const languageMap: LanguageMap = {
   'Shipment Terms': {
     translation: 'شروط الشحن',
   },
-  Shipment: {
-    translation: 'الشحنة',
-  },
   Shortcuts: {
     translation: 'الاختصارات',
   },
@@ -2751,8 +3304,20 @@ const languageMap: LanguageMap = {
   'Show Month/Year': {
     translation: 'إظهار الشهر/السنة',
   },
+  'Similar Product': {
+    translation: 'منتج مماثل',
+  },
   'Single Value': {
     translation: 'قيمة مفردة',
+  },
+  Six: {
+    translation: 'ستة',
+  },
+  Sixteen: {
+    translation: 'ستة عشر',
+  },
+  Sixty: {
+    translation: 'ستون',
   },
   'Skip Child Tables': {
     translation: 'تخطي الجداول الفرعية',
@@ -2777,20 +3342,23 @@ const languageMap: LanguageMap = {
   'Standard Chart of Accounts': {
     translation: 'المخطط القياسي للحسابات',
   },
-  'Start From Row Index': {
-    translation: 'ابدأ من فهرس الصف',
-  },
   Start: {
     translation: 'ابدأ',
   },
-  'State Tax': {
-    translation: 'ضريبة الولاية',
+  'Start From Row Index': {
+    translation: 'ابدأ من فهرس الصف',
   },
   State: {
     translation: 'الولاية',
   },
+  'State Tax': {
+    translation: 'ضريبة الولاية',
+  },
   Status: {
     translation: 'الحالة',
+  },
+  Stock: {
+    translation: 'المخزون',
   },
   'Stock Adjustment': {
     translation: 'تسوية المخزون',
@@ -2807,20 +3375,23 @@ const languageMap: LanguageMap = {
   'Stock Expenses': {
     translation: 'مصاريف المخزون',
   },
-  'Stock In Hand Acc.': {
-    translation: 'حساب المخزون في متناول اليد',
-  },
   'Stock In Hand': {
     translation: 'المخزون في متناول اليد',
   },
-  'Stock Ledger Entry': {
-    translation: 'قيد دفتر أستاذ المخزون',
+  'Stock In Hand Acc.': {
+    translation: 'حساب المخزون في متناول اليد',
   },
   'Stock Ledger': {
     translation: 'دفتر الجرد الرئيسي للمخزون',
   },
+  'Stock Ledger Entry': {
+    translation: 'قيد دفتر أستاذ المخزون',
+  },
   'Stock Liabilities': {
     translation: 'التزامات المخزون',
+  },
+  'Stock Movement': {
+    translation: 'حركة المخزون',
   },
   'Stock Movement Item': {
     translation: 'عنصر حركة المخزون',
@@ -2834,9 +3405,6 @@ const languageMap: LanguageMap = {
   'Stock Movement Print Template': {
     translation: 'قالب الطابعة تنقلات المخزون',
   },
-  'Stock Movement': {
-    translation: 'حركة المخزون',
-  },
   'Stock Movements': {
     translation: 'حركات المخزون',
   },
@@ -2849,20 +3417,17 @@ const languageMap: LanguageMap = {
   'Stock Not Transferred': {
     translation: 'المخزون غير مُحوَّل',
   },
-  'Stock Received But Not Billed Acc.': {
-    translation: 'حساب استلام المخزون من المورد ولم يتم إصدار فاتورة',
-  },
   'Stock Received But Not Billed': {
     translation: 'تم استلام المخزون ولكن لم يتم إصدار فاتورة به',
+  },
+  'Stock Received But Not Billed Acc.': {
+    translation: 'حساب استلام المخزون من المورد ولم يتم إصدار فاتورة',
   },
   'Stock Transfer Item': {
     translation: 'عنصر تحويل المخزون',
   },
   'Stock Unit': {
     translation: 'وحدة المخزون',
-  },
-  Stock: {
-    translation: 'المخزون',
   },
   StockTransfer: {
     translation: 'تحويل المخزون',
@@ -2873,17 +3438,17 @@ const languageMap: LanguageMap = {
   Su: {
     translation: 'الأحد',
   },
+  Submit: {
+    translation: 'تسجيل',
+  },
   'Submit ${0}?': {
     translation: 'هل تريد تسجيل ${0}؟',
   },
-  'Submit & Print': {
-    translation: 'تسجيل وطباعة',
+  'Submit Button Colour': {
+    translation: 'لون زر الإرسال',
   },
   'Submit entries?': {
     translation: 'هل تريد تسجيل الإدخالات؟',
-  },
-  Submit: {
-    translation: 'تسجيل',
   },
   Submitted: {
     translation: 'مُسجَّل',
@@ -2891,11 +3456,11 @@ const languageMap: LanguageMap = {
   Success: {
     translation: 'نجاح',
   },
-  'Supplier Created': {
-    translation: 'تم إنشاء المورد',
-  },
   Supplier: {
     translation: 'المورد',
+  },
+  'Supplier Created': {
+    translation: 'تم إنشاء المورد',
   },
   Suppliers: {
     translation: 'الموردون',
@@ -2903,20 +3468,35 @@ const languageMap: LanguageMap = {
   Symbol: {
     translation: 'الرمز',
   },
+  'Sync Data From Server': {
+    translation: 'مزامنة البيانات من الخادم',
+  },
+  'Sync Data To ERPNext': {
+    translation: 'مزامنة البيانات إلى ERPNext',
+  },
+  'Sync Data To Server': {
+    translation: 'مزامنة البيانات إلى الخادم',
+  },
+  'Sync Settings': {
+    translation: 'إعدادات المزامنة',
+  },
+  System: {
+    translation: 'النظام',
+  },
   'System Settings': {
     translation: 'إعدادات النظام',
   },
   'System Setup': {
     translation: 'إعداد النظام',
   },
-  System: {
-    translation: 'النظام',
-  },
   Table: {
     translation: 'جدول',
   },
   Target: {
     translation: 'الهدف',
+  },
+  Tax: {
+    translation: 'الضريبة',
   },
   'Tax Account': {
     translation: 'حساب الضرائب',
@@ -2960,17 +3540,20 @@ const languageMap: LanguageMap = {
   'Taxed Amount': {
     translation: 'المبلغ الخاضع للضريبة',
   },
-  'Taxes and Charges': {
-    translation: 'الضرائب والرسوم',
-  },
   Taxes: {
     translation: 'الضرائب',
+  },
+  'Taxes and Charges': {
+    translation: 'الضرائب والرسوم',
   },
   Teal: {
     translation: 'أزرق مخضر',
   },
   'Telephone Expenses': {
     translation: 'مصاريف الهاتف',
+  },
+  Template: {
+    translation: 'قالب',
   },
   'Template Builder': {
     translation: 'منشئ القوالب',
@@ -2987,8 +3570,8 @@ const languageMap: LanguageMap = {
   'Template file saved': {
     translation: 'تم حفظ ملف القالب',
   },
-  Template: {
-    translation: 'قالب',
+  Temporary: {
+    translation: 'مؤقت',
   },
   'Temporary Accounts': {
     translation: 'حسابات مؤقتة',
@@ -2996,17 +3579,26 @@ const languageMap: LanguageMap = {
   'Temporary Opening': {
     translation: 'الافتتاح المؤقت',
   },
-  Temporary: {
-    translation: 'مؤقت',
+  Ten: {
+    translation: 'عشرة',
   },
   Terms: {
     translation: 'الشروط',
+  },
+  'Terms and Conditions': {
+    translation: 'الشروط والأحكام',
   },
   Text: {
     translation: 'نص',
   },
   Th: {
     translation: 'الخميس',
+  },
+  'The Grand Total must be less than ${0} to apply this coupon.': {
+    translation: 'يجب أن يكون الإجمالي الكلي أقل من ${0} لتطبيق هذه القسيمة.',
+  },
+  'The Grand Total must exceed ${0} to apply the coupon ${1}.': {
+    translation: 'يجب أن يتجاوز الإجمالي الكلي ${0} لتطبيق القسيمة ${1}.',
   },
   'The following characters cannot be used ${0} in a Number Series name.': {
     translation: 'لا يمكن استخدام الأحرف التالية ${0} في اسم سلسلة الأرقام.',
@@ -3017,6 +3609,12 @@ const languageMap: LanguageMap = {
   Theme: {
     translation: 'السمة',
   },
+  Thirteen: {
+    translation: 'ثلاثة عشر',
+  },
+  Thirty: {
+    translation: 'ثلاثون',
+  },
   'This Month': {
     translation: 'هذا الشهر',
   },
@@ -3025,6 +3623,9 @@ const languageMap: LanguageMap = {
   },
   'This Year': {
     translation: 'هذه السنة',
+  },
+  'This action is permanent': {
+    translation: 'هذا العمل دائم',
   },
   'This action is permanent and will cancel the following payment: ${0}': {
     translation: 'هذا الإجراء نهائي وسيؤدي إلى إلغاء الدفعة التالية: ${0}',
@@ -3035,20 +3636,32 @@ const languageMap: LanguageMap = {
   'This action is permanent and will delete associated ledger entries.': {
     translation: 'هذا الإجراء دائم وسيؤدي إلى حذف قيود الأستاذ المرتبطة.',
   },
-  'This action is permanent': {
-    translation: 'هذا العمل دائم',
-  },
   'This action is permanent.': {
     translation: 'هذا الإجراء دائم.',
+  },
+  Thousand: {
+    translation: 'ألف',
+  },
+  Three: {
+    translation: 'ثلاثة',
+  },
+  'Tier Name': {
+    translation: 'اسم الشريحة',
   },
   'Times New Roman': {
     translation: 'Times New Roman',
   },
-  "To Account and From Account can't be the same: ${0}": {
-    translation: 'لا يمكن أن يكون حساب المرسل إليه وحساب المرسل نفسه: ${0}',
+  Title: {
+    translation: 'عنوان',
+  },
+  To: {
+    translation: 'إلى',
   },
   'To Account': {
     translation: 'إلى الحساب',
+  },
+  "To Account and From Account can't be the same: ${0}": {
+    translation: 'لا يمكن أن يكون حساب المرسل إليه وحساب المرسل نفسه: ${0}',
   },
   'To Date': {
     translation: 'حتى تاريخ',
@@ -3058,9 +3671,6 @@ const languageMap: LanguageMap = {
   },
   'To Year': {
     translation: 'حتى سنة',
-  },
-  To: {
-    translation: 'إلى',
   },
   'Toggle Edit Mode': {
     translation: 'تبديل وضع التحرير',
@@ -3099,6 +3709,9 @@ const languageMap: LanguageMap = {
   'Top Expenses': {
     translation: 'أهم المصروفات',
   },
+  Total: {
+    translation: 'إجمالي',
+  },
   'Total Amount': {
     translation: 'إجمالي المبلغ',
   },
@@ -3132,29 +3745,29 @@ const languageMap: LanguageMap = {
   'Total Spending': {
     translation: 'إجمالي الإنفاق',
   },
-  Total: {
-    translation: 'إجمالي',
-  },
   'Track Inventory': {
     translation: 'تتبع المخزون',
+  },
+  Transfer: {
+    translation: 'تحويل',
   },
   'Transfer No': {
     translation: 'رقم التحويل',
   },
+  'Transfer Quantity': {
+    translation: 'كمية التحويل',
+  },
   'Transfer Type': {
     translation: 'نوع التحويل',
-  },
-  'Transfer Unit ${0} is not applicable for Item ${1}': {
-    translation: 'وحدة التحويل ${0} غير قابلة للتطبيق على الصنف ${1}',
   },
   'Transfer Unit': {
     translation: 'وحدة التحويل',
   },
+  'Transfer Unit ${0} is not applicable for Item ${1}': {
+    translation: 'وحدة التحويل ${0} غير قابلة للتطبيق على الصنف ${1}',
+  },
   'Transfer will cause future entries to have negative stock.': {
     translation: 'سيؤدي التحويل إلى أن تكون قيود المخزون المستقبلية سالبة.',
-  },
-  Transfer: {
-    translation: 'تحويل',
   },
   'Travel Expenses': {
     translation: 'مصاريف السفر',
@@ -3165,11 +3778,23 @@ const languageMap: LanguageMap = {
   Tu: {
     translation: 'الثلاثاء',
   },
-  'Type to search...': {
-    translation: 'اكتب للبحث...',
+  Twelve: {
+    translation: 'اثنا عشر',
+  },
+  Twenty: {
+    translation: 'عشرون',
+  },
+  Two: {
+    translation: 'اثنان',
   },
   Type: {
     translation: 'النوع',
+  },
+  'Type to search...': {
+    translation: 'اكتب للبحث...',
+  },
+  UOM: {
+    translation: 'وحدة القياس',
   },
   'UOM Conversion Item': {
     translation: 'عنصر تحويل وحدة القياس',
@@ -3177,20 +3802,20 @@ const languageMap: LanguageMap = {
   'UOM Conversions': {
     translation: 'تحويلات وحدة القياس',
   },
-  UOM: {
-    translation: 'وحدة القياس',
-  },
-  'Unit Type': {
-    translation: 'نوع الوحدة',
+  'Unable to add an item to the return invoice.': {
+    translation: 'تعذّر إضافة صنف إلى فاتورة الإرجاع.',
   },
   Unit: {
     translation: 'وحدة',
   },
-  'Unpaid ${0}': {
-    translation: '${0} غير مدفوعة',
+  'Unit Type': {
+    translation: 'نوع الوحدة',
   },
   Unpaid: {
     translation: 'غير مدفوع',
+  },
+  'Unpaid ${0}': {
+    translation: '${0} غير مدفوعة',
   },
   'Unsecured Loans': {
     translation: 'قروض غير مضمونة',
@@ -3204,26 +3829,58 @@ const languageMap: LanguageMap = {
   'Use List Filters': {
     translation: 'استخدام عوامل تصفية القائمة',
   },
+  Used: {
+    translation: 'مستخدم',
+  },
   'User Remark': {
     translation: 'ملاحظة المستخدم',
   },
   'Utility Expenses': {
     translation: 'نفقات المرافق',
   },
+  'Valid From': {
+    translation: 'صالح من',
+  },
+  "Valid From Date should be greather than Pricing Rule's Valid From Date.": {
+    translation:
+      'يجب أن يكون تاريخ "صالح من" أكبر من تاريخ "صالح من" في قاعدة التسعير.',
+  },
+  'Valid From Date should be less than Valid To Date.': {
+    translation: 'يجب أن تكون قيمة "صالح من تاريخ" أقل من "صالح حتى تاريخ".',
+  },
+  'Valid To': {
+    translation: 'صالح حتى',
+  },
+  'Valid To Date should be greater than Valid From Date.': {
+    translation: 'يجب أن تكون قيمة "صالح حتى تاريخ" أكبر من "صالح من تاريخ".',
+  },
+  "Valid To Date should be lesser than Pricing Rule's Valid To Date.": {
+    translation:
+      'يجب أن يكون تاريخ "صالح حتى" أقل من تاريخ "صالح حتى" في قاعدة التسعير.',
+  },
   'Validation Error': {
     translation: 'خطأ في التحقق',
   },
-  'Value missing for ${0}': {
-    translation: 'القيمة مفقودة لـ ${0}',
+  Validity: {
+    translation: 'الصلاحية',
+  },
+  'Validity and Usage': {
+    translation: 'الصلاحية والاستخدام',
   },
   Value: {
     translation: 'القيمة',
+  },
+  'Value missing for ${0}': {
+    translation: 'القيمة مفقودة لـ ${0}',
   },
   'Value: ${0}': {
     translation: 'القيمة: ${0}',
   },
   Version: {
     translation: 'الإصدار',
+  },
+  View: {
+    translation: 'عرض',
   },
   'View Accounting Entries': {
     translation: 'عرض القيود المحاسبية',
@@ -3246,17 +3903,30 @@ const languageMap: LanguageMap = {
   'View linked entries': {
     translation: 'عرض الإدخالات المرتبطة',
   },
-  View: {
-    translation: 'عرض',
-  },
   We: {
     translation: 'الأربعاء',
   },
-  'Welcome to Frappe Books': {
-    translation: 'مرحبًا بك في Frappe Books',
+  'Weight Enabled Barcode': {
+    translation: 'باركود مفعّل بالوزن',
   },
+  'When enabled, removes all default filters applied across the system, showing all available options instead of filtered ones.':
+    {
+      translation:
+        'عند التمكين، يؤدي ذلك إلى إزالة جميع عوامل التصفية الافتراضية المطبقة عبر النظام، مما يؤدي إلى عرض جميع الخيارات المتاحة بدلاً من الخيارات التي تمت تصفيتها.',
+    },
+  'When linking documents, if no match is found and filtering is in effect, allow to disable filters.':
+    {
+      translation:
+        'عند ربط المستندات، إذا لم يتم العثور على أي تطابق وكانت التصفية قيد التنفيذ، فاسمح بتعطيل عوامل التصفية.',
+    },
   'Width (in cm)': {
     translation: 'العرض (بالسنتيمتر)',
+  },
+  'Write Off': {
+    translation: 'شطب',
+  },
+  'Write Off Account': {
+    translation: 'حساب الشطب',
   },
   'Write Off Account ${0} does not exist. Please set Write Off Account in General Settings':
     {
@@ -3268,14 +3938,8 @@ const languageMap: LanguageMap = {
       translation:
         'شطب الحساب لم يتم تعيينه. يرجى تعيين حساب الشطب في الإعدادات العامة',
     },
-  'Write Off Account': {
-    translation: 'حساب الشطب',
-  },
   'Write Off Entry': {
     translation: 'قيد الشطب',
-  },
-  'Write Off': {
-    translation: 'شطب',
   },
   'Year to Date': {
     translation: 'منذ بداية السنة حتى اليوم',
@@ -3292,744 +3956,14 @@ const languageMap: LanguageMap = {
   Yes: {
     translation: 'نعم',
   },
-  'check values and click on': {
-    translation: 'تحقق من القيم وانقر على',
-  },
-  'in Batch ${0}': {
-    translation: 'في الدفعة ${0}',
-  },
-  'john@doe.com': {
-    translation: 'john@doe.com',
-  },
-  'to apply changes': {
-    translation: 'لتطبيق التغييرات',
-  },
-  '${0}': {
-    translation: '${0}',
-  },
-  '0%': {
-    translation: '0%',
-  },
-  '03-23-2022': {
-    translation: '03-23-2022',
-  },
-  '03/23/2022': {
-    translation: '03/23/2022',
-  },
-  '2022-03-23': {
-    translation: '2022-03-23',
-  },
-  '23-03-2022': {
-    translation: '23-03-2022',
-  },
-  '23.03.2022': {
-    translation: '23.03.2022',
-  },
-  '23/03/2022': {
-    translation: '23/03/2022',
-  },
-  '9888900000': {
-    translation: '9888900000',
-  },
-  Tax: {
-    translation: 'الضريبة',
-  },
-  '${0} already applied.': {
-    translation: 'تم تطبيق ${0} بالفعل.',
-  },
-  '${0} before ${1}': {
-    translation: '${0} قبل ${1}',
-  },
-  '${0} only has ${1} points': {
-    translation: '${0} لديه ${1} نقطة فقط',
-  },
-  '${0} quantity ${1} added.': {
-    translation: 'تمت إضافة كمية ${1} من ${0}.',
-  },
-  'API Base URL': {
-    translation: 'عنوان URL الأساسي لواجهة برمجة التطبيقات',
-  },
-  'Add quote terms': {
-    translation: 'إضافة شروط عرض السعر',
-  },
-  Alert: {
-    translation: 'تنبيه',
-  },
-  And: {
-    translation: 'و',
-  },
-  'Applied Coupon Codes': {
-    translation: 'رموز القسائم المطبقة',
-  },
-  'Applied Items': {
-    translation: 'الأصناف المطبقة',
-  },
-  Apply: {
-    translation: 'تطبيق',
-  },
-  'Apply Price List': {
-    translation: 'تطبيق قائمة الأسعار',
-  },
-  'Auth Token': {
-    translation: 'رمز المصادقة',
-  },
-  'Available Loyalty Points': {
-    translation: 'نقاط الولاء المتاحة',
-  },
-  'Barcode ${0} has an invalid length.': {
-    translation: 'يحتوي الرمز الشريطي ${0} على طول غير صالح.',
-  },
-  'Barcode must be exactly 12 digits.': {
-    translation: 'يجب أن يتكون الباركود من 12 رقمًا بالضبط.',
-  },
-  'Batch ${0} does not belong to Item ${1}': {
-    translation: 'الدفعة ${0} لا تنتمي إلى العنصر ${1}',
-  },
-  Billion: {
-    translation: 'مليار',
-  },
-  'Can Change Discount': {
-    translation: 'يمكن تغيير الخصم',
-  },
-  'Can Change Rate': {
-    translation: 'يمكن تغيير السعر',
-  },
-  'Cancel Button Colour': {
-    translation: 'لون زر الإلغاء',
-  },
-  'Cannot add an item to a submitted invoice.': {
-    translation: 'لا يمكن إضافة صنف إلى فاتورة مُرسلة.',
-  },
-  'Cannot delete ${0} "${1}" because of linked entries.': {
-    translation: 'لا يمكن حذف ${0} "${1}" بسبب الإدخالات المرتبطة.',
-  },
-  Ceil: {
-    translation: 'تقريب لأعلى',
-  },
-  'Check Digits': {
-    translation: 'التحقق من الأرقام',
-  },
-  Classic: {
-    translation: 'كلاسيكي',
-  },
-  'Clear Synced Data From ERPNext SyncQueue': {
-    translation: 'مسح البيانات المتزامنة من قائمة مزامنة ERPNext',
-  },
-  'Clearance Date not set.': {
-    translation: 'تاريخ التخليص غير محدد.',
-  },
-  'Clicking continue will remove all the selected items.': {
-    translation: 'سيؤدي النقر فوق "متابعة" إلى إزالة كافة العناصر المحددة.',
-  },
-  'Collection Factor': {
-    translation: 'معامل التحصيل',
-  },
-  'Collection Rules': {
-    translation: 'قواعد التحصيل',
-  },
-  Colour: {
-    translation: 'لون',
-  },
-  Contact: {
-    translation: 'جهة الاتصال',
-  },
-  Continue: {
-    translation: 'متابعة',
-  },
-  Converted: {
-    translation: 'تم التحويل',
-  },
-  'Coupon ${0} is not applicable for applied items.': {
-    translation: 'القسيمة ${0} غير قابلة للتطبيق على الأصناف المطبقة.',
-  },
-  'Coupon Code': {
-    translation: 'رمز القسيمة',
-  },
-  'Coupon Name': {
-    translation: 'اسم القسيمة',
-  },
-  Coupons: {
-    translation: 'القسائم',
-  },
-  'Customer has no loyalty points to redeem': {
-    translation: 'ليس لدى العميل أي نقاط ولاء لاستبدالها',
-  },
-  'Data Sync Interval (In Minutes)': {
-    translation: 'فاصل مزامنة البيانات (بالدقائق)',
-  },
-  'Device ID': {
-    translation: 'معرف الجهاز',
-  },
-  'Device is offline. Please connect to a network to continue.': {
-    translation: 'الجهاز غير متصل. يرجى الاتصال بالشبكة للمتابعة.',
-  },
-  'Discount Percentage': {
-    translation: 'نسبة الخصم',
-  },
-  'Discount Type': {
-    translation: 'نوع الخصم',
-  },
-  'Display Terms and Conditions': {
-    translation: 'عرض الشروط والأحكام',
-  },
-  'Do not Contact': {
-    translation: 'عدم الاتصال',
-  },
-  'Document Name': {
-    translation: 'اسم المستند',
-  },
-  'ERPNext Sync': {
-    translation: 'مزامنة ERPNext',
-  },
-  'ERPNext Sync Queue': {
-    translation: 'قائمة مزامنة ERPNext',
-  },
-  'ERPNext Sync Settings': {
-    translation: 'إعدادات مزامنة ERPNext',
-  },
-  Eight: {
-    translation: 'ثمانية',
-  },
-  Eighteen: {
-    translation: 'ثمانية عشر',
-  },
-  Eighty: {
-    translation: 'ثمانون',
-  },
-  Eleven: {
-    translation: 'أحد عشر',
-  },
-  'Enable Partial payment to pay partial amount': {
-    translation: 'تمكين الدفع الجزئي لسداد جزء من المبلغ',
-  },
-  Endpoints: {
-    translation: 'نقاط النهاية',
-  },
-  'Enter weight barcode': {
-    translation: 'أدخل باركود الوزن',
-  },
-  'Expiry Duration': {
-    translation: 'مدة انتهاء الصلاحية',
-  },
-  'FBooks Integration Version': {
-    translation: 'إصدار تكامل FBooks',
-  },
-  'Failed to load batches': {
-    translation: 'فشل تحميل الدفعات',
-  },
-  'Fetch Data From ERPNext': {
-    translation: 'جلب البيانات من ERPNext',
-  },
-  'Fetch From ERPNext Queue': {
-    translation: 'جلب من قائمة ERPNext',
-  },
-  Fifteen: {
-    translation: 'خمسة عشر',
-  },
-  Fifty: {
-    translation: 'خمسون',
-  },
-  'Filter by Group': {
-    translation: 'تصفية حسب المجموعة',
-  },
-  Five: {
-    translation: 'خمسة',
-  },
-  Floor: {
-    translation: 'تقريب لأسفل',
-  },
-  Forty: {
-    translation: 'أربعون',
-  },
-  Four: {
-    translation: 'أربعة',
-  },
-  Fourteen: {
-    translation: 'أربعة عشر',
-  },
-  'Free Item': {
-    translation: 'صنف مجاني',
-  },
-  'Free item "${0}" was not added due to zero quantity': {
-    translation: 'لم تتم إضافة الصنف المجاني "${0}" لأن الكمية تساوي صفرًا',
-  },
-  'Free items out of stock: ${0}': {
-    translation: 'العناصر المجانية غير المتوفرة في المخزون: ${0}',
-  },
-  'Held Button Colour': {
-    translation: 'لون زر التعليق',
-  },
-  'Hide Unavailable Items': {
-    translation: 'إخفاء الأصناف غير المتاحة',
-  },
-  Hundred: {
-    translation: 'مائة',
-  },
-  'Ignore Pricing Rule': {
-    translation: 'تجاهل قاعدة التسعير',
-  },
-  'In stock': {
-    translation: 'متوفر في المخزون',
-  },
-  'Initial Sync Data': {
-    translation: 'بيانات المزامنة الأولية',
-  },
-  'Integration Error Log': {
-    translation: 'سجل أخطاء التكامل',
-  },
-  Interested: {
-    translation: 'مهتم',
-  },
-  'Invalid HSN Code.': {
-    translation: 'رمز HSN غير صالح.',
-  },
-  'Inventory Items': {
-    translation: 'أصناف المخزون',
-  },
-  'Is Coupon Code Based': {
-    translation: 'يعتمد على رمز القسيمة',
-  },
-  'Is Enabled': {
-    translation: 'مفعّل',
-  },
-  'Is Pricing Rule Enabled': {
-    translation: 'هل قاعدة التسعير مفعّلة',
-  },
-  'Is Recursive': {
-    translation: 'متكرر',
-  },
-  'Is Sync Enabled': {
-    translation: 'هل المزامنة مفعّلة',
-  },
-  'Item ${0} is out of stock (quantity is zero)': {
-    translation: 'العنصر ${0} غير متوفر في المخزون (الكمية صفر)',
-  },
-  'Item ${0} not found': {
-    translation: 'لم يتم العثور على العنصر ${0}',
-  },
-  'Item ${0} only has ${1} Quantity': {
-    translation: 'يحتوي العنصر ${0} على كمية ${1} فقط',
-  },
-  'Item ${0} only has ${1} Quantity in batch ${2}': {
-    translation: 'لا يتوفر من الصنف ${0} سوى كمية ${1} في الدفعة ${2}',
-  },
-  'Item Code Digits': {
-    translation: 'أرقام رمز العنصر',
-  },
-  'Item Enquiry': {
-    translation: 'استفسار عن الصنف',
-  },
-  'Item Group': {
-    translation: 'مجموعة الصنف',
-  },
-  'Item Visibility': {
-    translation: 'ظهور الصنف',
-  },
-  'Item enquiry submitted': {
-    translation: 'تم إرسال استفسار الصنف',
-  },
-  ItemCode: {
-    translation: 'رمز العنصر',
-  },
-  Lead: {
-    translation: 'عميل محتمل',
-  },
-  'Loyalty Point Entry': {
-    translation: 'قيد نقاط الولاء',
-  },
-  'Loyalty Points': {
-    translation: 'نقاط الولاء',
-  },
-  'Loyalty Points Redemption': {
-    translation: 'استرداد نقاط الولاء',
-  },
-  'Loyalty Program Tier': {
-    translation: 'شريحة برنامج الولاء',
-  },
-  'Max Amount': {
-    translation: 'أقصى مبلغ',
-  },
-  'Max Qty (As Per Stock Unit)': {
-    translation: 'أقصى كمية (حسب وحدة المخزون)',
-  },
-  'Maximum Amount should be greater than the Minimum Amount.': {
-    translation: 'يجب أن يكون الحد الأقصى للمبلغ أكبر من الحد الأدنى للمبلغ.',
-  },
-  "Maximum Amount should be lesser than Pricing Rule's Maximum Amount": {
-    translation:
-      'يجب أن يكون الحد الأقصى للمبلغ أقل من الحد الأقصى للمبلغ الخاص بقاعدة التسعير',
-  },
-  'Maximum Quantity should be greater than the Minimum Quantity.': {
-    translation: 'يجب أن تكون الكمية القصوى أكبر من الكمية الدنيا.',
-  },
-  'Maximum Use': {
-    translation: 'الحد الأقصى للاستخدام',
-  },
-  Million: {
-    translation: 'مليون',
-  },
-  'Min Amount': {
-    translation: 'أدنى مبلغ',
-  },
-  'Min Qty (As Per Stock Unit)': {
-    translation: 'أدنى كمية (حسب وحدة المخزون)',
-  },
-  "Minimum Amount should be greather than the Pricing Rule's Minimum Amount.": {
-    translation:
-      'يجب أن يكون الحد الأدنى للمبلغ أكبر من الحد الأدنى للمبلغ الخاص بقاعدة التسعير.',
-  },
-  'Minimum Amount should be less than the Maximum Amount.': {
-    translation: 'يجب أن يكون الحد الأدنى للمبلغ أقل من الحد الأقصى للمبلغ.',
-  },
-  'Minimum Quantity should be less than the Maximum Quantity.': {
-    translation: 'يجب أن يكون الحد الأدنى للكمية أقل من الحد الأقصى للكمية.',
-  },
-  'Minimum Total Spent': {
-    translation: 'الحد الأدنى لإجمالي الإنفاق',
-  },
-  Mobile: {
-    translation: 'الهاتف المحمول',
-  },
-  Modern: {
-    translation: 'حديث',
-  },
-  Nine: {
-    translation: 'تسعة',
-  },
-  Nineteen: {
-    translation: 'تسعة عشر',
-  },
-  Ninety: {
-    translation: 'تسعون',
-  },
-  'No results found, disable filters': {
-    translation: 'لم يتم العثور على نتائج، عطّل عوامل التصفية',
-  },
-  'Non-Inventory Items': {
-    translation: 'أصناف غير مخزنية',
-  },
-  One: {
-    translation: 'واحد',
-  },
-  Open: {
-    translation: 'مفتوح',
-  },
-  'Opening Amounts': {
-    translation: 'أرصدة افتتاحية',
-  },
-  'Opening Cash': {
-    translation: 'نقدية افتتاحية',
-  },
-  'Opening Shift': {
-    translation: 'وردية افتتاحية',
-  },
-  Opportunity: {
-    translation: 'فرصة',
-  },
-  'Out stock': {
-    translation: 'غير متوفر في المخزون',
-  },
-  'POS Closing Shift': {
-    translation: 'وردية إغلاق نقطة البيع',
-  },
-  'POS Opening Shift': {
-    translation: 'وردية افتتاح نقطة البيع',
-  },
-  'POS Profile': {
-    translation: 'ملف تعريف نقطة البيع',
-  },
-  'POS UI': {
-    translation: 'واجهة نقطة البيع',
-  },
-  Paisa: {
-    translation: 'بيسة',
-  },
-  'Partly Paid': {
-    translation: 'مدفوع جزئيًا',
-  },
-  'Partly Paid ${0}': {
-    translation: 'مدفوع جزئيًا ${0}',
-  },
-  'Pay & Print': {
-    translation: 'الدفع والطباعة',
-  },
-  'Pay And Print Button Colour': {
-    translation: 'لون زر الدفع والطباعة',
-  },
-  'Pay Button Colour': {
-    translation: 'لون زر الدفع',
-  },
-  'Pending qty. ${0}': {
-    translation: 'الكمية المعلقة: ${0}',
-  },
-  'Please add a customer before saving': {
-    translation: 'الرجاء إضافة عميل قبل الحفظ',
-  },
-  'Please add items': {
-    translation: 'الرجاء إضافة أصناف',
-  },
-  'Please select a batch first': {
-    translation: 'الرجاء تحديد دفعة أولاً',
-  },
-  'Please select a customer': {
-    translation: 'الرجاء اختيار العميل',
-  },
-  'Please select a payment method before proceeding with payment.': {
-    translation: 'يرجى تحديد طريقة الدفع قبل متابعة الدفع.',
-  },
-  'Please select a payment method before submitting.': {
-    translation: 'يرجى تحديد طريقة الدفع قبل الإرسال.',
-  },
-  'Points must be greater than 0': {
-    translation: 'يجب أن تكون النقاط أكبر من 0',
-  },
-  'Points must be greather than 0': {
-    translation: 'يجب أن تكون النقاط أكبر من 0',
-  },
-  'Pos Ui': {
-    translation: 'واجهة نقطة البيع',
-  },
-  'Price Discount': {
-    translation: 'خصم السعر',
-  },
-  'Price Discount Scheme': {
-    translation: 'مخطط خصم السعر',
-  },
-  'Price Discount Type': {
-    translation: 'نوع خصم السعر',
-  },
-  'Pricing Rule': {
-    translation: 'قاعدة التسعير',
-  },
-  'Pricing Rule Detail': {
-    translation: 'تفاصيل قاعدة التسعير',
-  },
-  'Pricing Rule Item': {
-    translation: 'عنصر قاعدة التسعير',
-  },
-  'Print Failed': {
-    translation: 'فشلت الطباعة',
-  },
-  'Print Successful': {
-    translation: 'تمت الطباعة بنجاح',
-  },
-  Priority: {
-    translation: 'أولوية',
-  },
-  'Product Discount': {
-    translation: 'خصم المنتج',
-  },
-  'Product Discount Scheme': {
-    translation: 'مخطط خصم المنتج',
-  },
-  Profile: {
-    translation: 'الملف الشخصي',
-  },
-  'Profit and Loss': {
-    translation: 'الأرباح والخسائر',
-  },
-  'Purchase Amount': {
-    translation: 'مبلغ الشراء',
-  },
-  'Quantity and Amount': {
-    translation: 'الكمية والمبلغ',
-  },
-  'Quantity must be greater than zero.': {
-    translation: 'يجب أن تكون الكمية أكبر من الصفر.',
-  },
-  Quotation: {
-    translation: 'عرض سعر',
-  },
-  Recent: {
-    translation: 'الأحدث',
-  },
-  'Recurse Every (As Per Transaction Unit)': {
-    translation: 'التكرار كل (حسب وحدة المعاملة)',
-  },
-  'Redeem Loyalty Points': {
-    translation: 'استرداد نقاط الولاء',
-  },
-  'Reference Id not set.': {
-    translation: 'لم يتم تعيين معرف المرجع.',
-  },
-  'Register Instance': {
-    translation: 'تسجيل المثيل',
-  },
-  'Remove Filter': {
-    translation: 'إزالة التصفية',
-  },
-  Replied: {
-    translation: 'تم الرد',
-  },
-  'Return Button Colour': {
-    translation: 'لون زر الإرجاع',
-  },
-  Round: {
-    translation: 'تقريب',
-  },
-  'Round Free Item Quantity': {
-    translation: 'تقريب كمية الصنف المجاني',
-  },
-  'Rounding Method': {
-    translation: 'طريقة التقريب',
-  },
-  'Sales Invoice ${0} is Saved': {
-    translation: 'تم حفظ فاتورة المبيعات ${0}',
-  },
-  'Save Button Colour': {
-    translation: 'لون زر الحفظ',
-  },
-  'Save and Continue': {
-    translation: 'حفظ ومتابعة',
-  },
-  'Select Colour': {
-    translation: 'اختر اللون',
-  },
-  'Select the Batch': {
-    translation: 'حدد الدفعة',
-  },
-  'Serial Number Series': {
-    translation: 'سلسلة الأرقام التسلسلية',
-  },
-  'Serial Number Series cannot contain the following characters: /, ?, &, =, %':
-    {
-      translation:
-        'لا يمكن أن تحتوي سلسلة الأرقام التسلسلية على الأحرف التالية: /، ?، &، =، %',
-    },
-  'Serial Number Status': {
-    translation: 'حالة الرقم التسلسلي',
-  },
-  'Sets the theme of the app.': {
-    translation: 'يحدد سمة التطبيق.',
-  },
-  Seven: {
-    translation: 'سبعة',
-  },
-  Seventeen: {
-    translation: 'سبعة عشر',
-  },
-  Seventy: {
-    translation: 'سبعون',
-  },
-  'Similar Product': {
-    translation: 'منتج مماثل',
-  },
-  Six: {
-    translation: 'ستة',
-  },
-  Sixteen: {
-    translation: 'ستة عشر',
-  },
-  Sixty: {
-    translation: 'ستون',
-  },
-  'Submit Button Colour': {
-    translation: 'لون زر الإرسال',
-  },
-  'Sync Data From Server': {
-    translation: 'مزامنة البيانات من الخادم',
-  },
-  'Sync Data To ERPNext': {
-    translation: 'مزامنة البيانات إلى ERPNext',
-  },
-  'Sync Data To Server': {
-    translation: 'مزامنة البيانات إلى الخادم',
-  },
-  'Sync Settings': {
-    translation: 'إعدادات المزامنة',
-  },
-  Ten: {
-    translation: 'عشرة',
-  },
-  'Terms and Conditions': {
-    translation: 'الشروط والأحكام',
-  },
-  'The Grand Total must be less than ${0} to apply this coupon.': {
-    translation: 'يجب أن يكون الإجمالي الكلي أقل من ${0} لتطبيق هذه القسيمة.',
-  },
-  'The Grand Total must exceed ${0} to apply the coupon ${1}.': {
-    translation: 'يجب أن يتجاوز الإجمالي الكلي ${0} لتطبيق القسيمة ${1}.',
-  },
-  Thirteen: {
-    translation: 'ثلاثة عشر',
-  },
-  Thirty: {
-    translation: 'ثلاثون',
-  },
-  Thousand: {
-    translation: 'ألف',
-  },
-  Three: {
-    translation: 'ثلاثة',
-  },
-  'Tier Name': {
-    translation: 'اسم الشريحة',
-  },
-  Title: {
-    translation: 'عنوان',
-  },
-  'Transfer Quantity': {
-    translation: 'كمية التحويل',
-  },
-  Twelve: {
-    translation: 'اثنا عشر',
-  },
-  Twenty: {
-    translation: 'عشرون',
-  },
-  Two: {
-    translation: 'اثنان',
-  },
-  'Unable to add an item to the return invoice.': {
-    translation: 'تعذّر إضافة صنف إلى فاتورة الإرجاع.',
-  },
-  Used: {
-    translation: 'مستخدم',
-  },
-  'Valid From': {
-    translation: 'صالح من',
-  },
-  "Valid From Date should be greather than Pricing Rule's Valid From Date.": {
-    translation:
-      'يجب أن يكون تاريخ "صالح من" أكبر من تاريخ "صالح من" في قاعدة التسعير.',
-  },
-  'Valid From Date should be less than Valid To Date.': {
-    translation: 'يجب أن تكون قيمة "صالح من تاريخ" أقل من "صالح حتى تاريخ".',
-  },
-  'Valid To': {
-    translation: 'صالح حتى',
-  },
-  'Valid To Date should be greater than Valid From Date.': {
-    translation: 'يجب أن تكون قيمة "صالح حتى تاريخ" أكبر من "صالح من تاريخ".',
-  },
-  "Valid To Date should be lesser than Pricing Rule's Valid To Date.": {
-    translation:
-      'يجب أن يكون تاريخ "صالح حتى" أقل من تاريخ "صالح حتى" في قاعدة التسعير.',
-  },
-  Validity: {
-    translation: 'الصلاحية',
-  },
-  'Validity and Usage': {
-    translation: 'الصلاحية والاستخدام',
-  },
-  'Weight Enabled Barcode': {
-    translation: 'باركود مفعّل بالوزن',
-  },
-  'When enabled, removes all default filters applied across the system, showing all available options instead of filtered ones.':
-    {
-      translation:
-        'عند التمكين، يؤدي ذلك إلى إزالة جميع عوامل التصفية الافتراضية المطبقة عبر النظام، مما يؤدي إلى عرض جميع الخيارات المتاحة بدلاً من الخيارات التي تمت تصفيتها.',
-    },
-  'When linking documents, if no match is found and filtering is in effect, allow to disable filters.':
-    {
-      translation:
-        'عند ربط المستندات، إذا لم يتم العثور على أي تطابق وكانت التصفية قيد التنفيذ، فاسمح بتعطيل عوامل التصفية.',
-    },
   Zero: {
     translation: 'صفر',
   },
   and: {
     translation: 'و',
+  },
+  'check values and click on': {
+    translation: 'تحقق من القيم وانقر على',
   },
   field: {
     translation: 'حقل',
@@ -4037,17 +3971,23 @@ const languageMap: LanguageMap = {
   held: {
     translation: 'معلّق',
   },
+  'in Batch ${0}': {
+    translation: 'في الدفعة ${0}',
+  },
   'item Group': {
     translation: 'مجموعة الصنف',
   },
-  'item Weight Digits': {
-    translation: 'عدد خانات وزن الصنف',
+  'john@doe.com': {
+    translation: 'john@doe.com',
   },
   'no need ${0} points to purchase this item': {
     translation: 'لا تحتاج إلى ${0} نقطة لشراء هذا الصنف',
   },
   only: {
     translation: 'فقط',
+  },
+  'to apply changes': {
+    translation: 'لتطبيق التغييرات',
   },
 };
 

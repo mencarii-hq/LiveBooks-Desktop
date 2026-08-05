@@ -61,9 +61,6 @@ const languageMap: LanguageMap = {
   '${0} filters applied': {
     translation: '${0} फ़िल्टर लागू किए गए',
   },
-  '${0} has linked child accounts.': {
-    translation: '${0} ने चाइल्ड अकाउंट लिंक किए हैं।',
-  },
   '${0} of type ${1} does not exist': {
     translation: '${1} प्रकार का ${0} मौजूद नहीं है',
   },
@@ -298,9 +295,6 @@ const languageMap: LanguageMap = {
   And: {
     translation: 'और',
   },
-  'Applicable anywhere in Frappe Books': {
-    translation: 'फ्रैपी बुक्स में कहीं भी लागू',
-  },
   'Applicable when POS is open': {
     translation: 'POS खुला होने पर लागू होगा',
   },
@@ -515,9 +509,6 @@ const languageMap: LanguageMap = {
   'Central Tax': {
     translation: 'केंद्रीय कर',
   },
-  'Change DB': {
-    translation: 'DB बदलें',
-  },
   'Change File': {
     translation: 'फ़ाइल बदलें',
   },
@@ -560,9 +551,6 @@ const languageMap: LanguageMap = {
   Close: {
     translation: 'बंद करें',
   },
-  'Close Frappe Books and try manually.': {
-    translation: 'फ्रेपे बुक्स बंद करें और मैन्युअल रूप से प्रयास करें।',
-  },
   'Close POS Shift': {
     translation: 'POS शिफ्ट बंद करें',
   },
@@ -598,9 +586,6 @@ const languageMap: LanguageMap = {
   },
   Collapse: {
     translation: 'संक्षिप्त करें',
-  },
-  'Collection Factor (=1 LP)': {
-    translation: 'संग्रह कारक (=1 एलपी)',
   },
   'Collection Rules': {
     translation: 'संग्रहण नियम',
@@ -727,9 +712,6 @@ const languageMap: LanguageMap = {
   'Create Sales Invoice': {
     translation: 'बिक्री चालान बनाएँ',
   },
-  'Create a demo company to try out Frappe Books': {
-    translation: 'Frappe Books आज़माने के लिए एक डेमो कंपनी बनाएँ',
-  },
   'Create a new company and store it on your computer': {
     translation: 'एक नई कंपनी बनाएँ और इसे अपने कंप्यूटर पर संग्रहीत करें',
   },
@@ -835,9 +817,6 @@ const languageMap: LanguageMap = {
   },
   'Database Error': {
     translation: 'डेटाबेस त्रुटि',
-  },
-  'Database file: ${0}': {
-    translation: 'डेटाबेस फ़ाइल: ${0}',
   },
   Date: {
     translation: 'दिनांक',
@@ -1096,9 +1075,6 @@ const languageMap: LanguageMap = {
   'Enable Serial Number': {
     translation: 'सीरियल सक्षम करें संख्या',
   },
-  'Enable Stock Returns': {
-    translation: 'स्टॉक रिटर्न सक्षम करें',
-  },
   'Enable UOM Conversion': {
     translation: 'UOM रूपांतरण सक्षम करें',
   },
@@ -1238,9 +1214,6 @@ const languageMap: LanguageMap = {
   'File selection failed': {
     translation: 'फ़ाइल चयन विफल',
   },
-  Fill: {
-    translation: 'भरें',
-  },
   Filter: {
     translation: 'फ़िल्टर',
   },
@@ -1316,14 +1289,8 @@ const languageMap: LanguageMap = {
   'Fraction Units': {
     translation: 'अंश इकाइयाँ',
   },
-  'Frappe Books does not have access to the selected file: ${0}': {
-    translation: 'Frappe Books के पास चयनित फ़ाइल तक पहुँच नहीं है: ${0}',
-  },
   'Free Item': {
     translation: 'निःशुल्क वस्तु',
-  },
-  "Free item '${0}' does not have a specified quantity": {
-    translation: "निःशुल्क वस्तु '${0}' की कोई निर्दिष्ट मात्रा नहीं है",
   },
   'Freight and Forwarding Charges': {
     translation: 'माल ढुलाई और अग्रेषण शुल्क',
@@ -1604,9 +1571,6 @@ const languageMap: LanguageMap = {
   },
   'Is Landscape': {
     translation: 'लैंडस्केप है',
-  },
-  'Is Multiple': {
-    translation: 'क्या अनेक हैं',
   },
   'Is Not': {
     translation: 'नहीं है',
@@ -2284,9 +2248,6 @@ const languageMap: LanguageMap = {
   'Payroll Payable': {
     translation: 'भुगतान योग्य वेतन-निधि',
   },
-  'Pending Qty. ${0}': {
-    translation: 'लंबित मात्रा ${0}',
-  },
   'Pending qty. ${0}': {
     translation: 'लंबित मात्रा ${0}',
   },
@@ -2627,9 +2588,6 @@ const languageMap: LanguageMap = {
   References: {
     translation: 'संदर्भ',
   },
-  'Reload Frappe Books?': {
-    translation: 'फ्रैपे बुक्स पुनः लोड करें?',
-  },
   Replied: {
     translation: 'उत्तरित',
   },
@@ -2816,12 +2774,6 @@ const languageMap: LanguageMap = {
   },
   Saved: {
     translation: 'सहेजा गया',
-  },
-  'Saved Invoices': {
-    translation: 'सहेजे गए चालान',
-  },
-  'Search an Item': {
-    translation: 'कोई वस्तु खोजें',
   },
   'Secured Loans': {
     translation: 'सुरक्षित ऋण',
@@ -3185,9 +3137,6 @@ const languageMap: LanguageMap = {
   },
   'Submit ${0}?': {
     translation: '${0} सबमिट करें?',
-  },
-  'Submit & Print': {
-    translation: 'सबमिट करके प्रिंट करें',
   },
   'Submit entries?': {
     translation: 'प्रविष्टियाँ सबमिट करें?',
@@ -3629,9 +3578,6 @@ const languageMap: LanguageMap = {
   },
   We: {
     translation: 'बु',
-  },
-  'Welcome to Frappe Books': {
-    translation: 'Frappe Books में आपका स्वागत है',
   },
   'Width (in cm)': {
     translation: 'चौड़ाई (सें.मी. में)',

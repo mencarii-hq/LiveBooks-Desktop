@@ -54,9 +54,6 @@ const languageMap: LanguageMap = {
   '${0} filters applied': {
     translation: '已应用 ${0} 个筛选器',
   },
-  '${0} has linked child accounts.': {
-    translation: '${0} 已关联子帐户',
-  },
   '${0} of type ${1} does not exist': {
     translation: '类型为 ${1} 的 ${0} 不存在',
   },
@@ -274,9 +271,6 @@ const languageMap: LanguageMap = {
   'An error occurred.': {
     translation: '发生错误。',
   },
-  'Applicable anywhere in Frappe Books': {
-    translation: '适用于Frappe Books的任何地方',
-  },
   'Applicable when Quick Search is open': {
     translation: '打开快速搜索时适用',
   },
@@ -460,9 +454,6 @@ const languageMap: LanguageMap = {
   'Central Tax': {
     translation: '中央税率',
   },
-  'Change DB': {
-    translation: '更改数据库',
-  },
   'Change File': {
     translation: '更改文件',
   },
@@ -484,9 +475,6 @@ const languageMap: LanguageMap = {
   Check: {
     translation: '检查',
   },
-  Cheque: {
-    translation: '检查',
-  },
   'City / Town': {
     translation: '城市',
   },
@@ -498,9 +486,6 @@ const languageMap: LanguageMap = {
   },
   Close: {
     translation: '关闭',
-  },
-  'Close Frappe Books and try manually.': {
-    translation: '关闭Frappe Books并手动尝试',
   },
   'Close Quick Search': {
     translation: '关闭快速搜索',
@@ -610,9 +595,6 @@ const languageMap: LanguageMap = {
   'Create Sales Invoice': {
     translation: '创建销售订单',
   },
-  'Create a demo company to try out Frappe Books': {
-    translation: '创建一个演示公司来试用Frappe Books',
-  },
   'Create a new company and store it on your computer': {
     translation: '创建一个新公司并将其存储在您的计算机上',
   },
@@ -714,9 +696,6 @@ const languageMap: LanguageMap = {
   },
   'Database Error': {
     translation: '数据库错误',
-  },
-  'Database file: ${0}': {
-    translation: '数据库文件：${0}',
   },
   Date: {
     translation: '日期',
@@ -923,9 +902,6 @@ const languageMap: LanguageMap = {
   'Enable Serial Number': {
     translation: '启用序列号',
   },
-  'Enable Stock Returns': {
-    translation: '启用库存退货',
-  },
   'Enable UOM Conversion': {
     translation: '启用计量单位转换',
   },
@@ -1052,9 +1028,6 @@ const languageMap: LanguageMap = {
   'File selection failed': {
     translation: '文件选择失败',
   },
-  Fill: {
-    translation: '填充',
-  },
   Filter: {
     translation: '过滤器',
   },
@@ -1111,9 +1084,6 @@ const languageMap: LanguageMap = {
   },
   'Fraction Units': {
     translation: '分数单位',
-  },
-  'Frappe Books does not have access to the selected file: ${0}': {
-    translation: 'Frappe Books无权访问所选文件: ${0}',
   },
   'Freight and Forwarding Charges': {
     translation: '运费和转运费用',
@@ -1847,9 +1817,6 @@ const languageMap: LanguageMap = {
   'Payroll Payable': {
     translation: '应付工资',
   },
-  'Pending Qty. ${0}': {
-    translation: '待收数量 ${0}',
-  },
   'Pending qty. ${0}': {
     translation: '待收数量 ${0}',
   },
@@ -2122,9 +2089,6 @@ const languageMap: LanguageMap = {
   },
   References: {
     translation: '关联资料',
-  },
-  'Reload Frappe Books?': {
-    translation: '重新加载 Frappe Books?',
   },
   Report: {
     translation: '报告',
@@ -2936,9 +2900,6 @@ const languageMap: LanguageMap = {
   },
   We: {
     translation: '我们',
-  },
-  'Welcome to Frappe Books': {
-    translation: '欢迎使用 Frappe Books',
   },
   'Width (in cm)': {
     translation: '宽度 (cm)',

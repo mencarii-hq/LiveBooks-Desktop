@@ -56,9 +56,6 @@ const languageMap: LanguageMap = {
   '${0} filters applied': {
     translation: '${0} filtros aplicados',
   },
-  '${0} has linked child accounts.': {
-    translation: '${0} possui contas filhas vinculadas',
-  },
   '${0} of type ${1} does not exist': {
     translation: '${0} do tipo ${1} não existe',
   },
@@ -265,9 +262,6 @@ const languageMap: LanguageMap = {
   'An error occurred.': {
     translation: 'Ocorreu um erro.',
   },
-  'Applicable anywhere in Frappe Books': {
-    translation: 'Aplicável em qualquer lugar no ContaMax',
-  },
   'Applicable when Quick Search is open': {
     translation: 'Aplicável quando a busca rápida está aberta.',
   },
@@ -462,9 +456,6 @@ const languageMap: LanguageMap = {
   'Central Tax': {
     translation: 'Imposto Central',
   },
-  'Change DB': {
-    translation: 'Modificar Banco de Dados',
-  },
   'Change File': {
     translation: 'Modificar Arquivo',
   },
@@ -483,9 +474,6 @@ const languageMap: LanguageMap = {
   Check: {
     translation: 'Verificar',
   },
-  Cheque: {
-    translation: 'Cheque',
-  },
   'City / Town': {
     translation: 'Cidade',
   },
@@ -497,9 +485,6 @@ const languageMap: LanguageMap = {
   },
   Close: {
     translation: 'Fechar',
-  },
-  'Close Frappe Books and try manually.': {
-    translation: 'Fechar o MaxConta e tentar manualmente',
   },
   'Close POS Shift': {
     translation: 'Fechar o PDV',
@@ -628,9 +613,6 @@ const languageMap: LanguageMap = {
   'Create Sales Invoice': {
     translation: 'Criar Venda',
   },
-  'Create a demo company to try out Frappe Books': {
-    translation: 'Crie uma empresa de demonstração e teste o MaxConta',
-  },
   'Create a new company and store it on your computer': {
     translation: 'Criar uma nova empresa e armazene seus dados no seu PC.',
   },
@@ -733,9 +715,6 @@ const languageMap: LanguageMap = {
   },
   'Database Error': {
     translation: 'Erro no Banco de Dados',
-  },
-  'Database file: ${0}': {
-    translation: 'Arquivo do banco de dados: ${0}',
   },
   Date: {
     translation: 'Data',
@@ -958,9 +937,6 @@ const languageMap: LanguageMap = {
   'Enable Serial Number': {
     translation: 'Habilitar Nº de Série',
   },
-  'Enable Stock Returns': {
-    translation: 'Habilitar Devoluções no Estoque',
-  },
   'Enable UOM Conversion': {
     translation: 'Habilitar Conversão de Unidade',
   },
@@ -1091,9 +1067,6 @@ const languageMap: LanguageMap = {
   'File selection failed': {
     translation: 'Falha ao selecionar o arquivo',
   },
-  Fill: {
-    translation: 'Preencher',
-  },
   Filter: {
     translation: 'Filtro',
   },
@@ -1150,9 +1123,6 @@ const languageMap: LanguageMap = {
   },
   'Fraction Units': {
     translation: 'Unidades de Fração',
-  },
-  'Frappe Books does not have access to the selected file: ${0}': {
-    translation: 'MaxConta não tem permissão para acessar o arquivo: ${0}',
   },
   'Freight and Forwarding Charges': {
     translation: 'Taxas de frete e de remessa',
@@ -1949,9 +1919,6 @@ const languageMap: LanguageMap = {
   'Payroll Payable': {
     translation: 'Folha de pagamento a pagar',
   },
-  'Pending Qty. ${0}': {
-    translation: 'Qtd Pendente ${0}',
-  },
   'Pending qty. ${0}': {
     translation: 'Qtd Pendente ${0}',
   },
@@ -2228,9 +2195,6 @@ const languageMap: LanguageMap = {
   References: {
     translation: 'Referências',
   },
-  'Reload Frappe Books?': {
-    translation: 'Recarregar o MaxConta?',
-  },
   Report: {
     translation: 'Relatório',
   },
@@ -2402,9 +2366,6 @@ const languageMap: LanguageMap = {
   },
   Saved: {
     translation: 'Salvo',
-  },
-  'Search an Item': {
-    translation: 'Buscar um registro',
   },
   'Secured Loans': {
     translation: 'Empréstimos Garantidos',
@@ -2718,9 +2679,6 @@ const languageMap: LanguageMap = {
   },
   'Submit ${0}?': {
     translation: 'Enviar ${0}?',
-  },
-  'Submit & Print': {
-    translation: 'Enviar e imprimir',
   },
   'Submit entries?': {
     translation: 'Enviar entradas?',
@@ -3085,9 +3043,6 @@ const languageMap: LanguageMap = {
   },
   We: {
     translation: 'Qa',
-  },
-  'Welcome to Frappe Books': {
-    translation: 'Bem-vindo à Frappe Books',
   },
   'Width (in cm)': {
     translation: 'Largura (em cm)',

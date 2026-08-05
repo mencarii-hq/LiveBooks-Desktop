@@ -55,9 +55,6 @@ const languageMap: LanguageMap = {
   '${0} filters applied': {
     translation: '${0} Filter angewendet',
   },
-  '${0} has linked child accounts.': {
-    translation: '${0} hat verknüpfte Unterkonten',
-  },
   '${0} of type ${1} does not exist': {
     translation: '${0} vom Typ ${1} existiert nicht',
   },
@@ -263,9 +260,6 @@ const languageMap: LanguageMap = {
   'An error occurred.': {
     translation: 'Es ist ein Fehler aufgetreten',
   },
-  'Applicable anywhere in Frappe Books': {
-    translation: 'Überall in Frappe Books anwendbar',
-  },
   'Applicable when Quick Search is open': {
     translation: 'Anwendbar, wenn die Schnellsuche geöffnet ist',
   },
@@ -444,9 +438,6 @@ const languageMap: LanguageMap = {
   'Central Tax': {
     translation: 'Zentrale Steuer',
   },
-  'Change DB': {
-    translation: 'Datenbank wechseln',
-  },
   'Change File': {
     translation: 'Datei auswählen',
   },
@@ -466,9 +457,6 @@ const languageMap: LanguageMap = {
   'Chart of Accounts': {
     translation: 'Kontenplan',
   },
-  Cheque: {
-    translation: 'Scheck',
-  },
   'City / Town': {
     translation: 'Stadt / Ortschaft',
   },
@@ -480,9 +468,6 @@ const languageMap: LanguageMap = {
   },
   Close: {
     translation: 'Schließen',
-  },
-  'Close Frappe Books and try manually.': {
-    translation: 'Schließen Sie Frappe Books und versuchen Sie es manuell.',
   },
   'Close POS Shift': {
     translation: 'POS-Schicht abschließen',
@@ -612,9 +597,6 @@ const languageMap: LanguageMap = {
   'Create Sales Invoice': {
     translation: 'Verkaufs-Rechnung anlegen',
   },
-  'Create a demo company to try out Frappe Books': {
-    translation: 'Erstelle eine Demofirma, um Frappe Books auszuprobieren',
-  },
   'Create a new company and store it on your computer': {
     translation:
       'Erstelle eine neue Firma und speicher sie auf deinem Computer',
@@ -719,9 +701,6 @@ const languageMap: LanguageMap = {
   },
   'Database Error': {
     translation: 'Datenbankfehler',
-  },
-  'Database file: ${0}': {
-    translation: 'Datenbankdatei: ${0}',
   },
   Date: {
     translation: 'Datum',
@@ -940,9 +919,6 @@ const languageMap: LanguageMap = {
   'Enable Serial Number': {
     translation: 'Seriennummern aktivieren',
   },
-  'Enable Stock Returns': {
-    translation: 'Lagerrückgaben aktivieren',
-  },
   'Enable UOM Conversion': {
     translation: 'Einheitenumrechnung aktivieren',
   },
@@ -1062,8 +1038,6 @@ const languageMap: LanguageMap = {
   'Fieldname ${0} already exists for ${1}': {
     translation:
       '"Feldname ${0} existiert bereits für ${1}",\r\n"Fieldname ${0} already used for Custom Field ${1}","Feldname ${0} wird bereits für benutzerdefiniertes Feld ${1} verwendet",\r\nFieldtype,Feldtyp,\r\n"File ${0} does not exist.","Datei ${0} existiert nicht",\r\n"File selection failed","Dateiauswahl fehlgeschlagen",\r\nFill,Auffüllen,\r\nFilter,Filter,\r\n"Fiscal Year",Geschäftsjahr,\r\n"Fiscal Year End Date","Ende Geschäftsjahr (Bilanzstichtag)",\r\n"Fiscal Year Start Date","Beginn Geschäftsjahr ",\r\n"Fix Failed","Festsetzung fehlgeschlagen",\r\n"Fixed Asset","Vermögen festgesetzt",\r\n"Fixed Assets",Anlagevermögen,\r\nFloat,,\r\n"Following cells have errors: ${0}.","Folgende Zellen haben Fehler: ${0}.",\r\n"Following links do not exist: ${absentLinks .map((l) =>",,\r\nFont,Schriftart,\r\n"For Purchase","Für Einkauf",\r\n"For Sales","Für Verkauf",\r\n"Forbidden Error","Unzulässiger Fehler",\r\n"Form Section",,\r\n"Form Tab","Formular Tab",\r\n"Form Type","Formular Typ",\r\nFr,,\r\nFraction,Bruchteil,\r\n"Fraction Units",Fraktionseinheiten,\r\n"Frappe Books does not have access to the selected file: ${0}",,\r\n"Freight and Forwarding Charges","Fracht- und Speditionskosten",\r\nFrom,Von,\r\n"From Account","Von Konto",\r\n"From Date","Von Datum",\r\n"From Loc.","Von Ort",\r\n"From Year","Von Jahr",\r\n"Full Name","Vollständiger Name",\r\n"Furnitures and Fixtures","Mobiliar und Einrichtungsgegenstände",\r\nGST,,\r\n"GSTIN No.",GSTIN-Nr.,\r\nGSTR1,GSTR1,\r\nGSTR2,GSTR2,\r\n"Gain/Loss on Asset Disposal","Gewinn/Verlust aus der Veräußerung von Vermögenswerten",\r\nGeneral,Allgemein,\r\n"General Ledger",Hauptbuch,\r\n"Get Started","Los geht\'s",\r\nGlobal,,\r\n"Go back to the previous page","Zur vorherigen Seite zurückkehren",\r\nGram,Gramm,\r\n"Grand Total",Gesamtbetrag,\r\n"Greater Than","Größer als",\r\nGreen,Grün,\r\n"Group By","Gruppieren nach",\r\nHSN/SAC,HSN/SAC,\r\n"HSN/SAC Code",HSN/SAC-Code,\r\n"Half Yearly",Semester,\r\n"Half Years",Semester,\r\n"Has Batch","Hat Gebinde",\r\n"Has Serial Number","Hat Seriennummer",\r\n"Height (in cm)","Höhe (in cm)",\r\nHelp,Hilfe,\r\n"Hex Value",Hex-Wert,\r\n"Hidden values will be visible on Print on.","Versteckte Variablen werden nicht im Druck angezeigt",\r\n"Hide Get Started",""Los geht\'s" ausblenden",\r\n"Hide Group Amounts","Gruppenkonten ausblenden",\r\n"Hide Month/Year","Monat/Jahr ausblenden",\r\n"Hides the Get Started section from the sidebar. Change will be visible on restart or refreshing the app.","Blendet den Abschnitt "Erste Schritte" in der Seitenleiste aus. Die Änderung wird beim Neustart oder beim Aktualisieren der App sichtbar.",\r\nHour,Stunde,\r\nINR,,\r\nImage,Bild,\r\n"Import Complete","Import erfolgreich abgeschlossen",\r\n"Import Data","Importierte Daten",\r\n"Import Data.","Importierte Daten",\r\n"Import Type",Import-Typ,\r\n"Import Wizard","Import-Assistent",\r\n"Importer not set',
-    context:
-      ' bitte Werkzeug neu laden.",\r\nInactive,Inaktiv,\r\n"Include Cancelled","Stornierte einbeziehen",\r\nIncome,Erlös,\r\n"Income Account",Erlöskonto,\r\n"Increase print template display scale","Skalierung der Druckvorlage vergrößern",\r\nIndigo,,\r\n"Indirect Expenses","Indirekte Kosten",\r\n"Indirect Income","Indirektes Einkommen",\r\nInflow,Zufluss,\r\n"Instance Id",Instanz-ID,\r\n"Insufficient Quantity","Unzureichende Menge",\r\n"Insufficient Quantity.","Unzureichende Menge",\r\n"Insufficient Quantity. Item ${0} has only ${1} quantities available. you selected ${2}",,\r\nInt,,\r\n"Intergrated Tax","Integrierte Steuer",\r\n"Internal Precision","Interne Präzision",\r\n"Invalid Key Error","Fehler: Ungültiger Schlüssel",\r\n"Invalid Quantity for Item ${0}",,\r\n"Invalid barcode value ${0}.","Ungültiger Wert des Barcodes ${0}",\r\n"Invalid value ${0} for ${1}","Ungültiger Wert ${0} für ${1}",\r\n"Invalid value found for ${0}","Ungültiger Wert für ${0} gefunden",\r\nInventory,Lager,\r\n"Inventory Settings",Lager-Einstellungen,\r\nInvestments,Investitionen,\r\nInvoice,Rechnung,\r\n"Invoice Created","Rechnung erstellt",\r\n"Invoice Date",Rechnungsdatum,\r\n"Invoice Item",Rechnungsposition,\r\n"Invoice No",Rechnungsnummer,\r\n"Invoice No.",Rechnungsnr.,\r\n"Invoice Value",Rechnungswert,\r\nInvoices,Rechnungen,\r\nIs,Ist,\r\n"Is Custom",Benutzerdefiniert,\r\n"Is Empty","Ist leer",\r\n"Is Group","Ist Gruppe",\r\n"Is Landscape",,\r\n"Is Not","Ist nicht",\r\n"Is Not Empty","Ist nicht leer",\r\n"Is POS Shift Open",,\r\n"Is Price List Enabled",,\r\n"Is Required",,\r\n"Is Whole","Ist Ganz",\r\nItem,Artikel,\r\n"Item ${0} has Zero Quantity",,\r\n"Item ${0} is a batched item","Artikel ${0} kommt im Gebinde.",\r\n"Item ${0} is not a batched item","Artikel ${0} kommt nicht im Gebinde.",\r\n"Item ${0} not in Stock",,\r\n"Item Description",Artikel-Beschreibung,\r\n"Item Discounts","Artikel Rabatt",\r\n"Item Name",Artikel-Name,\r\n"Item Prices","Artikel Preis",\r\n"Item with From location not found","Artikel mit "Von"-Ort nicht gefunden",\r\n"Item with To location not found","Artikel mit "Nach"-Ort nicht gefunden",\r\n"Item with barcode ${0} not found.","Artikel mit Strichcode ${0} nicht gefunden",\r\nItems,Artikel,\r\nJanuary,Januar,\r\n"John Doe",,\r\n"Journal Entries","Journal-Einträge ",\r\n"Journal Entry",Journal-Eintrag,\r\n"Journal Entry Account",Journal-Kontoeintrag,\r\n"Journal Entry Number Series","Zahlenformat der Journal-Einträge",\r\n"Journal Entry Print Template","Druckvorlage für Journal-Einträge",\r\nJuly,Juli,\r\nJune,Juni,\r\n"Key Hints","Wichtige Hinweise",\r\nKg,Kg,\r\nLabel,,\r\nLanguage,Sprache,\r\n"Left Index","Linker Index",\r\n"Legal Expenses",Rechtskosten,\r\n"Less Filters","Weniger Filter",\r\n"Less Than","Weniger als",\r\nLiability,Verbindlichkeit,\r\nLimit,Limit,\r\nLink,,\r\n"Link Validation Error",Link-Überprüfungsfehler,\r\n"Linked Entries","Verknüpfte Einträge",\r\nList,Liste,\r\n"List View",Listenansicht,\r\n"Load an existing company from your computer","Bestehendes Unternehmen von Festplatte laden",\r\n"Loading Report...","Report lädt...",\r\n"Loading instance...","Instanz lädt...",\r\nLoading...,Laden...,\r\n"Loans (Liabilities)","Darlehen (Passiva)",\r\n"Loans and Advances (Assets)","Kredite und Forderungen (Aktiva)",\r\nLocale,Gebietsschema/Sprache,\r\nLocation,Lagerort,\r\n"Location Name","Name des Ortes",\r\nLogo,Logo,\r\n"Make Entry","Datensatz erfassen",\r\n"Make Payment On Submit","Zahlung bei Buchung erfassen",\r\n"Make Purchase Receipt On Submit",,\r\n"Make Shipment On Submit",,\r\n"Mandatory Error","Obligatorischer Fehler",\r\nManufacture,Hersteller,\r\n"Manufacture Date",Herstellungsdatum,\r\n"Mar 23',
   },
   'Pad Zeros': {
     translation: 'mit Nullen auffüllen',
@@ -1148,9 +1122,6 @@ const languageMap: LanguageMap = {
   },
   'Payroll Payable': {
     translation: 'fällige Gehaltsabrechnung',
-  },
-  'Pending Qty. ${0}': {
-    translation: 'Ausstehende Menge: ${0}',
   },
   'Pending qty. ${0}': {
     translation: 'Ausstehende Menge: ${0}',

@@ -55,9 +55,6 @@ const languageMap: LanguageMap = {
   '${0} filters applied': {
     translation: '${0} फिल्टरहरू लागू गरियो',
   },
-  '${0} has linked child accounts.': {
-    translation: '${0} सहायक खाताहरू जोडिएको छ।',
-  },
   '${0} of type ${1} does not exist': {
     translation: '${0} प्रकार ${1} अवस्थित छैन',
   },
@@ -281,9 +278,6 @@ const languageMap: LanguageMap = {
   'An error occurred.': {
     translation: 'एउटा त्रुटि भयो।',
   },
-  'Applicable anywhere in Frappe Books': {
-    translation: 'फ्रपि बुक्स्मा कहीं पनि लागू हुन्छ',
-  },
   'Applicable when Quick Search is open': {
     translation: 'द्रुत खोज खुला हुँदा लागू हुन्छ',
   },
@@ -469,9 +463,6 @@ const languageMap: LanguageMap = {
   'Central Tax': {
     translation: 'केन्द्रीय कर',
   },
-  'Change DB': {
-    translation: 'DB परिवर्तन गर्नुहोस्',
-  },
   'Change File': {
     translation: 'फाइल परिवर्तन गर्नुहोस्',
   },
@@ -493,9 +484,6 @@ const languageMap: LanguageMap = {
   Check: {
     translation: 'जाँच गर्नुहोस्',
   },
-  Cheque: {
-    translation: 'चेक',
-  },
   'City / Town': {
     translation: 'शहर / नगर',
   },
@@ -507,10 +495,6 @@ const languageMap: LanguageMap = {
   },
   Close: {
     translation: 'बन्द गर्नुहोस्',
-  },
-  'Close Frappe Books and try manually.': {
-    translation:
-      'फ्रपि बुक्स् बन्द गर्नुहोस् र म्यानुअल रूपमा प्रयास गर्नुहोस्।',
   },
   'Close Quick Search': {
     translation: 'द्रुत खोज बन्द गर्नुहोस्',
@@ -621,9 +605,6 @@ const languageMap: LanguageMap = {
   'Create Sales Invoice': {
     translation: 'बिक्री बीजक सिर्जना गर्नुहोस्',
   },
-  'Create a demo company to try out Frappe Books': {
-    translation: 'फ्रपि बुक्स् प्रयास गर्न डेमो कम्पनी सिर्जना गर्नुहोस्',
-  },
   'Create a new company and store it on your computer': {
     translation:
       'नयाँ कम्पनी बनाउनुहोस् र यसलाई आफ्नो कम्प्युटरमा भण्डार गर्नुहोस्',
@@ -729,9 +710,6 @@ const languageMap: LanguageMap = {
   },
   'Database Error': {
     translation: 'डाटाबेस त्रुटि',
-  },
-  'Database file: ${0}': {
-    translation: 'डाटाबेस फाइल: ${0}',
   },
   Date: {
     translation: 'मिति',
@@ -939,9 +917,6 @@ const languageMap: LanguageMap = {
   'Enable Serial Number': {
     translation: 'क्रम संख्या सक्षम गर्नुहोस्',
   },
-  'Enable Stock Returns': {
-    translation: 'स्टक रिटर्न सक्षम गर्नुहोस्',
-  },
   'Enable UOM Conversion': {
     translation: 'UOM रूपान्तरण सक्षम गर्नुहोस्',
   },
@@ -1069,9 +1044,6 @@ const languageMap: LanguageMap = {
   'File selection failed': {
     translation: 'फाइल चयन असफल भयो',
   },
-  Fill: {
-    translation: 'भर्न',
-  },
   Filter: {
     translation: 'फिल्टर गर्नुहोस्',
   },
@@ -1128,9 +1100,6 @@ const languageMap: LanguageMap = {
   },
   'Fraction Units': {
     translation: 'अंश एकाइहरू',
-  },
-  'Frappe Books does not have access to the selected file: ${0}': {
-    translation: 'फ्रपि बुक्स्सँग चयन गरिएको फाइलमा पहुँच छैन: ${0}',
   },
   'Freight and Forwarding Charges': {
     translation: 'भाडा र फर्वार्डिङ शुल्कहरू',
@@ -1861,9 +1830,6 @@ const languageMap: LanguageMap = {
   'Payroll Payable': {
     translation: 'पेरोल भुक्तानी योग्य',
   },
-  'Pending Qty. ${0}': {
-    translation: 'विचाराधीन मात्रा ${0}',
-  },
   'Pending qty. ${0}': {
     translation: 'विचाराधीन मात्रा ${0}',
   },
@@ -2138,9 +2104,6 @@ const languageMap: LanguageMap = {
   },
   References: {
     translation: 'सन्दर्भहरू',
-  },
-  'Reload Frappe Books?': {
-    translation: 'फ्रपि बुक्स् पुनः लोड गर्ने हो',
   },
   Report: {
     translation: 'रिपोर्ट',
@@ -2960,9 +2923,6 @@ const languageMap: LanguageMap = {
   },
   We: {
     translation: 'हामी',
-  },
-  'Welcome to Frappe Books': {
-    translation: 'फ्रपि बुक्स्मा स्वागत छ',
   },
   'Width (in cm)': {
     translation: 'चौडाइ (सेमीमा)',

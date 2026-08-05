@@ -61,9 +61,6 @@ const languageMap: LanguageMap = {
   '${0} filters applied': {
     translation: ' "${0} filter diterapkan."',
   },
-  '${0} has linked child accounts.': {
-    translation: ' "${0} memiliki akun anak yang terhubung."',
-  },
   '${0} of type ${1} does not exist': {
     translation: ' "${0} dengan jenis ${1} tidak ada."',
   },
@@ -307,9 +304,6 @@ const languageMap: LanguageMap = {
   And: {
     translation: ' Dan',
   },
-  'Applicable anywhere in Frappe Books': {
-    translation: 'Berlaku di mana saja dalam Frappe Books',
-  },
   'Applicable when POS is open': {
     translation: 'Berlaku saat POS terbuka',
   },
@@ -453,12 +447,6 @@ const languageMap: LanguageMap = {
   Buildings: {
     translation: ' Bangunan',
   },
-  Buy: {
-    translation: ' Beli',
-  },
-  'Buy Button Colour': {
-    translation: 'Warna Tombol Beli',
-  },
   Cancel: {
     translation: ' Batalkan',
   },
@@ -543,9 +531,6 @@ const languageMap: LanguageMap = {
   'Central Tax': {
     translation: 'Pajak Pusat',
   },
-  'Change DB': {
-    translation: 'Ubah Database',
-  },
   'Change File': {
     translation: 'Ubah File',
   },
@@ -592,9 +577,6 @@ const languageMap: LanguageMap = {
   Close: {
     translation: 'Tutup',
   },
-  'Close Frappe Books and try manually.': {
-    translation: 'Tutup Frappe Books dan coba secara manual.',
-  },
   'Close POS Shift': {
     translation: 'Tutup Shift POS',
   },
@@ -630,9 +612,6 @@ const languageMap: LanguageMap = {
   },
   Collapse: {
     translation: 'Ciutkan',
-  },
-  'Collection Factor (=1 LP)': {
-    translation: 'Faktor Koleksi (=1 LP)',
   },
   'Collection Rules': {
     translation: 'Aturan Koleksi',
@@ -759,9 +738,6 @@ const languageMap: LanguageMap = {
   'Create Sales Invoice': {
     translation: 'Buat Faktur Penjualan',
   },
-  'Create a demo company to try out Frappe Books': {
-    translation: 'Buat perusahaan demo untuk mencoba Frappe Books',
-  },
   'Create a new company and store it on your computer': {
     translation: 'Buat perusahaan baru dan simpan di komputer Anda',
   },
@@ -870,9 +846,6 @@ const languageMap: LanguageMap = {
   },
   'Database Error': {
     translation: 'Kesalahan Basis Data',
-  },
-  'Database file: ${0}': {
-    translation: 'File basis data: ${0}',
   },
   Date: {
     translation: 'Tanggal',
@@ -1139,9 +1112,6 @@ const languageMap: LanguageMap = {
   'Enable Serial Number': {
     translation: 'Aktifkan Nomor Seri',
   },
-  'Enable Stock Returns': {
-    translation: 'Aktifkan Pengembalian Stok',
-  },
   'Enable UOM Conversion': {
     translation: 'Aktifkan Konversi Satuan',
   },
@@ -1284,9 +1254,6 @@ const languageMap: LanguageMap = {
   'File selection failed': {
     translation: 'Pemilihan file gagal',
   },
-  Fill: {
-    translation: 'Isi Data',
-  },
   Filter: {
     translation: 'Filter',
   },
@@ -1361,9 +1328,6 @@ const languageMap: LanguageMap = {
   },
   'Fraction Units': {
     translation: 'Satuan Pecahan',
-  },
-  'Frappe Books does not have access to the selected file: ${0}': {
-    translation: 'Frappe Books tidak memiliki akses ke file yang dipilih: ${0}',
   },
   'Free Item': {
     translation: 'Item Gratis',
@@ -1657,9 +1621,6 @@ const languageMap: LanguageMap = {
   'Is Landscape': {
     translation: 'Mode Lanskap',
   },
-  'Is Multiple': {
-    translation: 'Banyak',
-  },
   'Is Not': {
     translation: 'Bukan',
   },
@@ -1695,9 +1656,6 @@ const languageMap: LanguageMap = {
   },
   'Item ${0} is not a batched item': {
     translation: 'Item ${0} bukan item dengan batch',
-  },
-  'Item ${0} is not an Inventory Item.': {
-    translation: 'Item ${0} bukan item persediaan.',
   },
   'Item ${0} not in Stock': {
     translation: 'Item ${0} tidak tersedia dalam stok',
@@ -2359,9 +2317,6 @@ const languageMap: LanguageMap = {
   'Payroll Payable': {
     translation: 'Gaji yang Harus Dibayar',
   },
-  'Pending Qty. ${0}': {
-    translation: 'Kuantitas Tertunda ${0}',
-  },
   'Pending qty. ${0}': {
     translation: 'Kuantitas Tertunda ${0}',
   },
@@ -2713,9 +2668,6 @@ const languageMap: LanguageMap = {
   References: {
     translation: 'Referensi',
   },
-  'Reload Frappe Books?': {
-    translation: 'Muat Ulang Frappe Books?',
-  },
   Replied: {
     translation: 'Dibalas',
   },
@@ -2909,9 +2861,6 @@ const languageMap: LanguageMap = {
   },
   Saved: {
     translation: 'Tersimpan',
-  },
-  'Search an Item': {
-    translation: 'Cari Item',
   },
   'Secured Loans': {
     translation: 'Pinjaman Terjamin',
@@ -3737,9 +3686,6 @@ const languageMap: LanguageMap = {
   'Weight Enabled Barcode': {
     translation: 'Barcode dengan Berat Diaktifkan',
   },
-  'Welcome to Frappe Books': {
-    translation: 'Selamat datang di Frappe Books',
-  },
   'When linking documents, if no match is found and filtering is in effect, allow to disable filters.':
     {
       translation:
@@ -3796,9 +3742,6 @@ const languageMap: LanguageMap = {
   },
   'in Batch ${0}': {
     translation: 'dalam Batch ${0}',
-  },
-  'item Weight Digits': {
-    translation: 'Digit Berat Item',
   },
   'john@doe.com': {
     translation: 'john@doe.com',

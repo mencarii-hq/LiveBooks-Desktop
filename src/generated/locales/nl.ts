@@ -54,9 +54,6 @@ const languageMap: LanguageMap = {
   '${0} filters applied': {
     translation: '${0} filters toegepast',
   },
-  '${0} has linked child accounts.': {
-    translation: '${0} heeft child-accounts gekoppeld.',
-  },
   '${0} of type ${1} does not exist': {
     translation: '${0} van het type ${1} bestaat niet',
   },
@@ -95,9 +92,6 @@ const languageMap: LanguageMap = {
   },
   '1 filter applied': {
     translation: '1 filter toegepast',
-  },
-  '23 mar, 2022': {
-    translation: '23 mrt, 2022',
   },
   'A submittable entry is deleted only if it is in the cancelled state.': {
     translation:
@@ -260,9 +254,6 @@ const languageMap: LanguageMap = {
     },
   'An error occurred.': {
     translation: 'Er is een fout opgetreden.',
-  },
-  'Applicable anywhere in Frappe Books': {
-    translation: 'Overal toepasbaar in Frappe Books',
   },
   'Applicable when Quick Search is open': {
     translation: 'Van toepassing wanneer Snelzoeken is geopend',
@@ -463,9 +454,6 @@ const languageMap: LanguageMap = {
   'Central Tax': {
     translation: 'Centrale BTW',
   },
-  'Change DB': {
-    translation: 'DB wijzigen',
-  },
   'Change File': {
     translation: 'Bestand wijzigen',
   },
@@ -488,9 +476,6 @@ const languageMap: LanguageMap = {
   Check: {
     translation: 'Controleer',
   },
-  Cheque: {
-    translation: 'Cheque',
-  },
   'City / Town': {
     translation: 'Stad / Gemeente',
   },
@@ -502,9 +487,6 @@ const languageMap: LanguageMap = {
   },
   Close: {
     translation: 'Sluiten',
-  },
-  'Close Frappe Books and try manually.': {
-    translation: 'Sluit Frappe Books en probeer het handmatig.',
   },
   'Close POS Shift': {
     translation: 'POS-Shift sluiten',
@@ -637,9 +619,6 @@ const languageMap: LanguageMap = {
   'Create Sales Invoice': {
     translation: 'Verkoopfactuur maken',
   },
-  'Create a demo company to try out Frappe Books': {
-    translation: 'Maak een demobedrijf aan om Frappe Books uit te proberen',
-  },
   'Create a new company and store it on your computer': {
     translation: 'Maak een nieuw bedrijf en sla het op uw computer op',
   },
@@ -743,9 +722,6 @@ const languageMap: LanguageMap = {
   },
   'Database Error': {
     translation: 'Database Fout',
-  },
-  'Database file: ${0}': {
-    translation: 'Databasebestand: ${0}',
   },
   Date: {
     translation: 'Datum',
@@ -969,9 +945,6 @@ const languageMap: LanguageMap = {
   'Enable Serial Number': {
     translation: 'Serienummer inschakelen',
   },
-  'Enable Stock Returns': {
-    translation: 'Aandelenrendement Inschakelen',
-  },
   'Enable UOM Conversion': {
     translation: 'UOM-conversie inschakelen',
   },
@@ -1101,9 +1074,6 @@ const languageMap: LanguageMap = {
   'File selection failed': {
     translation: 'Bestandsselectie mislukt',
   },
-  Fill: {
-    translation: 'Vullen',
-  },
   Filter: {
     translation: 'Filter',
   },
@@ -1164,10 +1134,6 @@ const languageMap: LanguageMap = {
   },
   'Fraction Units': {
     translation: 'Fractie Eenheden',
-  },
-  'Frappe Books does not have access to the selected file: ${0}': {
-    translation:
-      'Frappe Books heeft geen toegang tot het geselecteerde bestand: ${0}',
   },
   'Freight and Forwarding Charges': {
     translation: 'Vracht- en Expeditiekosten',
@@ -1986,9 +1952,6 @@ const languageMap: LanguageMap = {
   'Payroll Payable': {
     translation: 'Te Betalen Loon',
   },
-  'Pending Qty. ${0}': {
-    translation: 'Aantal in wacht ${0}',
-  },
   'Pending qty. ${0}': {
     translation: 'Aantal in wacht ${0}',
   },
@@ -2274,9 +2237,6 @@ const languageMap: LanguageMap = {
   References: {
     translation: 'Referenties',
   },
-  'Reload Frappe Books?': {
-    translation: 'Frappe Books Herladen?',
-  },
   Report: {
     translation: 'Meld',
   },
@@ -2297,9 +2257,6 @@ const languageMap: LanguageMap = {
   },
   'Retained Earnings': {
     translation: 'Ingehouden Winst',
-  },
-  Efficiency: {
-    translation: 'Rendement',
   },
   'Return Against': {
     translation: 'Rendement Tegen',
@@ -2448,9 +2405,6 @@ const languageMap: LanguageMap = {
   },
   Saved: {
     translation: 'Opgeslagen',
-  },
-  'Search an Item': {
-    translation: 'Een Item Zoeken',
   },
   'Secured Loans': {
     translation: 'Beveiligde Leningen',
@@ -2785,9 +2739,6 @@ const languageMap: LanguageMap = {
   },
   'Submit ${0}?': {
     translation: '${0} Indienen?',
-  },
-  'Submit & Print': {
-    translation: 'Indienen en Afdrukken',
   },
   'Submit entries?': {
     translation: 'Verzendingen Indienen?',
@@ -3163,9 +3114,6 @@ const languageMap: LanguageMap = {
   },
   We: {
     translation: 'Woe',
-  },
-  'Welcome to Frappe Books': {
-    translation: 'Welkom bij Frappe Books',
   },
   'Width (in cm)': {
     translation: 'Breedte (in cm)',

@@ -55,9 +55,6 @@ const languageMap: LanguageMap = {
   '${0} filters applied': {
     translation: '${0} فیلتر اعمال شد',
   },
-  '${0} has linked child accounts.': {
-    translation: '${0} دارای حساب‌های فرعی مرتبط است',
-  },
   '${0} of type ${1} does not exist': {
     translation: '${0} از نوع ${1} وجود ندارد',
   },
@@ -258,9 +255,6 @@ const languageMap: LanguageMap = {
   'An error occurred.': {
     translation: 'خطایی رخ داد',
   },
-  'Applicable anywhere in Frappe Books': {
-    translation: 'قابل استفاده در هر جای Frappe Books',
-  },
   'Applicable when Quick Search is open': {
     translation: 'قابل استفاده هنگام باز بودن جستجوی سریع',
   },
@@ -454,9 +448,6 @@ const languageMap: LanguageMap = {
   'Central Tax': {
     translation: 'مالیات مرکزی',
   },
-  'Change DB': {
-    translation: 'تغییر پایگاه داده',
-  },
   'Change File': {
     translation: 'تغییر فایل',
   },
@@ -479,9 +470,6 @@ const languageMap: LanguageMap = {
   Check: {
     translation: 'بررسی',
   },
-  Cheque: {
-    translation: 'چک',
-  },
   'City / Town': {
     translation: 'شهر / شهرک',
   },
@@ -493,9 +481,6 @@ const languageMap: LanguageMap = {
   },
   Close: {
     translation: 'بستن',
-  },
-  'Close Frappe Books and try manually.': {
-    translation: 'Frappe Books را ببندید و به صورت دستی تلاش کنید',
   },
   'Close POS Shift': {
     translation: 'بستن شیفت فروشگاه',
@@ -627,9 +612,6 @@ const languageMap: LanguageMap = {
   'Create Sales Invoice': {
     translation: 'ایجاد فاکتور فروش',
   },
-  'Create a demo company to try out Frappe Books': {
-    translation: 'یک شرکت نمایشی برای امتحان Frappe Books ایجاد کنید',
-  },
   'Create a new company and store it on your computer': {
     translation: 'یک شرکت جدید ایجاد کنید و آن را در کامپیوتر خود ذخیره کنید',
   },
@@ -732,9 +714,6 @@ const languageMap: LanguageMap = {
   },
   'Database Error': {
     translation: 'خطای پایگاه داده',
-  },
-  'Database file: ${0}': {
-    translation: 'فایل پایگاه داده: ${0}',
   },
   Date: {
     translation: 'تاریخ',
@@ -951,9 +930,6 @@ const languageMap: LanguageMap = {
   'Enable Serial Number': {
     translation: 'فعال‌سازی شماره سریال',
   },
-  'Enable Stock Returns': {
-    translation: 'فعال‌سازی برگشت کالا',
-  },
   'Enable UOM Conversion': {
     translation: 'فعال‌سازی تبدیل واحد',
   },
@@ -1082,9 +1058,6 @@ const languageMap: LanguageMap = {
   },
   'File selection failed': {
     translation: 'انتخاب فایل ناموفق بود',
-  },
-  Fill: {
-    translation: 'پر کردن',
   },
   Filter: {
     translation: 'فیلتر',
@@ -1858,19 +1831,11 @@ const languageMap: LanguageMap = {
   'Payment amount: ${0} should be less than Outstanding amount: ${1}.': {
     translation: 'مبلغ پرداخت: ${0} باید کمتر از مبلغ معوق: ${1} باشد',
   },
-  'Payment of ${0} will be made from account \\"${1}\\" to account \\"${2}\\" on Submit.':
-    {
-      translation:
-        'پرداخت ${0} از حساب \\"${1}\\" به حساب \\"${2}\\" هنگام ثبت انجام خواهد شد',
-    },
   Payments: {
     translation: 'پرداخت‌ها',
   },
   'Payroll Payable': {
     translation: 'حقوق و دستمزد پرداختنی',
-  },
-  'Pending Qty. ${0}': {
-    translation: 'مقدار معوق: ${0}',
   },
   'Pending qty. ${0}': {
     translation: 'مقدار معوق: ${0}',
@@ -2148,9 +2113,6 @@ const languageMap: LanguageMap = {
   References: {
     translation: 'مراجع',
   },
-  'Reload Frappe Books?': {
-    translation: 'آیا Frappe Books را مجدداً بارگذاری می‌کنید؟',
-  },
   Report: {
     translation: 'گزارش',
   },
@@ -2310,9 +2272,6 @@ const languageMap: LanguageMap = {
   },
   Saved: {
     translation: 'ذخیره شد',
-  },
-  'Search an Item': {
-    translation: 'جستجوی یک آیتم',
   },
   'Secured Loans': {
     translation: 'وام‌های تضمین شده',
@@ -2628,9 +2587,6 @@ const languageMap: LanguageMap = {
   },
   'Submit ${0}?': {
     translation: 'آیا ${0} ثبت شود؟',
-  },
-  'Submit & Print': {
-    translation: 'ثبت و چاپ',
   },
   'Submit entries?': {
     translation: 'آیا ورودی‌ها ثبت شوند؟',
@@ -2974,9 +2930,6 @@ const languageMap: LanguageMap = {
   },
   We: {
     translation: 'چ',
-  },
-  'Welcome to Frappe Books': {
-    translation: 'به Frappe Books خوش آمدید',
   },
   'Write Off': {
     translation: 'استهلاک',

@@ -59,9 +59,6 @@ const languageMap: LanguageMap = {
   '${0} filters applied': {
     translation: '${0} filtros aplicados',
   },
-  '${0} has linked child accounts.': {
-    translation: '${0} tiene cuentas hijas vinculadas.',
-  },
   '${0} of type ${1} does not exist': {
     translation: '${0} de tipo ${1} no existe',
   },
@@ -289,9 +286,6 @@ const languageMap: LanguageMap = {
   'An error occurred.': {
     translation: 'Ocurrió un error.',
   },
-  'Applicable anywhere in Frappe Books': {
-    translation: 'Aplicable en cualquier parte de Frappe Books',
-  },
   'Applicable when Quick Search is open': {
     translation: 'Aplicable cuando la búsqueda rápida está abierta',
   },
@@ -494,9 +488,6 @@ const languageMap: LanguageMap = {
   'Central Tax': {
     translation: 'Impuesto Central',
   },
-  'Change DB': {
-    translation: 'Cambiar base de datos',
-  },
   'Change File': {
     translation: 'Cambiar archivo',
   },
@@ -518,9 +509,6 @@ const languageMap: LanguageMap = {
   },
   Check: {
     translation: 'Chequeo',
-  },
-  Cheque: {
-    translation: 'Cheque',
   },
   'City / Town': {
     translation: 'Ciudad / Pueblo',
@@ -641,9 +629,6 @@ const languageMap: LanguageMap = {
   'Create Sales Invoice': {
     translation: 'Añadir facturas de ventas',
   },
-  'Create a demo company to try out Frappe Books': {
-    translation: 'Crear una empresa de demostración para probar Frappe Books',
-  },
   'Create a new company and store it on your computer': {
     translation: 'Cree una nueva empresa y guárdela en su computadora',
   },
@@ -747,9 +732,6 @@ const languageMap: LanguageMap = {
   },
   'Database Error': {
     translation: 'Error de base de datos',
-  },
-  'Database file: ${0}': {
-    translation: 'Archivo de base de datos: ${0}',
   },
   Date: {
     translation: 'Fecha',
@@ -972,9 +954,6 @@ const languageMap: LanguageMap = {
   'Enable Serial Number': {
     translation: 'Habilitar número de serie',
   },
-  'Enable Stock Returns': {
-    translation: 'Habilitar devoluciones de stock',
-  },
   'Enable UOM Conversion': {
     translation: 'Habilitar conversión de UOM',
   },
@@ -1096,9 +1075,6 @@ const languageMap: LanguageMap = {
   },
   'File selection failed': {
     translation: 'Error al seleccionar el archivo',
-  },
-  Fill: {
-    translation: 'Rellenar',
   },
   Filter: {
     translation: 'Filtro',
@@ -1868,9 +1844,6 @@ const languageMap: LanguageMap = {
   'Payroll Payable': {
     translation: 'Nómina a pagar',
   },
-  'Pending Qty. ${0}': {
-    translation: 'Cantidad pendiente ${0}',
-  },
   'Pending qty. ${0}': {
     translation: 'Cantidad pendiente ${0}',
   },
@@ -2238,9 +2211,6 @@ const languageMap: LanguageMap = {
   Saved: {
     translation: 'Guardado',
   },
-  'Search an Item': {
-    translation: 'Buscar un artículo',
-  },
   'Secured Loans': {
     translation: 'Préstamos garantizados',
   },
@@ -2569,9 +2539,6 @@ const languageMap: LanguageMap = {
   },
   'Submit ${0}?': {
     translation: '¿Enviar ${0}?',
-  },
-  'Submit & Print': {
-    translation: 'Enviar y imprimir',
   },
   'Submit entries?': {
     translation: '¿Enviar entradas?',
@@ -2944,9 +2911,6 @@ const languageMap: LanguageMap = {
   },
   We: {
     translation: 'Mi',
-  },
-  'Welcome to Frappe Books': {
-    translation: 'Bienvenido a Libros Frappe',
   },
   'Width (in cm)': {
     translation: 'Ancho (en cm)',

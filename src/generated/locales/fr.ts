@@ -55,9 +55,6 @@ const languageMap: LanguageMap = {
   '${0} filters applied': {
     translation: '${0} filtres appliqués',
   },
-  '${0} has linked child accounts.': {
-    translation: '${0} a des comptes enfants liés',
-  },
   '${0} of type ${1} does not exist': {
     translation: "${0} de type ${1} n'existe pas",
   },
@@ -236,6 +233,9 @@ const languageMap: LanguageMap = {
   },
   All: {
     translation: 'Tout',
+  },
+  'Allow to bypass filters': {
+    translation: 'Autoriser la désactivation des filtres',
   },
   Amount: {
     translation: 'Montant',
@@ -424,9 +424,6 @@ const languageMap: LanguageMap = {
   'Central Tax': {
     translation: 'Impôt global',
   },
-  'Change DB': {
-    translation: 'Changer la BDD',
-  },
   'Change File': {
     translation: 'Changer le ficher',
   },
@@ -445,9 +442,6 @@ const languageMap: LanguageMap = {
   },
   'Chart of Accounts': {
     translation: 'Graphique des comptes',
-  },
-  Cheque: {
-    translation: 'Chèque',
   },
   'City / Town': {
     translation: 'Ville / Village',
@@ -663,9 +657,6 @@ const languageMap: LanguageMap = {
   },
   'Database Error': {
     translation: 'Erreur de base de donnée',
-  },
-  'Database file: ${0}': {
-    translation: 'Fichier de base de données : ${0}',
   },
   Date: {
     translation: 'Date',
@@ -1345,9 +1336,6 @@ const languageMap: LanguageMap = {
   'Payroll Payable': {
     translation: 'Paie à payer',
   },
-  'Pending Qty. ${0}': {
-    translation: 'Qué. en attente ${0}',
-  },
   'Pending qty. ${0}': {
     translation: 'Qué. en attente ${0}',
   },
@@ -2015,9 +2003,11 @@ const languageMap: LanguageMap = {
   We: {
     translation: 'Me',
   },
-  'Welcome to Frappe Books': {
-    translation: 'Bienvenue chez Frappe Books',
-  },
+  'When linking documents, if no match is found and filtering is in effect, allow to disable filters.':
+    {
+      translation:
+        "Lors de la sélection d'un document lié, autoriser à désactiver les filtres si aucun résultat n'est trouvé",
+    },
   'Width (in cm)': {
     translation: 'Largeur (en cm)',
   },
@@ -2053,14 +2043,6 @@ const languageMap: LanguageMap = {
   'to apply changes': {
     translation: 'pour appliquer les changements',
   },
-  'Allow to bypass filters': {
-    translation: 'Autoriser la désactivation des filtres',
-  },
-  'When linking documents, if no match is found and filtering is in effect, allow to disable filters.':
-    {
-      translation:
-        "Lors de la sélection d'un document lié, autoriser à désactiver les filtres si aucun résultat n'est trouvé",
-    },
 };
 
 export default languageMap;

@@ -171,9 +171,6 @@ const languageMap: LanguageMap = {
   'Chart of Accounts': {
     translation: 'Diagrama de comptes',
   },
-  Cheque: {
-    translation: 'Xec',
-  },
   'City / Town': {
     translation: 'Ciutat',
   },
@@ -1121,9 +1118,6 @@ const languageMap: LanguageMap = {
   },
   'Value missing for ${0}': {
     translation: 'Falta el valor de ${0}',
-  },
-  'Welcome to Frappe Books': {
-    translation: 'Benvingut a Frappe Books',
   },
   'Write Off': {
     translation: 'Sinistre',
