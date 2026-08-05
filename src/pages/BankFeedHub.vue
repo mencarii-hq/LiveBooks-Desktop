@@ -11,8 +11,43 @@
         p-4
       "
     >
-      <div v-if="bookError" class="text-red-600 dark:text-red-400 text-sm mb-4">
-        {{ bookError }}
+      <!-- Cloud sign-in messaging lives only on Settings → Online -->
+
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div
+          class="
+            inline-flex
+            border
+            rounded
+            overflow-hidden
+            dark:border-gray-700
+          "
+        >
+          <button
+            type="button"
+            class="px-4 py-2 text-sm"
+            :class="
+              hubTab === 'manual'
+                ? 'bg-gray-200 dark:bg-gray-700 font-medium'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100'
+            "
+            @click="setHubTab('manual')"
+          >
+            {{ t`Manual` }}
+          </button>
+          <button
+            type="button"
+            class="px-4 py-2 text-sm border-s dark:border-gray-700"
+            :class="
+              hubTab === 'online'
+                ? 'bg-gray-200 dark:bg-gray-700 font-medium'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100'
+            "
+            @click="setHubTab('online')"
+          >
+            {{ t`Online` }}
+          </button>
+        </div>
       </div>
 
       <div
@@ -21,9 +56,23 @@
       >
         {{ t`Loading accounts…` }}
       </div>
+      <div
+        v-else-if="hubTab === 'online' && !visibleBankTables.length"
+        class="text-sm text-gray-600 dark:text-gray-300"
+      >
+        {{
+          t`No online banks connected yet. Set up an online bank in Settings above.`
+        }}
+      </div>
+      <div
+        v-else-if="hubTab === 'manual' && !visibleBankTables.length"
+        class="text-sm text-gray-600 dark:text-gray-300"
+      >
+        {{ t`No manual banks yet. Add a bank in Settings → Manual.` }}
+      </div>
       <div v-else class="space-y-6">
         <div
-          v-for="bank in bankTables"
+          v-for="bank in visibleBankTables"
           :key="bank.itemId"
           class="
             border border-gray-200
@@ -36,6 +85,7 @@
         >
           <table class="min-w-full text-sm text-start">
             <caption
+              v-if="bank.kind === 'plaid'"
               class="
                 text-start
                 px-3
@@ -70,7 +120,7 @@
                 "
               />
               <p
-                v-if="bank.kind === 'plaid' && bank.ingestPaused"
+                v-if="bank.ingestPaused"
                 class="
                   mt-1
                   text-xs
@@ -84,7 +134,7 @@
                 }}
               </p>
               <span
-                v-if="bank.kind === 'plaid' && bank.pendingAtBank > 0"
+                v-if="bank.pendingAtBank > 0"
                 class="
                   ms-2
                   text-xs
@@ -283,7 +333,6 @@ export default defineComponent({
   data() {
     return {
       bookId: '' as string,
-      bookError: '' as string,
       feedsLoading: false,
       feedsError: '' as string,
       feedItems: [] as PlaidFeedItemRow[],
@@ -318,6 +367,7 @@ export default defineComponent({
         { totalDebit: number; totalCredit: number }
       >,
       accountsLoading: false,
+      hubTab: 'manual' as 'manual' | 'online',
     };
   },
   computed: {
@@ -425,8 +475,15 @@ export default defineComponent({
       });
       return tables;
     },
+    visibleBankTables(): BankTable[] {
+      const want = this.hubTab === 'online' ? 'plaid' : 'manual';
+      return this.bankTables.filter((t) => t.kind === want);
+    },
   },
   watch: {
+    '$route.query.tab'() {
+      this.syncHubTabFromRoute();
+    },
     feedItems: {
       handler() {
         void this.prefetchLinkedForAllItems();
@@ -435,6 +492,7 @@ export default defineComponent({
     },
   },
   mounted() {
+    this.syncHubTabFromRoute();
     void this.bootstrapAccounts();
     void this.bootstrapFeeds();
     this.boundVisibility = () => {
@@ -464,7 +522,24 @@ export default defineComponent({
   methods: {
     t,
     goSettings() {
-      void routeTo('/bank-feeds/settings');
+      void routeTo({
+        path: '/bank-feeds/settings',
+        query: { tab: this.hubTab },
+      });
+    },
+    syncHubTabFromRoute() {
+      const tab = this.$route.query.tab;
+      if (tab === 'online' || tab === 'manual') {
+        this.hubTab = tab;
+      } else {
+        this.hubTab = 'manual';
+      }
+    },
+    setHubTab(tab: 'manual' | 'online') {
+      if (this.hubTab === tab && this.$route.query.tab === tab) {
+        return;
+      }
+      void routeTo({ path: '/bank-feeds', query: { tab } });
     },
     async bootstrapAccounts() {
       this.accountsLoading = true;
@@ -616,10 +691,7 @@ export default defineComponent({
       }
     },
     msgSignInCloud() {
-      return t`Sign in to LiveBooks Cloud from the sidebar to use bank feeds.`;
-    },
-    msgCloudBookResolve() {
-      return t`Could not resolve your cloud book for this company file.`;
+      return t`Sign into LiveBooks Cloud to use online bank feeds here.`;
     },
     msgEmptyPayload() {
       return t`Empty payload`;
@@ -879,7 +951,7 @@ export default defineComponent({
             } else {
               showToast({
                 type: 'warning',
-                message: t`No stored batches left to re-fetch for this account. Recent history may be incomplete — upload a CSV/OFX if you need older transactions.`,
+                message: t`No stored batches left to re-fetch for this account. Recent history may be incomplete — import a CSV/OFX if you need older transactions.`,
                 duration: 'long',
               });
             }
@@ -900,15 +972,11 @@ export default defineComponent({
     async bootstrapFeeds() {
       const ctx = await ensureLivebooksCloudBookId(fyo);
       if (!ctx.ok) {
-        if (ctx.reason === 'not_signed_in') {
-          this.bookId = '';
-          this.bookError = this.msgSignInCloud();
-        } else {
-          this.bookError = ctx.message ?? this.msgCloudBookResolve();
-        }
+        // Do not surface cloud sign-in here — Manual feeds work offline;
+        // Online connect messaging lives on Settings → Online only.
+        this.bookId = '';
         return;
       }
-      this.bookError = '';
       this.bookId = ctx.bookId;
       await this.loadChartBankAccountsForMaps();
       await this.refreshFeeds(false);

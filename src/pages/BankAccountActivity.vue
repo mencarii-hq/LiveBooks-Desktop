@@ -17,7 +17,7 @@
         type="primary"
         @click="goImportBankFile"
       >
-        {{ t`⤒ Upload file` }}
+        {{ t`Import bank file` }}
       </Button>
     </PageHeader>
 
@@ -57,85 +57,13 @@
           "
         >
           <table class="min-w-full text-sm text-start">
-            <caption
-              class="
-                text-start
-                px-3
-                py-2.5
-                text-sm
-                font-semibold
-                text-gray-900
-                dark:text-gray-100
-                bg-gray-50
-                dark:bg-gray-800
-                border-b border-gray-200
-                dark:border-gray-700
-              "
-            >
-              {{
-                summaryInstitutionCaption
-              }}
-              <span
-                v-if="summaryConnectionHealth"
-                class="inline-block w-2 h-2 rounded-full ms-2 align-middle"
-                :class="{
-                  'bg-emerald-500': summaryConnectionHealth === 'ok',
-                  'bg-amber-500': summaryConnectionHealth === 'stale',
-                  'bg-red-500': summaryConnectionHealth === 'broken',
-                }"
-                :title="
-                  summaryConnectionHealth === 'ok'
-                    ? t`Connection healthy`
-                    : summaryConnectionHealth === 'stale'
-                    ? t`No recent sync from your bank.`
-                    : t`Connection broken — sign in again.`
-                "
-              />
-              <span
-                v-if="accountKind === 'manual'"
-                class="
-                  ms-2
-                  text-xs
-                  px-1.5
-                  py-0.5
-                  rounded
-                  bg-gray-100
-                  dark:bg-gray-800
-                  text-gray-700
-                  dark:text-gray-300
-                  align-middle
-                "
-              >
-                {{ t`Manual` }}
-              </span>
-              <span
-                v-if="accountKind === 'plaid' && summaryPendingAtBank > 0"
-                class="
-                  ms-2
-                  text-xs
-                  px-1.5
-                  py-0.5
-                  rounded
-                  bg-blue-100
-                  dark:bg-blue-900/40
-                  text-blue-700
-                  dark:text-blue-100
-                  align-middle
-                "
-                :title="
-                  t`Transactions Plaid sent us that are still pending at the bank. They'll arrive once they post.`
-                "
-              >
-                {{ t`${summaryPendingAtBank} pending at bank` }}
-              </span>
-            </caption>
             <thead class="bg-gray-50 dark:bg-gray-800 text-xs uppercase">
               <tr>
                 <th class="text-start p-3 border-b dark:border-gray-700">
-                  {{ t`Bank account name` }}
+                  {{ t`Bank name` }}
                 </th>
                 <th class="text-start p-3 border-b dark:border-gray-700">
-                  {{ t`Bank account balance` }}
+                  {{ t`Bank balance` }}
                 </th>
                 <th class="text-start p-3 border-b dark:border-gray-700">
                   {{ t`Last sync` }}
@@ -430,7 +358,7 @@
           >
             <template v-if="accountKind === 'manual'">
               {{
-                t`No transactions to review. Click Upload file above to import CSV, QBO, or QFX.`
+                t`No transactions to review. Click Import bank file above to import CSV, QBO, or QFX.`
               }}
             </template>
             <template v-else>
@@ -872,9 +800,6 @@ export default defineComponent({
       summaryBankAccountName: '' as string,
       summaryBankBalanceLabel: null as string | null,
       summaryLastSyncLabel: null as string | null,
-      summaryInstitutionCaption: '' as string,
-      summaryConnectionHealth: null as 'ok' | 'stale' | 'broken' | null,
-      summaryPendingAtBank: 0,
       plaidFeedItemsCache: [] as PlaidFeedItemRow[],
       ledgerAccountLabel: '' as string,
       plaidCatchUpBlocked: null as {
@@ -1038,9 +963,6 @@ export default defineComponent({
       this.summaryBankAccountName = '';
       this.summaryBankBalanceLabel = null;
       this.summaryLastSyncLabel = null;
-      this.summaryInstitutionCaption = '';
-      this.summaryConnectionHealth = null;
-      this.summaryPendingAtBank = 0;
       this.plaidFeedItemsCache = [];
       this.ledgerAccountLabel = '';
 
@@ -1081,7 +1003,7 @@ export default defineComponent({
       if (!ctx.ok) {
         if (ctx.reason === 'not_signed_in') {
           this.bookError =
-            t`Sign in to LiveBooks Cloud from the sidebar to load pending batches.`;
+            t`Sign into LiveBooks Cloud to load pending batches.`;
         } else {
           this.bookError =
             ctx.message ??
@@ -1631,7 +1553,12 @@ export default defineComponent({
       }
     },
     goToBankFeedSettings() {
-      void routeTo('/bank-feeds/settings');
+      void routeTo({
+        path: '/bank-feeds/settings',
+        query: {
+          tab: this.accountKind === 'manual' ? 'manual' : 'online',
+        },
+      });
     },
     async reload() {
       if (this.refreshing) {
@@ -1650,9 +1577,6 @@ export default defineComponent({
           this.ledgerAccountLabel || this.accountTitle;
         this.summaryBankBalanceLabel = null;
         this.summaryLastSyncLabel = null;
-        this.summaryInstitutionCaption = t`Manual banks`;
-        this.summaryConnectionHealth = null;
-        this.summaryPendingAtBank = 0;
         return;
       }
       if (this.accountKind !== 'plaid') {
@@ -1664,26 +1588,12 @@ export default defineComponent({
           this.ledgerAccountLabel || this.accountTitle;
         this.summaryBankBalanceLabel = null;
         this.summaryLastSyncLabel = null;
-        this.summaryInstitutionCaption = !this.bookId
-          ? t`Plaid connection`
-          : '';
-        this.summaryConnectionHealth = null;
-        this.summaryPendingAtBank = 0;
         return;
       }
       const m0 = maps[0];
       const feedItem = this.plaidFeedItemsCache.find(
         (i) => i.item_id === m0.plaidItemId
       );
-      const institution =
-        feedItem &&
-        feedItem.institution_name &&
-        feedItem.institution_name.trim()
-          ? feedItem.institution_name.trim()
-          : feedItem?.item_id ?? m0.plaidItemId;
-      this.summaryInstitutionCaption = institution;
-      this.summaryConnectionHealth = feedItem?.health ?? null;
-      this.summaryPendingAtBank = feedItem?.last_pending_dropped_count ?? 0;
       const lastSync =
         feedItem?.last_sync_at != null
           ? this.formatActivityLocalTimestamp(feedItem.last_sync_at)

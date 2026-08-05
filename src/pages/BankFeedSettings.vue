@@ -10,15 +10,50 @@
         p-4
       "
     >
-      <div v-if="bookError" class="text-red-600 dark:text-red-400 text-sm mb-4">
-        {{ bookError }}
-      </div>
-
-      <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-        <h2 class="text-base font-medium dark:text-gray-100">
-          {{ t`Plaid` }}
-        </h2>
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div
+          class="
+            inline-flex
+            border
+            rounded
+            overflow-hidden
+            dark:border-gray-700
+          "
+        >
+          <button
+            type="button"
+            class="px-4 py-2 text-sm"
+            :class="
+              settingsTab === 'manual'
+                ? 'bg-gray-200 dark:bg-gray-700 font-medium'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100'
+            "
+            @click="setSettingsTab('manual')"
+          >
+            {{ t`Manual` }}
+          </button>
+          <button
+            type="button"
+            class="px-4 py-2 text-sm border-s dark:border-gray-700"
+            :class="
+              settingsTab === 'online'
+                ? 'bg-gray-200 dark:bg-gray-700 font-medium'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100'
+            "
+            @click="setSettingsTab('online')"
+          >
+            {{ t`Online` }}
+          </button>
+        </div>
         <Button
+          v-if="settingsTab === 'manual' && !manualPanelOpen"
+          type="primary"
+          @click="openManualPanel"
+        >
+          {{ t`Add bank` }}
+        </Button>
+        <Button
+          v-else-if="settingsTab === 'online'"
           type="primary"
           :disabled="plaidLinkBusy || !bookId"
           @click="linkBankWithPlaid()"
@@ -26,113 +61,607 @@
           {{ t`Connect Banks via Plaid` }}
         </Button>
       </div>
-      <p class="text-sm text-gray-600 dark:text-gray-300 mb-4 max-w-5xl">
-        {{
-          t`Map each Plaid account to one ledger account. A ledger account can only be linked once — already-used accounts are disabled in the dropdown.`
-        }}
-      </p>
-      <ul
-        class="
-          text-sm text-gray-600
-          dark:text-gray-300
-          mb-4
-          max-w-5xl
-          list-disc
-          ps-5
-          space-y-1
-        "
-      >
-        <li>
-          {{
-            t`Disconnect Feed pauses imports for that account. The mapping stays; use Reactivate feed to resume.`
-          }}
-        </li>
-        <li>
-          {{
-            t`Disconnecting the last account for a bank removes the whole Plaid connection until you connect again.`
-          }}
-        </li>
-        <li>
-          {{
-            t`Reconnect bank when Plaid needs you to sign in again for that institution.`
-          }}
-        </li>
-      </ul>
 
-      <div
-        class="
-          mb-4
-          rounded-lg
-          border border-amber-300
-          dark:border-amber-700
-          bg-amber-50
-          dark:bg-amber-900/20
-          p-3
-          text-sm text-amber-950
-          dark:text-amber-100
-          max-w-5xl
-        "
-      >
-        {{
-          t`Your ledger lives in this company file on this computer. The same Cloud login on another machine without that file shows different books — keep one canonical copy, or migrate it before switching.`
-        }}
-      </div>
-
-      <div
-        v-if="bookId"
-        class="
-          mb-4
-          max-w-5xl
-          rounded-lg
-          border border-gray-200
-          dark:border-gray-700
-          p-3
-          text-sm
-        "
-      >
-        <label class="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            class="mt-1 rounded border-gray-400 dark:border-gray-600"
-            :checked="plaidAutoStageImportBatches"
-            @change="togglePlaidAutoStage"
-          />
-          <span class="text-gray-700 dark:text-gray-100">
-            <span class="block">
-              {{
-                t`Auto-stage new Plaid batches into Bank Account Activity (For Review).`
-              }}
-            </span>
-            <span class="block mt-1 text-gray-600 dark:text-gray-300">
-              {{
-                t`Off: open each account and use Pull bank feed. Categories never post automatically.`
-              }}
-            </span>
-          </span>
-        </label>
-      </div>
-
-      <div v-if="feedsLoading" class="text-sm text-gray-600 dark:text-gray-300">
-        {{ t`Loading feeds…` }}
-      </div>
-      <div
-        v-else-if="feedsError"
-        class="text-sm text-red-600 dark:text-red-400"
-      >
-        {{ feedsError }}
-      </div>
-      <div
-        v-else-if="feedItems.length === 0"
-        class="text-sm text-gray-600 dark:text-gray-300 mb-6"
-      >
-        {{
-          t`No Plaid connections yet. Use Connect Banks via Plaid to link an institution.`
-        }}
-      </div>
-      <div v-else class="space-y-6">
+      <template v-if="settingsTab === 'online'">
         <div
-          v-for="row in feedItems"
-          :key="row.item_id"
+          v-if="bookError"
+          class="text-sm text-red-600 dark:text-red-400 mb-4 max-w-5xl"
+        >
+          <template v-if="bookNeedsCloudSignIn">
+            {{ t`Sign into` }}
+            <button
+              type="button"
+              class="
+                underline
+                font-bold
+                text-green-700
+                dark:text-green-500
+                hover:text-green-800
+                dark:hover:text-green-400
+              "
+              @click="openCloudSignIn"
+            >
+              {{ t`LiveBooks Cloud` }}
+            </button>
+            {{ t`to use online bank feeds here.` }}
+          </template>
+          <template v-else>
+            {{ bookError }}
+          </template>
+        </div>
+        <div v-else class="mb-4 max-w-5xl space-y-2">
+          <p class="text-sm text-gray-600 dark:text-gray-300">
+            {{
+              t`Connect a bank via Plaid, then map each bank account to one ledger account. A ledger account can only be linked once.`
+            }}
+          </p>
+          <ul
+            class="
+              text-sm text-gray-600
+              dark:text-gray-300
+              list-disc
+              ps-5
+              space-y-1
+            "
+          >
+            <li>
+              {{
+                t`Disconnect Feed pauses imports (mapping stays); use Reactivate feed to resume.`
+              }}
+            </li>
+            <li>
+              {{
+                t`Reconnect bank when Plaid needs you to sign in again for that institution.`
+              }}
+            </li>
+            <li>
+              {{
+                t`Your ledger lives in this company file — keep one canonical copy if you use Cloud on more than one computer.`
+              }}
+            </li>
+          </ul>
+        </div>
+
+        <div
+          v-if="bookId"
+          class="
+            mb-4
+            max-w-5xl
+            rounded-lg
+            border border-gray-200
+            dark:border-gray-700
+            p-3
+            text-sm
+          "
+        >
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              class="mt-1 rounded border-gray-400 dark:border-gray-600"
+              :checked="plaidAutoStageImportBatches"
+              @change="togglePlaidAutoStage"
+            />
+            <span class="text-gray-700 dark:text-gray-100">
+              <span class="block">
+                {{
+                  t`Auto-stage new Plaid batches into Bank Account Activity (For Review).`
+                }}
+              </span>
+              <span class="block mt-1 text-gray-600 dark:text-gray-300">
+                {{
+                  t`Off: open each account and use Pull bank feed. Categories never post automatically.`
+                }}
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <div
+          v-if="feedsLoading"
+          class="text-sm text-gray-600 dark:text-gray-300"
+        >
+          {{ t`Loading feeds…` }}
+        </div>
+        <div
+          v-else-if="feedsError"
+          class="text-sm text-red-600 dark:text-red-400"
+        >
+          {{ feedsError }}
+        </div>
+        <div
+          v-else-if="!bookError && feedItems.length === 0"
+          class="text-sm text-gray-600 dark:text-gray-300 mb-6"
+        >
+          {{
+            t`No Plaid connections yet. Use Connect Banks via Plaid to link an institution.`
+          }}
+        </div>
+        <div v-else class="space-y-6">
+          <div
+            v-for="row in feedItems"
+            :key="row.item_id"
+            class="
+              border border-gray-200
+              dark:border-gray-700
+              rounded-lg
+              overflow-hidden
+              bg-white
+              dark:bg-gray-900
+            "
+          >
+            <table class="min-w-full text-sm text-start">
+              <caption
+                class="
+                  text-start
+                  px-3
+                  py-2.5
+                  text-sm
+                  font-semibold
+                  text-gray-900
+                  dark:text-gray-100
+                  bg-gray-50
+                  dark:bg-gray-800
+                  border-b border-gray-200
+                  dark:border-gray-700
+                "
+              >
+                <div class="flex flex-wrap items-start justify-between gap-2">
+                  <div class="min-w-0 flex-1">
+                    {{ row.institution_name || row.item_id }}
+                    <span
+                      v-if="row.health"
+                      class="
+                        inline-block
+                        w-2
+                        h-2
+                        rounded-full
+                        ms-2
+                        align-middle
+                      "
+                      :class="{
+                        'bg-emerald-500': row.health === 'ok',
+                        'bg-amber-500': row.health === 'stale',
+                        'bg-red-500': row.health === 'broken',
+                      }"
+                      :title="
+                        row.health === 'ok'
+                          ? t`Connection healthy`
+                          : row.health === 'stale'
+                          ? t`No recent sync from your bank.`
+                          : t`Connection broken — sign in again.`
+                      "
+                    />
+                    <span
+                      class="
+                        block
+                        text-xs
+                        font-normal
+                        text-gray-600
+                        dark:text-gray-300
+                        mt-1
+                      "
+                    >
+                      {{ t`Last sync` }}:
+                      {{
+                        formatLocalTimestamp(row.last_sync_at) ||
+                        row.last_sync_at ||
+                        t`—`
+                      }}
+                      · {{ t`Feed version` }}: {{ row.feed_version }}
+                    </span>
+                    <span
+                      v-if="row.ingest_paused_at"
+                      class="
+                        block
+                        text-xs
+                        font-normal
+                        text-amber-700
+                        dark:text-amber-300
+                        mt-1
+                      "
+                    >
+                      {{
+                        t`Bank feeds paused — acknowledge old import batches in Desktop to resume.`
+                      }}
+                    </span>
+                  </div>
+                  <Button
+                    type="secondary"
+                    class="shrink-0 !text-xs self-start"
+                    :disabled="!bookId || refreshItemBusy[row.item_id]"
+                    @click.stop="refreshPlaidInstitution(row.item_id)"
+                  >
+                    {{
+                      refreshItemBusy[row.item_id] ? t`Refreshing…` : t`Refresh`
+                    }}
+                  </Button>
+                </div>
+              </caption>
+              <thead class="bg-gray-50 dark:bg-gray-800 text-xs uppercase">
+                <tr>
+                  <th class="text-start p-3 border-b dark:border-gray-700">
+                    {{ t`Bank account name` }}
+                  </th>
+                  <th class="text-start p-3 border-b dark:border-gray-700">
+                    {{ t`Ledger name` }}
+                  </th>
+                  <th class="text-start p-3 border-b dark:border-gray-700">
+                    {{ t`Actions` }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="bg-gray-50/80 dark:bg-gray-900/40">
+                  <td
+                    colspan="3"
+                    class="
+                      p-3
+                      border-b
+                      dark:border-gray-700
+                      align-top
+                      text-xs text-gray-700
+                      dark:text-gray-300
+                    "
+                  >
+                    <div
+                      class="
+                        flex flex-col
+                        lg:flex-row lg:items-start lg:justify-between
+                        gap-3
+                      "
+                    >
+                      <p class="max-w-3xl">
+                        {{
+                          t`Deleted imported lines by mistake? Re-queue batches LiveBooks Cloud still has (typically within 90 days). This replays saved imports — it does not fetch brand-new bank history from Plaid or undo journals you posted. Then open Bank Account Activity for each mapped ledger account.`
+                        }}
+                      </p>
+                      <Button
+                        type="secondary"
+                        class="shrink-0 !text-xs self-start"
+                        :disabled="!bookId || reopenImportBusy[row.item_id]"
+                        @click.stop="confirmReopenImportBatches(row)"
+                      >
+                        {{
+                          reopenImportBusy[row.item_id]
+                            ? t`Re-fetching…`
+                            : t`Re-fetch missing data`
+                        }}
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-if="row.item_login_required">
+                  <td
+                    class="p-3 text-sm text-amber-800 dark:text-amber-200"
+                    colspan="7"
+                  >
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span>
+                        {{
+                          t`This connection needs re-authentication with Plaid (login required).`
+                        }}
+                      </span>
+                      <Button
+                        type="secondary"
+                        :disabled="plaidLinkBusy || !bookId"
+                        @click.stop="linkBankWithPlaid(row.item_id)"
+                      >
+                        {{ t`Reconnect bank` }}
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-else-if="linkedAccountsLoading[row.item_id]">
+                  <td
+                    class="p-3 text-sm text-gray-600 dark:text-gray-300"
+                    colspan="7"
+                  >
+                    {{ t`Loading Plaid accounts…` }}
+                  </td>
+                </tr>
+                <tr v-else-if="linkedAccountsError[row.item_id]">
+                  <td class="p-3 text-sm text-red-600" colspan="7">
+                    {{ linkedAccountsError[row.item_id] }}
+                  </td>
+                </tr>
+                <tr
+                  v-else-if="
+                    linkedAccountsFetched[row.item_id] &&
+                    !linkedAccountsByItem[row.item_id]?.length
+                  "
+                >
+                  <td
+                    class="p-3 text-sm text-gray-600 dark:text-gray-300"
+                    colspan="7"
+                  >
+                    {{
+                      t`No Plaid accounts were returned. Use Refresh for this institution or reconnect the bank if login is required.`
+                    }}
+                  </td>
+                </tr>
+                <template v-else>
+                  <tr
+                    v-for="acc in linkedAccountsByItem[row.item_id] || []"
+                    :key="acc.account_id"
+                    class="
+                      border-b
+                      dark:border-gray-800
+                      last:border-0
+                      hover:bg-gray-50
+                      dark:hover:bg-gray-800/80
+                    "
+                    :class="{
+                      'cursor-pointer':
+                        !!plaidRowLedgerName(row, acc) &&
+                        !isPlaidAccountFeedDisconnected(row, acc),
+                      'opacity-80': isPlaidAccountFeedDisconnected(row, acc),
+                    }"
+                    @click="
+                    plaidRowLedgerName(row, acc) &&
+                    !isPlaidAccountFeedDisconnected(row, acc)
+                      ? openManualActivity(plaidRowLedgerName(row, acc)!)
+                      : undefined
+                  "
+                  >
+                    <td class="p-3 text-start font-medium">
+                      <span>{{ labelForPlaid(acc) }}</span>
+                      <span
+                        v-if="isPlaidAccountFeedDisconnected(row, acc)"
+                        class="
+                          block
+                          text-xs
+                          font-normal
+                          text-amber-800
+                          dark:text-amber-200
+                          mt-0.5
+                        "
+                      >
+                        {{ t`Feed paused — reactivate to import again` }}
+                      </span>
+                    </td>
+                    <td class="p-3 text-start" @click.stop>
+                      <div class="flex flex-col gap-1 max-w-xs">
+                        <FormControl
+                          :border="true"
+                          size="small"
+                          :show-label="false"
+                          :df="chartMappingField(row.item_id, acc.account_id)"
+                          :value="
+                            chartSelections[
+                              selKey(row.item_id, acc.account_id)
+                            ] || ''
+                          "
+                          :read-only="isPlaidAccountFeedDisconnected(row, acc)"
+                          @change="
+                          (v) =>
+                            onChartSelectionChange(
+                              row.item_id,
+                              acc.account_id,
+                              v as string | null
+                            )
+                        "
+                        />
+                      </div>
+                    </td>
+                    <td class="p-3 text-start" @click.stop>
+                      <div class="flex flex-wrap items-center gap-2">
+                        <Button
+                          type="secondary"
+                          class="!px-2 !py-1 text-xs"
+                          :disabled="isPlaidAccountFeedDisconnected(row, acc)"
+                          @click="savePlaidMapping(row.item_id, acc)"
+                        >
+                          {{ t`Save Mapping` }}
+                        </Button>
+                        <Button
+                          v-if="!isPlaidAccountFeedDisconnected(row, acc)"
+                          type="secondary"
+                          class="!px-2 !py-1 text-xs"
+                          :disabled="!bookId"
+                          @click="confirmDisconnectPlaid(row, acc)"
+                        >
+                          {{ t`Disconnect Feed` }}
+                        </Button>
+                        <Button
+                          v-if="isPlaidAccountFeedDisconnected(row, acc)"
+                          type="secondary"
+                          class="!px-2 !py-1 text-xs"
+                          :disabled="
+                            !bookId ||
+                            reactivateFeedBusy[
+                              selKey(row.item_id, acc.account_id)
+                            ]
+                          "
+                          @click="reactivatePlaidAccountFeed(row, acc)"
+                        >
+                          {{ t`Reactivate feed` }}
+                        </Button>
+                        <DropdownWithActions
+                          v-if="plaidRowLedgerName(row, acc)"
+                          :actions="plaidAccountLifecycleActions(row, acc)"
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </template>
+
+      <template v-if="settingsTab === 'manual'">
+        <p class="text-sm text-gray-600 dark:text-gray-300 mb-4 max-w-5xl">
+          {{
+            t`Track accounts you update by importing CSV statements. Use this for any bank or credit card you do not connect with Plaid.`
+          }}
+        </p>
+
+        <div
+          v-if="manualPanelOpen"
+          class="
+            border border-gray-200
+            dark:border-gray-700
+            rounded-lg
+            p-4
+            bg-white
+            dark:bg-gray-900
+            mb-4
+          "
+          @keydown.esc="closeManualPanel"
+        >
+          <h3 class="text-sm font-medium mb-3 dark:text-gray-100">
+            {{ t`New manual bank` }}
+          </h3>
+          <div class="space-y-3 max-w-md">
+            <div>
+              <label class="block text-sm font-medium mb-1 dark:text-gray-100">
+                {{ t`Type` }}
+              </label>
+              <div
+                class="
+                  inline-flex
+                  border
+                  rounded
+                  overflow-hidden
+                  dark:border-gray-700
+                "
+              >
+                <button
+                  type="button"
+                  class="px-3 py-1 text-sm"
+                  :class="
+                    manualForm.kind === 'bank'
+                      ? 'bg-gray-200 dark:bg-gray-700 font-medium'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100'
+                  "
+                  @click="manualForm.kind = 'bank'"
+                >
+                  {{ t`Bank` }}
+                </button>
+                <button
+                  type="button"
+                  class="px-3 py-1 text-sm border-s dark:border-gray-700"
+                  :class="
+                    manualForm.kind === 'credit_card'
+                      ? 'bg-gray-200 dark:bg-gray-700 font-medium'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100'
+                  "
+                  @click="manualForm.kind = 'credit_card'"
+                >
+                  {{ t`Credit card` }}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1 dark:text-gray-100">
+                {{ t`Account name` }}
+              </label>
+              <input
+                ref="manualNameInput"
+                v-model="manualForm.accountName"
+                type="text"
+                class="
+                  border
+                  rounded
+                  px-2
+                  py-1
+                  w-full
+                  dark:bg-gray-800 dark:border-gray-600
+                "
+                :placeholder="t`e.g. Chase CSV — Checking`"
+                @keydown.enter="trySaveManual"
+                @input="manualNameError = ''"
+              />
+              <p v-if="manualNameError" class="mt-1 text-xs text-red-600">
+                {{ manualNameError }}
+              </p>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label
+                  class="block text-sm font-medium mb-1 dark:text-gray-100"
+                >
+                  {{ t`Opening balance` }}
+                </label>
+                <input
+                  v-model="manualForm.openingBalance"
+                  type="text"
+                  inputmode="decimal"
+                  class="
+                    border
+                    rounded
+                    px-2
+                    py-1
+                    w-full
+                    dark:bg-gray-800 dark:border-gray-600
+                  "
+                  :placeholder="t`0.00`"
+                  @keydown.enter="trySaveManual"
+                />
+              </div>
+              <div>
+                <label
+                  class="block text-sm font-medium mb-1 dark:text-gray-100"
+                >
+                  {{ t`As of` }}
+                </label>
+                <input
+                  v-model="manualForm.openingDate"
+                  type="date"
+                  class="
+                    border
+                    rounded
+                    px-2
+                    py-1
+                    w-full
+                    dark:bg-gray-800 dark:border-gray-600
+                  "
+                  @keydown.enter="trySaveManual"
+                />
+              </div>
+            </div>
+            <p
+              v-if="manualNegativeHint"
+              class="text-xs text-amber-700 dark:text-amber-300"
+            >
+              {{ t`This account will start with a negative balance.` }}
+            </p>
+            <div class="flex justify-end gap-2 pt-2">
+              <Button
+                type="secondary"
+                :disabled="manualSaving"
+                @click="closeManualPanel"
+              >
+                {{ t`Cancel` }}
+              </Button>
+              <Button
+                type="primary"
+                :disabled="manualSaving"
+                @click="trySaveManual"
+              >
+                {{ manualSaving ? t`Saving…` : t`Save` }}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          v-if="manualLoading"
+          class="text-sm text-gray-600 dark:text-gray-300"
+        >
+          {{ t`Loading manual banks…` }}
+        </div>
+        <div
+          v-else-if="manualBanks.length === 0"
+          class="text-sm text-gray-600 dark:text-gray-300"
+        >
+          {{
+            t`No manual banks yet. Add one to start importing CSV statements.`
+          }}
+        </div>
+        <div
+          v-else
           class="
             border border-gray-200
             dark:border-gray-700
@@ -143,93 +672,13 @@
           "
         >
           <table class="min-w-full text-sm text-start">
-            <caption
-              class="
-                text-start
-                px-3
-                py-2.5
-                text-sm
-                font-semibold
-                text-gray-900
-                dark:text-gray-100
-                bg-gray-50
-                dark:bg-gray-800
-                border-b border-gray-200
-                dark:border-gray-700
-              "
-            >
-              <div class="flex flex-wrap items-start justify-between gap-2">
-                <div class="min-w-0 flex-1">
-                  {{ row.institution_name || row.item_id }}
-                  <span
-                    v-if="row.health"
-                    class="inline-block w-2 h-2 rounded-full ms-2 align-middle"
-                    :class="{
-                      'bg-emerald-500': row.health === 'ok',
-                      'bg-amber-500': row.health === 'stale',
-                      'bg-red-500': row.health === 'broken',
-                    }"
-                    :title="
-                      row.health === 'ok'
-                        ? t`Connection healthy`
-                        : row.health === 'stale'
-                        ? t`No recent sync from your bank.`
-                        : t`Connection broken — sign in again.`
-                    "
-                  />
-                  <span
-                    class="
-                      block
-                      text-xs
-                      font-normal
-                      text-gray-600
-                      dark:text-gray-300
-                      mt-1
-                    "
-                  >
-                    {{ t`Last sync` }}:
-                    {{
-                      formatLocalTimestamp(row.last_sync_at) ||
-                      row.last_sync_at ||
-                      t`—`
-                    }}
-                    · {{ t`Feed version` }}: {{ row.feed_version }}
-                  </span>
-                  <span
-                    v-if="row.ingest_paused_at"
-                    class="
-                      block
-                      text-xs
-                      font-normal
-                      text-amber-700
-                      dark:text-amber-300
-                      mt-1
-                    "
-                  >
-                    {{
-                      t`Bank feeds paused — acknowledge old import batches in Desktop to resume.`
-                    }}
-                  </span>
-                </div>
-                <Button
-                  type="secondary"
-                  class="shrink-0 !text-xs self-start"
-                  :disabled="!bookId || refreshItemBusy[row.item_id]"
-                  @click.stop="refreshPlaidInstitution(row.item_id)"
-                >
-                  {{
-                    refreshItemBusy[row.item_id] ? t`Refreshing…` : t`Refresh`
-                  }}
-                </Button>
-              </div>
-            </caption>
             <thead class="bg-gray-50 dark:bg-gray-800 text-xs uppercase">
               <tr>
                 <th class="text-start p-3 border-b dark:border-gray-700">
-                  {{ t`Bank account name` }}
+                  {{ t`Account Name` }}
                 </th>
                 <th class="text-start p-3 border-b dark:border-gray-700">
-                  {{ t`Ledger name` }}
+                  {{ t`Status` }}
                 </th>
                 <th class="text-start p-3 border-b dark:border-gray-700">
                   {{ t`Actions` }}
@@ -237,424 +686,57 @@
               </tr>
             </thead>
             <tbody>
-              <tr class="bg-gray-50/80 dark:bg-gray-900/40">
-                <td
-                  colspan="3"
-                  class="
-                    p-3
-                    border-b
-                    dark:border-gray-700
-                    align-top
-                    text-xs text-gray-700
-                    dark:text-gray-300
-                  "
-                >
-                  <div
-                    class="
-                      flex flex-col
-                      lg:flex-row lg:items-start lg:justify-between
-                      gap-3
-                    "
-                  >
-                    <p class="max-w-3xl">
-                      {{
-                        t`Deleted imported lines by mistake? Re-queue batches LiveBooks Cloud still has (typically within 90 days). This replays saved imports — it does not fetch brand-new bank history from Plaid or undo journals you posted. Then open Bank Account Activity for each mapped ledger account.`
-                      }}
-                    </p>
-                    <Button
-                      type="secondary"
-                      class="shrink-0 !text-xs self-start"
-                      :disabled="!bookId || reopenImportBusy[row.item_id]"
-                      @click.stop="confirmReopenImportBatches(row)"
-                    >
-                      {{
-                        reopenImportBusy[row.item_id]
-                          ? t`Re-fetching…`
-                          : t`Re-fetch missing data`
-                      }}
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-              <tr v-if="row.item_login_required">
-                <td
-                  class="p-3 text-sm text-amber-800 dark:text-amber-200"
-                  colspan="7"
-                >
-                  <div class="flex flex-wrap items-center gap-2">
-                    <span>
-                      {{
-                        t`This connection needs re-authentication with Plaid (login required).`
-                      }}
-                    </span>
-                    <Button
-                      type="secondary"
-                      :disabled="plaidLinkBusy || !bookId"
-                      @click.stop="linkBankWithPlaid(row.item_id)"
-                    >
-                      {{ t`Reconnect bank` }}
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-              <tr v-else-if="linkedAccountsLoading[row.item_id]">
-                <td
-                  class="p-3 text-sm text-gray-600 dark:text-gray-300"
-                  colspan="7"
-                >
-                  {{ t`Loading Plaid accounts…` }}
-                </td>
-              </tr>
-              <tr v-else-if="linkedAccountsError[row.item_id]">
-                <td class="p-3 text-sm text-red-600" colspan="7">
-                  {{ linkedAccountsError[row.item_id] }}
-                </td>
-              </tr>
               <tr
-                v-else-if="
-                  linkedAccountsFetched[row.item_id] &&
-                  !linkedAccountsByItem[row.item_id]?.length
+                v-for="m in manualBanks"
+                :key="m.name"
+                class="
+                  cursor-pointer
+                  hover:bg-gray-50
+                  dark:hover:bg-gray-800/80
+                  border-b
+                  dark:border-gray-800
+                  last:border-0
                 "
+                @click="openManualActivity(m.name)"
               >
                 <td
-                  class="p-3 text-sm text-gray-600 dark:text-gray-300"
-                  colspan="7"
+                  class="p-3 text-start font-medium"
+                  :class="m.archived ? 'text-gray-500 dark:text-gray-400' : ''"
                 >
-                  {{
-                    t`No Plaid accounts were returned. Use Refresh for this institution or reconnect the bank if login is required.`
-                  }}
+                  {{ manualBankLabel(m) }}
+                </td>
+                <td
+                  class="p-3 text-start"
+                  :class="m.archived ? 'text-gray-500 dark:text-gray-400' : ''"
+                >
+                  {{ m.archived ? t`Archived` : t`Active` }}
+                </td>
+
+                <td class="p-3 text-start" @click.stop>
+                  <Button
+                    type="secondary"
+                    @click="
+                      runManualBankLifecycleAction(
+                        m.name,
+                        m.archived,
+                        manualBankLabel(m)
+                      )
+                    "
+                  >
+                    {{
+                      m.archived
+                        ? t`Restore`
+                        : (manualLedgerRowCounts[m.name] ?? 0) === 0
+                        ? t`Delete`
+                        : t`Archive`
+                    }}
+                  </Button>
                 </td>
               </tr>
-              <template v-else>
-                <tr
-                  v-for="acc in linkedAccountsByItem[row.item_id] || []"
-                  :key="acc.account_id"
-                  class="
-                    border-b
-                    dark:border-gray-800
-                    last:border-0
-                    hover:bg-gray-50
-                    dark:hover:bg-gray-800/80
-                  "
-                  :class="{
-                    'cursor-pointer':
-                      !!plaidRowLedgerName(row, acc) &&
-                      !isPlaidAccountFeedDisconnected(row, acc),
-                    'opacity-80': isPlaidAccountFeedDisconnected(row, acc),
-                  }"
-                  @click="
-                    plaidRowLedgerName(row, acc) &&
-                    !isPlaidAccountFeedDisconnected(row, acc)
-                      ? openManualActivity(plaidRowLedgerName(row, acc)!)
-                      : undefined
-                  "
-                >
-                  <td class="p-3 text-start font-medium">
-                    <span>{{ labelForPlaid(acc) }}</span>
-                    <span
-                      v-if="isPlaidAccountFeedDisconnected(row, acc)"
-                      class="
-                        block
-                        text-xs
-                        font-normal
-                        text-amber-800
-                        dark:text-amber-200
-                        mt-0.5
-                      "
-                    >
-                      {{ t`Feed paused — reactivate to import again` }}
-                    </span>
-                  </td>
-                  <td class="p-3 text-start" @click.stop>
-                    <div class="flex flex-col gap-1 max-w-xs">
-                      <FormControl
-                        :border="true"
-                        size="small"
-                        :show-label="false"
-                        :df="chartMappingField(row.item_id, acc.account_id)"
-                        :value="
-                          chartSelections[
-                            selKey(row.item_id, acc.account_id)
-                          ] || ''
-                        "
-                        :read-only="isPlaidAccountFeedDisconnected(row, acc)"
-                        @change="
-                          (v) =>
-                            onChartSelectionChange(
-                              row.item_id,
-                              acc.account_id,
-                              v as string | null
-                            )
-                        "
-                      />
-                    </div>
-                  </td>
-                  <td class="p-3 text-start" @click.stop>
-                    <div class="flex flex-wrap items-center gap-2">
-                      <Button
-                        type="secondary"
-                        class="!px-2 !py-1 text-xs"
-                        :disabled="isPlaidAccountFeedDisconnected(row, acc)"
-                        @click="savePlaidMapping(row.item_id, acc)"
-                      >
-                        {{ t`Save Mapping` }}
-                      </Button>
-                      <Button
-                        v-if="!isPlaidAccountFeedDisconnected(row, acc)"
-                        type="secondary"
-                        class="!px-2 !py-1 text-xs"
-                        :disabled="!bookId"
-                        @click="confirmDisconnectPlaid(row, acc)"
-                      >
-                        {{ t`Disconnect Feed` }}
-                      </Button>
-                      <Button
-                        v-if="isPlaidAccountFeedDisconnected(row, acc)"
-                        type="secondary"
-                        class="!px-2 !py-1 text-xs"
-                        :disabled="
-                          !bookId ||
-                          reactivateFeedBusy[
-                            selKey(row.item_id, acc.account_id)
-                          ]
-                        "
-                        @click="reactivatePlaidAccountFeed(row, acc)"
-                      >
-                        {{ t`Reactivate feed` }}
-                      </Button>
-                      <DropdownWithActions
-                        v-if="plaidRowLedgerName(row, acc)"
-                        :actions="plaidAccountLifecycleActions(row, acc)"
-                      />
-                    </div>
-                  </td>
-                </tr>
-              </template>
             </tbody>
           </table>
         </div>
-      </div>
-
-      <div class="flex items-center justify-between mt-10 mb-2">
-        <h2 class="text-base font-medium dark:text-gray-100">
-          {{ t`Manual` }}
-        </h2>
-        <Button v-if="!manualPanelOpen" type="primary" @click="openManualPanel">
-          {{ t`+ Add Manual Bank` }}
-        </Button>
-      </div>
-      <p class="text-sm text-gray-600 dark:text-gray-300 mt-1 mb-4 max-w-5xl">
-        {{
-          t`Track accounts you update by uploading CSV statements. Use this for any bank or credit card you do not connect with Plaid.`
-        }}
-      </p>
-
-      <div
-        v-if="manualPanelOpen"
-        class="
-          border border-gray-200
-          dark:border-gray-700
-          rounded-lg
-          p-4
-          bg-white
-          dark:bg-gray-900
-          mb-4
-        "
-        @keydown.esc="closeManualPanel"
-      >
-        <h3 class="text-sm font-medium mb-3 dark:text-gray-100">
-          {{ t`New manual bank` }}
-        </h3>
-        <div class="space-y-3 max-w-md">
-          <div>
-            <label class="block text-sm font-medium mb-1 dark:text-gray-100">
-              {{ t`Type` }}
-            </label>
-            <div
-              class="
-                inline-flex
-                border
-                rounded
-                overflow-hidden
-                dark:border-gray-700
-              "
-            >
-              <button
-                type="button"
-                class="px-3 py-1 text-sm"
-                :class="
-                  manualForm.kind === 'bank'
-                    ? 'bg-gray-200 dark:bg-gray-700 font-medium'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100'
-                "
-                @click="manualForm.kind = 'bank'"
-              >
-                {{ t`Bank` }}
-              </button>
-              <button
-                type="button"
-                class="px-3 py-1 text-sm border-s dark:border-gray-700"
-                :class="
-                  manualForm.kind === 'credit_card'
-                    ? 'bg-gray-200 dark:bg-gray-700 font-medium'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100'
-                "
-                @click="manualForm.kind = 'credit_card'"
-              >
-                {{ t`Credit card` }}
-              </button>
-            </div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1 dark:text-gray-100">
-              {{ t`Account name` }}
-            </label>
-            <input
-              ref="manualNameInput"
-              v-model="manualForm.accountName"
-              type="text"
-              class="
-                border
-                rounded
-                px-2
-                py-1
-                w-full
-                dark:bg-gray-800 dark:border-gray-600
-              "
-              :placeholder="t`e.g. Chase CSV — Checking`"
-              @keydown.enter="trySaveManual"
-              @input="manualNameError = ''"
-            />
-            <p v-if="manualNameError" class="mt-1 text-xs text-red-600">
-              {{ manualNameError }}
-            </p>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-sm font-medium mb-1 dark:text-gray-100">
-                {{ t`Opening balance` }}
-              </label>
-              <input
-                v-model="manualForm.openingBalance"
-                type="text"
-                inputmode="decimal"
-                class="
-                  border
-                  rounded
-                  px-2
-                  py-1
-                  w-full
-                  dark:bg-gray-800 dark:border-gray-600
-                "
-                :placeholder="t`0.00`"
-                @keydown.enter="trySaveManual"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1 dark:text-gray-100">
-                {{ t`As of` }}
-              </label>
-              <input
-                v-model="manualForm.openingDate"
-                type="date"
-                class="
-                  border
-                  rounded
-                  px-2
-                  py-1
-                  w-full
-                  dark:bg-gray-800 dark:border-gray-600
-                "
-                @keydown.enter="trySaveManual"
-              />
-            </div>
-          </div>
-          <p
-            v-if="manualNegativeHint"
-            class="text-xs text-amber-700 dark:text-amber-300"
-          >
-            {{ t`This account will start with a negative balance.` }}
-          </p>
-          <div class="flex justify-end gap-2 pt-2">
-            <Button
-              type="secondary"
-              :disabled="manualSaving"
-              @click="closeManualPanel"
-            >
-              {{ t`Cancel` }}
-            </Button>
-            <Button
-              type="primary"
-              :disabled="manualSaving"
-              @click="trySaveManual"
-            >
-              {{ manualSaving ? t`Saving…` : t`Save` }}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div
-        v-if="manualLoading"
-        class="text-sm text-gray-600 dark:text-gray-300"
-      >
-        {{ t`Loading manual banks…` }}
-      </div>
-      <div
-        v-else-if="manualBanks.length === 0"
-        class="text-sm text-gray-600 dark:text-gray-300"
-      >
-        {{ t`No manual banks yet. Add one to start uploading CSV statements.` }}
-      </div>
-      <div
-        v-else
-        class="
-          border border-gray-200
-          dark:border-gray-700
-          rounded-lg
-          overflow-hidden
-          bg-white
-          dark:bg-gray-900
-        "
-      >
-        <table class="min-w-full text-sm text-start">
-          <thead class="bg-gray-50 dark:bg-gray-800 text-xs uppercase">
-            <tr>
-              <th class="text-start p-3 border-b dark:border-gray-700">
-                {{ t`Account Name` }}
-              </th>
-              <th class="text-start p-3 border-b dark:border-gray-700">
-                {{ t`Actions` }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="m in manualBanks"
-              :key="m.name"
-              class="
-                cursor-pointer
-                hover:bg-gray-50
-                dark:hover:bg-gray-800/80
-                border-b
-                dark:border-gray-800
-                last:border-0
-              "
-              @click="openManualActivity(m.name)"
-            >
-              <td class="p-3 text-start font-medium">
-                {{ manualBankLabel(m) }}
-              </td>
-
-              <td class="p-3 text-start" @click.stop>
-                <DropdownWithActions
-                  :actions="manualBankLifecycleActions(m.name)"
-                />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      </template>
     </div>
   </div>
 </template>
@@ -671,6 +753,7 @@ import { fyo } from 'src/initFyo';
 import { showDialog, showToast } from 'src/utils/interactive';
 import {
   openLivebooksCloudAccountSecurity,
+  openLivebooksCloudSignIn,
 } from 'src/utils/livebooksCloud';
 import { ensureLivebooksCloudBookId } from 'src/utils/livebooksCloudBook';
 import {
@@ -681,6 +764,7 @@ import { openPlaidLinkModal } from 'src/utils/plaidLinkClient';
 import {
   isManualBankAccount,
   loadAllBankCoaAccounts,
+  loadArchivedBankCoaAccounts,
   loadPlaidAccountMaps,
   manualPendingCountFor,
   type BankCoaAccount,
@@ -706,11 +790,13 @@ import {
   deleteEmptyBankAccount,
   disconnectPlaidAccountFeedLocalAndRemote,
   ledgerSignedBalanceForAccount,
+  unarchiveBankAccount,
 } from 'src/utils/bankAccountSettings';
 import { AccountTypeEnum } from 'models/baseModels/Account/types';
 import { ModelNameEnum } from 'models/types';
 import { isCredit } from 'models/helpers';
 import { accountDisplayName } from 'utils/accountDisplay';
+import { createManualBankAccount } from 'src/utils/manualBankAccountCreate';
 import { defineComponent, nextTick } from 'vue';
 
 function todayIsoDate(): string {
@@ -721,14 +807,6 @@ function todayIsoDate(): string {
   return `${y}-${m}-${dd}`;
 }
 
-const MANUAL_BANK_PARENT_FALLBACKS = ['Bank Accounts'];
-const CREDIT_CARD_PARENT_FALLBACKS = [
-  'Credit Cards',
-  'Current Liabilities',
-  'Liabilities',
-];
-const OPENING_BALANCE_EQUITY_NAME = 'Opening Balance Equity';
-
 export default defineComponent({
   name: 'BankFeedSettings',
   components: { PageHeader, Button, DropdownWithActions, FormControl },
@@ -736,6 +814,8 @@ export default defineComponent({
     return {
       bookId: '' as string,
       bookError: '' as string,
+      bookNeedsCloudSignIn: false,
+      settingsTab: 'manual' as 'manual' | 'online',
       refreshItemBusy: {} as Record<string, boolean>,
       reopenImportBusy: {} as Record<string, boolean>,
       plaidAutoStageImportBatches: true,
@@ -783,12 +863,14 @@ export default defineComponent({
       accountName?: string;
       rootType?: string;
       toReviewCount: number;
+      archived: boolean;
     }[] {
       const out: {
         name: string;
         accountName?: string;
         rootType?: string;
         toReviewCount: number;
+        archived: boolean;
       }[] = [];
       for (const a of this.manualBankCoaAccounts) {
         if (!isManualBankAccount(a.name, this.manualPlaidMaps)) {
@@ -799,11 +881,15 @@ export default defineComponent({
           accountName: a.accountName,
           rootType: a.rootType,
           toReviewCount: this.manualToReviewCounts[a.name] ?? 0,
+          archived: a.disabled === true,
         });
       }
-      out.sort((x, y) =>
-        accountDisplayName(x).localeCompare(accountDisplayName(y))
-      );
+      out.sort((x, y) => {
+        if (x.archived !== y.archived) {
+          return x.archived ? 1 : -1;
+        }
+        return accountDisplayName(x).localeCompare(accountDisplayName(y));
+      });
       return out;
     },
     manualBalanceFloat(): number | null {
@@ -830,11 +916,34 @@ export default defineComponent({
       );
     },
   },
+  watch: {
+    '$route.query.tab'() {
+      this.syncSettingsTabFromRoute();
+    },
+  },
   mounted() {
+    this.syncSettingsTabFromRoute();
     this.syncPlaidDesktopPreferences();
     void this.bootstrap();
   },
   methods: {
+    syncSettingsTabFromRoute() {
+      const tab = this.$route.query.tab;
+      if (tab === 'online' || tab === 'manual') {
+        this.settingsTab = tab;
+      } else {
+        this.settingsTab = 'manual';
+      }
+    },
+    setSettingsTab(tab: 'manual' | 'online') {
+      if (this.settingsTab === tab && this.$route.query.tab === tab) {
+        return;
+      }
+      void routeTo({ path: '/bank-feeds/settings', query: { tab } });
+    },
+    openCloudSignIn() {
+      void openLivebooksCloudSignIn();
+    },
     plaidMfaPromptTotp() {
       return promptPlaidMfaTotp(
         t`Enter your LiveBooks Cloud authenticator or backup code to continue.`
@@ -866,15 +975,17 @@ export default defineComponent({
       const ctx = await ensureLivebooksCloudBookId(fyo);
       if (!ctx.ok) {
         this.bookId = '';
+        this.bookNeedsCloudSignIn = ctx.reason === 'not_signed_in';
         this.bookError =
           ctx.reason === 'not_signed_in'
-            ? t`Sign in to LiveBooks Cloud from the sidebar to use bank feeds.`
+            ? t`Sign into LiveBooks Cloud to use online bank feeds here.`
             : (ctx.message ?? t`Could not resolve your cloud book for this company file.`);
         await this.loadChartBankAccountsForMaps();
         await this.loadManualSection();
         return;
       }
       this.bookError = '';
+      this.bookNeedsCloudSignIn = false;
       this.bookId = ctx.bookId;
       await this.loadChartBankAccountsForMaps();
       await this.refreshFeeds(false);
@@ -1045,7 +1156,7 @@ export default defineComponent({
       if (!this.bookId) {
         showToast({
           type: 'error',
-          message: t`Sign in to LiveBooks Cloud from the sidebar to use bank feeds.`,
+          message: t`Sign into LiveBooks Cloud to use online bank feeds here.`,
         });
         return;
       }
@@ -1060,7 +1171,7 @@ export default defineComponent({
           : t`Disconnect feed?`,
         detail: removesWholeLink
           ? t`"${accLabel}" is the last sub-account still receiving automatic imports under ${instName}. Disconnecting it removes the whole institution from Plaid and stops all feeds for this bank until you connect it again. Your ledger accounts and history stay in the books.`
-          : t`This pauses automatic imports for ${accLabel}. Other linked accounts under ${instName} can keep syncing. Your ledger history does not change — you can upload CSVs if you like.`,
+          : t`This pauses automatic imports for ${accLabel}. Other linked accounts under ${instName} can keep syncing. Your ledger history does not change — you can import CSVs if you like.`,
         buttons: [
           {
             label: t`Cancel`,
@@ -1092,7 +1203,7 @@ export default defineComponent({
       showToast({
         type: 'success',
         message: res.itemRemoved
-          ? t`Bank institution disconnected from Plaid. You can still use manual CSV uploads.`
+          ? t`Bank institution disconnected from Plaid. You can still use manual CSV imports.`
           : t`Feed disconnected for this account. Other accounts at this institution may keep syncing.`,
       });
       await this.loadChartBankAccountsForMaps();
@@ -1106,7 +1217,7 @@ export default defineComponent({
       if (!this.bookId) {
         showToast({
           type: 'error',
-          message: t`Sign in to LiveBooks Cloud from the sidebar to use bank feeds.`,
+          message: t`Sign into LiveBooks Cloud to use online bank feeds here.`,
         });
         return;
       }
@@ -1139,7 +1250,7 @@ export default defineComponent({
       if (!this.bookId) {
         showToast({
           type: 'error',
-          message: t`Sign in to LiveBooks Cloud from the sidebar to use bank feeds.`,
+          message: t`Sign into LiveBooks Cloud to use online bank feeds here.`,
         });
         return;
       }
@@ -1212,19 +1323,24 @@ export default defineComponent({
         return;
       }
       const bal = await ledgerSignedBalanceForAccount(accountName);
-      const detail = t`Archiving hides this account from your daily bank feeds and most pickers, but keeps your historical reports accurate. Unreviewed feed lines for this account will be marked excluded.`;
-      const detailEmphasis =
-        bal != null && Math.abs(bal) > 0.005
-          ? t`Note: This account still has a ${fyo.format(
-              bal,
-              'Currency'
-            )} balance in your books. You may want to record a transfer to your new bank before archiving.`
-          : undefined;
+      if (bal != null && Math.abs(bal) > 0.005) {
+        await showDialog({
+          type: 'error',
+          title: t`Cannot archive this account`,
+          detail: t`This account still has a ${fyo.format(
+            bal,
+            'Currency'
+          )} balance in your books. Record a transfer to zero the balance before archiving.`,
+          buttons: [
+            { label: t`OK`, action: () => true, isPrimary: true, isEscape: true },
+          ],
+        });
+        return;
+      }
       const ok = (await showDialog({
         type: 'warning',
         title: t`Archive this account?`,
-        detail,
-        detailEmphasis,
+        detail: t`Archiving hides this account from your daily bank feeds and most pickers, but keeps your historical reports accurate. Unreviewed feed lines for this account will be marked excluded.`,
         buttons: [
           { label: t`Cancel`, action: () => false, isEscape: true },
           {
@@ -1243,6 +1359,36 @@ export default defineComponent({
         return;
       }
       showToast({ type: 'success', message: t`Account archived.` });
+      await this.loadChartBankAccountsForMaps();
+      await this.loadManualSection();
+    },
+    async confirmRestoreManualBank(
+      accountName: string,
+      displayName?: string
+    ) {
+      const label = displayName?.trim() || accountName;
+      const ok = (await showDialog({
+        type: 'info',
+        title: t`Restore this account?`,
+        detail: t`Restoring makes "${label}" available again in bank feeds and account pickers. You can re-connect Plaid or import statements afterward if needed.`,
+        buttons: [
+          { label: t`Cancel`, action: () => false, isEscape: true },
+          {
+            label: t`Restore account`,
+            isPrimary: true,
+            action: () => true,
+          },
+        ],
+      })) as boolean;
+      if (!ok) {
+        return;
+      }
+      const ur = await unarchiveBankAccount(accountName);
+      if (!ur.ok) {
+        showToast({ type: 'error', message: ur.error });
+        return;
+      }
+      showToast({ type: 'success', message: t`Account restored.` });
       await this.loadChartBankAccountsForMaps();
       await this.loadManualSection();
     },
@@ -1370,12 +1516,26 @@ export default defineComponent({
         } as Action,
       ];
     },
-    manualBankLifecycleActions(accountName: string): Action[] {
+    manualBankLifecycleActions(
+      accountName: string,
+      archived = false,
+      displayName?: string
+    ): Action[] {
+      if (archived) {
+        return [
+          {
+            label: t`Restore`,
+            action: async () => {
+              await this.confirmRestoreManualBank(accountName, displayName);
+            },
+          } as Action,
+        ];
+      }
       const n = this.manualLedgerRowCounts[accountName] ?? 0;
       if (n === 0) {
         return [
           {
-            label: t`Delete account`,
+            label: t`Delete`,
             action: async () => {
               await this.confirmDeleteManualBank(accountName);
             },
@@ -1384,12 +1544,26 @@ export default defineComponent({
       }
       return [
         {
-          label: t`Archive account`,
+          label: t`Archive`,
           action: async () => {
             await this.confirmArchiveManualBank(accountName);
           },
         } as Action,
       ];
+    },
+    async runManualBankLifecycleAction(
+      accountName: string,
+      archived = false,
+      displayName?: string
+    ) {
+      const [action] = this.manualBankLifecycleActions(
+        accountName,
+        archived,
+        displayName
+      );
+      if (action?.action) {
+        await action.action();
+      }
     },
     async confirmDeletePlaidMappedAccount(
       row: PlaidFeedItemRow,
@@ -1399,7 +1573,7 @@ export default defineComponent({
       if (!this.bookId) {
         showToast({
           type: 'error',
-          message: t`Sign in to LiveBooks Cloud from the sidebar to use bank feeds.`,
+          message: t`Sign into LiveBooks Cloud to use online bank feeds here.`,
         });
         return;
       }
@@ -1473,7 +1647,7 @@ export default defineComponent({
       if (!this.bookId) {
         showToast({
           type: 'error',
-          message: t`Sign in to LiveBooks Cloud from the sidebar to use bank feeds.`,
+          message: t`Sign into LiveBooks Cloud to use online bank feeds here.`,
         });
         return;
       }
@@ -1490,23 +1664,29 @@ export default defineComponent({
       const removesWholeLink =
         this.disconnectingWouldRemoveEntireInstitution(row, acc);
       const bal = await ledgerSignedBalanceForAccount(accountName);
+      if (bal != null && Math.abs(bal) > 0.005) {
+        await showDialog({
+          type: 'error',
+          title: t`Cannot archive this account`,
+          detail: t`This account still has a ${fyo.format(
+            bal,
+            'Currency'
+          )} balance in your books. Record a transfer to zero the balance before archiving.`,
+          buttons: [
+            { label: t`OK`, action: () => true, isPrimary: true, isEscape: true },
+          ],
+        });
+        return;
+      }
       const detail = removesWholeLink
         ? t`Archiving hides "${accountName}" from your daily bank feeds and most pickers, but keeps your historical reports accurate. Unreviewed feed lines for this account will be marked excluded. This is the last sub-account still syncing under ${instName}; archiving will also disconnect the entire institution from Plaid until you connect the bank again.`
         : t`Archiving hides "${accountName}" from your daily bank feeds and most pickers, but keeps your historical reports accurate. Unreviewed feed lines for this account will be marked excluded. Automatic imports for this Plaid sub-account stop; other linked accounts under ${instName} can keep syncing.`;
-      const detailEmphasis =
-        bal != null && Math.abs(bal) > 0.005
-          ? t`Note: This account still has a ${fyo.format(
-              bal,
-              'Currency'
-            )} balance in your books. You may want to record a transfer to your new bank before archiving.`
-          : undefined;
       const ok = (await showDialog({
         type: 'warning',
         title: removesWholeLink
           ? t`Archive account and disconnect bank from Plaid?`
           : t`Archive this account?`,
         detail,
-        detailEmphasis,
         buttons: [
           { label: t`Cancel`, action: () => false, isEscape: true },
           {
@@ -1829,7 +2009,7 @@ export default defineComponent({
             } else {
               showToast({
                 type: 'warning',
-                message: t`No stored batches left to re-fetch for this account. Recent history may be incomplete — upload a CSV/OFX if you need older transactions.`,
+                message: t`No stored batches left to re-fetch for this account. Recent history may be incomplete — import a CSV/OFX if you need older transactions.`,
                 duration: 'long',
               });
             }
@@ -1838,7 +2018,7 @@ export default defineComponent({
               type: 'warning',
               message:
                 reopen.error ??
-                t`Could not re-fetch prior bank batches. Upload a CSV/OFX if history is missing.`,
+                t`Could not re-fetch prior bank batches. Import a CSV/OFX if history is missing.`,
               duration: 'long',
             });
           }
@@ -1854,7 +2034,7 @@ export default defineComponent({
       if (!this.bookId) {
         showToast({
           type: 'error',
-          message: t`Sign in to LiveBooks Cloud from the sidebar to use bank feeds.`,
+          message: t`Sign into LiveBooks Cloud to use online bank feeds here.`,
         });
         return;
       }
@@ -1918,20 +2098,30 @@ export default defineComponent({
         this.plaidLinkBusy = false;
       }
     },
-    goUploadCsv() {
-      void routeTo({ path: '/import-wizard', query: { type: 'Payment' } });
-    },
     async loadManualSection(opts?: { quiet?: boolean }) {
       if (!opts?.quiet) {
         this.manualLoading = true;
       }
       try {
         this.manualPlaidMaps = await loadPlaidAccountMaps();
-        this.manualBankCoaAccounts = await loadAllBankCoaAccounts();
+        const [active, archived] = await Promise.all([
+          loadAllBankCoaAccounts(),
+          loadArchivedBankCoaAccounts(),
+        ]);
+        this.manualBankCoaAccounts = [...active, ...archived];
         const reviewCounts: Record<string, number> = {};
         const ledgerCounts: Record<string, number> = {};
         for (const a of this.manualBankCoaAccounts) {
           if (!isManualBankAccount(a.name, this.manualPlaidMaps)) {
+            continue;
+          }
+          if (a.disabled) {
+            reviewCounts[a.name] = 0;
+            try {
+              ledgerCounts[a.name] = await countLedgerRowsForAccount(a.name);
+            } catch {
+              ledgerCounts[a.name] = 0;
+            }
             continue;
           }
           try {
@@ -1983,221 +2173,45 @@ export default defineComponent({
       );
     },
     async trySaveManual() {
-      if (this.manualSaving) {
+      if (this.manualSaving || !this.canSaveManual) {
+        if (!this.canSaveManual) {
+          showToast({
+            type: 'error',
+            message: t`Enter account name, opening date, and opening balance.`,
+          });
+        }
         return;
       }
-      if (!this.canSaveManual) {
-        showToast({
-          type: 'error',
-          message: t`Enter account name, opening date, and opening balance.`,
-        });
-        return;
-      }
-      const name = this.manualForm.accountName.trim();
       this.manualNameError = '';
+      this.manualSaving = true;
       try {
-        // Accounts use UUID `name`; the display label is `accountName`.
-        const dupes = (await fyo.db.getAll(ModelNameEnum.Account, {
-          fields: ['name'],
-          filters: { accountName: name },
-          limit: 1,
-        })) as { name: string }[];
-        if (dupes.length) {
-          this.manualNameError = t`An account with this name already exists.`;
+        const result = await createManualBankAccount(fyo, {
+          accountName: this.manualForm.accountName,
+          kind: this.manualForm.kind,
+          openingBalance: this.manualForm.openingBalance,
+          openingDate: this.manualForm.openingDate,
+        });
+        if (!result.ok) {
+          if (result.error === t`An account with this name already exists.`) {
+            this.manualNameError = result.error;
+          } else {
+            showToast({ type: 'error', message: result.error });
+          }
           return;
         }
-      } catch {
-        // If the existence check fails for any reason, fall through; the
-        // sync below will surface the duplicate error in a toast.
-      }
-      this.manualSaving = true;
-      let createdAccountName: string | null = null;
-      try {
-        const isCreditCard = this.manualForm.kind === 'credit_card';
-        const rootType = isCreditCard ? 'Liability' : 'Asset';
-        const fallbacks = isCreditCard
-          ? CREDIT_CARD_PARENT_FALLBACKS
-          : MANUAL_BANK_PARENT_FALLBACKS;
-        const parentAccount = await this.resolveAccountParent(
-          rootType,
-          fallbacks
-        );
-        if (!parentAccount) {
-          throw new Error(
-            t`Couldn't find a parent account in the chart of accounts. Add a Bank Accounts (or Liability) group first.`
-          );
+        if (result.openingBalanceWarning) {
+          showToast({ type: 'error', message: result.openingBalanceWarning });
         }
-        const accountDoc = fyo.doc.getNewDoc(ModelNameEnum.Account, {
-          name,
-          accountName: name,
-          parentAccount,
-          isGroup: false,
-          rootType,
-          accountType: AccountTypeEnum.Bank,
-        });
-        await accountDoc.sync();
-        createdAccountName = String(accountDoc.name ?? name);
-
-        const balance = this.manualBalanceFloat ?? 0;
-        if (balance !== 0) {
-          try {
-            await this.postOpeningEntry({
-              accountName: createdAccountName,
-              kind: this.manualForm.kind,
-              amount: Math.abs(balance),
-              isNegative: balance < 0,
-              date: this.manualForm.openingDate,
-            });
-          } catch (e) {
-            const msg = (e as Error).message;
-            showToast({
-              type: 'error',
-              message: t`Bank account created, but the opening balance could not be posted: ${msg}`,
-            });
-          }
-        }
-
         showToast({
           type: 'success',
           message: t`Manual bank added.`,
         });
         this.manualPanelOpen = false;
         await this.loadManualSection();
-        this.openManualActivity(createdAccountName);
-      } catch (e) {
-        const detail = (e as Error).message?.trim();
-        showToast({
-          type: 'error',
-          message: createdAccountName
-            ? detail || t`Couldn't finish setting up the bank account.`
-            : detail
-              ? t`Couldn't save the bank account: ${detail}`
-              : t`Couldn't save the bank account. Please try again.`,
-        });
+        this.openManualActivity(result.accountName);
       } finally {
         this.manualSaving = false;
       }
-    },
-    async resolveAccountParent(
-      rootType: 'Asset' | 'Liability' | 'Equity',
-      preferredNames: string[]
-    ): Promise<string | null> {
-      for (const candidate of preferredNames) {
-        try {
-          // Prefer lookup by display label (accountName); UUID books no longer
-          // use human-readable Account.name.
-          const byLabel = (await fyo.db.getAll(ModelNameEnum.Account, {
-            fields: ['name'],
-            filters: { accountName: candidate, isGroup: true },
-            limit: 1,
-          })) as { name: string }[];
-          if (byLabel.length) {
-            return byLabel[0].name;
-          }
-          if (await fyo.db.exists(ModelNameEnum.Account, candidate)) {
-            return candidate;
-          }
-        } catch {
-          // Continue searching.
-        }
-      }
-      try {
-        const groups = (await fyo.db.getAll(ModelNameEnum.Account, {
-          fields: ['name'],
-          filters: { rootType, isGroup: true },
-          limit: 1,
-        })) as { name: string }[];
-        if (groups.length > 0) {
-          return groups[0].name;
-        }
-      } catch {
-        // Fall through to returning null.
-      }
-      return null;
-    },
-    async resolveOpeningEquityAccount(): Promise<string> {
-      try {
-        const byLabel = (await fyo.db.getAll(ModelNameEnum.Account, {
-          fields: ['name'],
-          filters: { accountName: OPENING_BALANCE_EQUITY_NAME },
-          limit: 1,
-        })) as { name: string }[];
-        if (byLabel.length) {
-          return byLabel[0].name;
-        }
-      } catch {
-        // Fall through.
-      }
-      try {
-        const equityAccounts = (await fyo.db.getAll(ModelNameEnum.Account, {
-          fields: ['name'],
-          filters: {
-            accountType: AccountTypeEnum.Equity,
-            isGroup: false,
-          },
-          limit: 1,
-        })) as { name: string }[];
-        if (equityAccounts.length > 0) {
-          return equityAccounts[0].name;
-        }
-      } catch {
-        // Fall through to creating one.
-      }
-      const equityParent = await this.resolveAccountParent('Equity', [
-        'Equity',
-      ]);
-      const created = fyo.doc.getNewDoc(ModelNameEnum.Account, {
-        name: OPENING_BALANCE_EQUITY_NAME,
-        parentAccount: equityParent ?? undefined,
-        isGroup: false,
-        rootType: 'Equity',
-        accountType: AccountTypeEnum.Equity,
-      });
-      await created.sync();
-      return String(created.name ?? OPENING_BALANCE_EQUITY_NAME);
-    },
-    async postOpeningEntry(opts: {
-      accountName: string;
-      kind: 'bank' | 'credit_card';
-      amount: number;
-      isNegative: boolean;
-      date: string;
-    }) {
-      const equityAccount = await this.resolveOpeningEquityAccount();
-      const entryType = opts.kind === 'credit_card' ? 'Credit Card Entry' : 'Bank Entry';
-      const jvDoc = fyo.doc.getNewDoc(ModelNameEnum.JournalEntry, {
-        entryType,
-        date: opts.date,
-      });
-      const debitFirst =
-        opts.kind === 'bank' ? !opts.isNegative : opts.isNegative;
-      const amount = fyo.pesa(opts.amount);
-      const zero = fyo.pesa(0);
-      if (debitFirst) {
-        await jvDoc.append('accounts', {
-          account: opts.accountName,
-          debit: amount,
-          credit: zero,
-        });
-        await jvDoc.append('accounts', {
-          account: equityAccount,
-          debit: zero,
-          credit: amount,
-        });
-      } else {
-        await jvDoc.append('accounts', {
-          account: opts.accountName,
-          debit: zero,
-          credit: amount,
-        });
-        await jvDoc.append('accounts', {
-          account: equityAccount,
-          debit: amount,
-          credit: zero,
-        });
-      }
-      const synced = await jvDoc.sync();
-      await synced.submit();
     },
   },
 });

@@ -9,19 +9,49 @@
         p-4
       "
     >
-      <p class="text-sm text-gray-600 dark:text-gray-300 mb-4 max-w-3xl">
-        {{
-          t`Summary of each bank account: where you left off, your last statement balance, and the ledger total. Open
-        Reconcile to match the app to your bank PDF.`
-        }}
-      </p>
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <div
+          class="
+            inline-flex
+            border
+            rounded
+            overflow-hidden
+            dark:border-gray-700
+          "
+        >
+          <button
+            type="button"
+            class="px-4 py-2 text-sm"
+            :class="
+              reconcileTab === 'manual'
+                ? 'bg-gray-200 dark:bg-gray-700 font-medium'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100'
+            "
+            @click="setReconcileTab('manual')"
+          >
+            {{ t`Manual` }}
+          </button>
+          <button
+            type="button"
+            class="px-4 py-2 text-sm border-s dark:border-gray-700"
+            :class="
+              reconcileTab === 'online'
+                ? 'bg-gray-200 dark:bg-gray-700 font-medium'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100'
+            "
+            @click="setReconcileTab('online')"
+          >
+            {{ t`Online` }}
+          </button>
+        </div>
+      </div>
 
       <div v-if="loading" class="text-sm text-gray-600 dark:text-gray-300">
         {{ t`Loading accounts…` }}
       </div>
       <template v-else>
         <div
-          v-for="tbl in institutionTables"
+          v-for="tbl in visibleTables"
           :key="tbl.groupKey"
           class="
             mb-4
@@ -36,6 +66,7 @@
         >
           <table class="min-w-full text-sm text-start">
             <caption
+              v-if="reconcileTab === 'online'"
               class="
                 text-start
                 px-3
@@ -151,7 +182,7 @@
           </table>
         </div>
         <p
-          v-if="institutionTables.length === 0"
+          v-if="visibleTables.length === 0"
           class="
             text-sm text-gray-600
             dark:text-gray-300
@@ -164,7 +195,9 @@
           "
         >
           {{
-            t`No bank or credit-card accounts yet. Add one in Chart of Accounts to start reconciling.`
+            reconcileTab === 'manual'
+              ? t`No manual bank accounts yet. Add one in Chart of Accounts or Bank Feed Settings to start reconciling.`
+              : t`No online bank accounts connected yet. Connect a bank in Bank Feed Settings to start reconciling.`
           }}
         </p>
       </template>
@@ -202,6 +235,7 @@ type HubRow = {
   ledgerAccountLabel: string;
   groupKey: string;
   institutionCaption: string;
+  isOnline: boolean;
   rootType?: string;
   ledgerBalanceLabel: string;
   lastReconciledLabel: string | null;
@@ -214,6 +248,7 @@ type HubRow = {
 type InstitutionTable = {
   groupKey: string;
   caption: string;
+  isOnline: boolean;
   rows: HubRow[];
 };
 
@@ -234,14 +269,39 @@ export default defineComponent({
   data() {
     return {
       loading: false,
+      reconcileTab: 'manual' as 'manual' | 'online',
       institutionTables: [] as InstitutionTable[],
     };
   },
+  computed: {
+    visibleTables(): InstitutionTable[] {
+      const wantOnline = this.reconcileTab === 'online';
+      return this.institutionTables.filter((t) => t.isOnline === wantOnline);
+    },
+  },
+  watch: {
+    '$route.query.tab'() {
+      this.syncTabFromRoute();
+    },
+  },
   mounted() {
+    this.syncTabFromRoute();
     void this.load();
   },
   methods: {
     t,
+    syncTabFromRoute() {
+      const tab = this.$route.query.tab;
+      if (tab === 'online' || tab === 'manual') {
+        this.reconcileTab = tab;
+      }
+    },
+    setReconcileTab(tab: 'manual' | 'online') {
+      if (this.reconcileTab === tab && this.$route.query.tab === tab) {
+        return;
+      }
+      void routeTo({ path: '/reconcile', query: { tab } });
+    },
     goReconcile(accountName: string) {
       void routeTo(
         `/bank-reconcile/${encodeURIComponent(accountName)}`
@@ -335,6 +395,7 @@ export default defineComponent({
           let groupKey: string;
           let institutionCaption: string;
           let bankAccountLabel: string;
+          const isOnline = !!map;
 
           if (map) {
             const feed = feedByItem[map.plaidItemId];
@@ -361,6 +422,7 @@ export default defineComponent({
             ledgerAccountLabel: accountDisplayName(b),
             groupKey,
             institutionCaption,
+            isOnline,
             rootType: b.rootType,
             ledgerBalanceLabel: fyo.format(ledgerVal, 'Currency'),
             lastReconciledLabel: closed
@@ -377,12 +439,13 @@ export default defineComponent({
 
         const bucket: Record<
           string,
-          { caption: string; rows: HubRow[] }
+          { caption: string; isOnline: boolean; rows: HubRow[] }
         > = {};
         for (const row of rows) {
           if (!bucket[row.groupKey]) {
             bucket[row.groupKey] = {
               caption: row.institutionCaption,
+              isOnline: row.isOnline,
               rows: [],
             };
           }
@@ -393,6 +456,7 @@ export default defineComponent({
           .map(([groupKey, g]) => ({
             groupKey,
             caption: g.caption,
+            isOnline: g.isOnline,
             rows: g.rows.sort((a, b) => {
               const byBank = a.bankAccountLabel.localeCompare(
                 b.bankAccountLabel
