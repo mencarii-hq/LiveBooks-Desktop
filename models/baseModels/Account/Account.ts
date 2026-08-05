@@ -128,19 +128,29 @@ export class Account extends Doc {
       }
     }
 
-    if (!this.parentAccount) {
-      return;
-    }
-
-    // Persisted roots must stay parentless (cannot demote Asset/Liability/…).
     if (this.inserted && this.name) {
       const persisted = (await this.fyo.db.get(
         ModelNameEnum.Account,
         this.name
       )) as { parentAccount?: string } | null;
+
+      if (!this.parentAccount) {
+        // Clearing parent on a non-root would orphan the account outside the tree.
+        if (persisted?.parentAccount) {
+          throw new ValidationError(
+            'Child accounts must keep a parent. Clearing parent is not allowed.'
+          );
+        }
+        // Persisted roots stay parentless.
+        return;
+      }
+
+      // Persisted roots must stay parentless (cannot demote Asset/Liability/…).
       if (persisted && !persisted.parentAccount) {
         throw new ValidationError('Root accounts must stay without a parent.');
       }
+    } else if (!this.parentAccount) {
+      return;
     }
 
     if (this.parentAccount === this.name) {
