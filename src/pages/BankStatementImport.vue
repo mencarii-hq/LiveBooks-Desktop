@@ -109,7 +109,131 @@
         </ul>
       </section>
 
+      <section
+        v-if="showInlineBankCreate"
+        class="border rounded-lg p-4 dark:border-gray-700 space-y-3"
+      >
+        <h2 class="text-sm font-medium">{{ t`Create a bank account` }}</h2>
+        <p class="text-xs text-gray-600 dark:text-gray-300">
+          {{ t`Add a manual bank account before importing your file.` }}
+        </p>
+        <div class="space-y-3 max-w-md">
+          <div>
+            <label class="block text-sm font-medium mb-1 dark:text-gray-100">
+              {{ t`Type` }}
+            </label>
+            <div
+              class="
+                inline-flex
+                border
+                rounded
+                overflow-hidden
+                dark:border-gray-700
+              "
+            >
+              <button
+                type="button"
+                class="px-3 py-1 text-sm"
+                :class="
+                  inlineBankForm.kind === 'bank'
+                    ? 'bg-gray-200 dark:bg-gray-700 font-medium'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100'
+                "
+                @click="inlineBankForm.kind = 'bank'"
+              >
+                {{ t`Bank` }}
+              </button>
+              <button
+                type="button"
+                class="px-3 py-1 text-sm border-s dark:border-gray-700"
+                :class="
+                  inlineBankForm.kind === 'credit_card'
+                    ? 'bg-gray-200 dark:bg-gray-700 font-medium'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-100'
+                "
+                @click="inlineBankForm.kind = 'credit_card'"
+              >
+                {{ t`Credit card` }}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1 dark:text-gray-100">
+              {{ t`Account name` }}
+            </label>
+            <input
+              v-model="inlineBankForm.accountName"
+              type="text"
+              class="
+                border
+                rounded
+                px-2
+                py-1
+                w-full
+                dark:bg-gray-800 dark:border-gray-600
+              "
+              :placeholder="t`e.g. Chase CSV — Checking`"
+              @keydown.enter="trySaveInlineBank"
+              @input="inlineBankNameError = ''"
+            />
+            <p v-if="inlineBankNameError" class="mt-1 text-xs text-red-600">
+              {{ inlineBankNameError }}
+            </p>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium mb-1 dark:text-gray-100">
+                {{ t`Opening balance` }}
+              </label>
+              <input
+                v-model="inlineBankForm.openingBalance"
+                type="text"
+                inputmode="decimal"
+                class="
+                  border
+                  rounded
+                  px-2
+                  py-1
+                  w-full
+                  dark:bg-gray-800 dark:border-gray-600
+                "
+                :placeholder="t`0.00`"
+                @keydown.enter="trySaveInlineBank"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1 dark:text-gray-100">
+                {{ t`As of` }}
+              </label>
+              <input
+                v-model="inlineBankForm.openingDate"
+                type="date"
+                class="
+                  border
+                  rounded
+                  px-2
+                  py-1
+                  w-full
+                  dark:bg-gray-800 dark:border-gray-600
+                "
+                @keydown.enter="trySaveInlineBank"
+              />
+            </div>
+          </div>
+          <div class="flex justify-end">
+            <Button
+              type="primary"
+              :disabled="inlineBankSaving || !canSaveInlineBank"
+              @click="trySaveInlineBank"
+            >
+              {{ inlineBankSaving ? t`Saving…` : t`Create account` }}
+            </Button>
+          </div>
+        </div>
+      </section>
+
       <FormControl
+        v-if="!showInlineBankCreate"
         class="max-w-md"
         :border="true"
         size="small"
@@ -121,10 +245,18 @@
       />
 
       <div>
-        <Button type="secondary" @click="pickFile">{{
-          t`Upload bank file`
+        <Button type="secondary" :disabled="parsingBusy" @click="pickFile">{{
+          parsingBusy ? t`Parsing…` : t`Choose bank file`
         }}</Button>
         <span v-if="fileName" class="ms-2 text-sm">{{ fileName }}</span>
+        <p
+          v-if="!fileName && !showInlineBankCreate"
+          class="mt-2 text-xs text-gray-600 dark:text-gray-300"
+        >
+          {{
+            t`Select a bank account, then choose a CSV, OFX, QBO, or QFX statement.`
+          }}
+        </p>
       </div>
 
       <!-- First rows preview (CSV bank feed): above column mapping -->
@@ -172,35 +304,131 @@
         <p class="text-xs text-gray-600 dark:text-gray-300">
           {{ t`${ofxParsed.length} transaction(s) ready to import.` }}
         </p>
+        <div v-if="ofxSkippedDuplicates.length" class="text-xs mb-2">
+          <button
+            type="button"
+            class="text-amber-700 dark:text-amber-300 underline text-start"
+            @click="skippedDupesExpanded = !skippedDupesExpanded"
+          >
+            {{
+              skippedDupesExpanded
+                ? t`Hide skipped duplicates (${ofxSkippedDuplicates.length})`
+                : t`Show skipped duplicates (${ofxSkippedDuplicates.length})`
+            }}
+          </button>
+          <div
+            v-if="skippedDupesExpanded"
+            class="
+              mt-2
+              max-h-32
+              overflow-auto
+              border
+              dark:border-gray-700
+              rounded
+            "
+          >
+            <table class="min-w-full text-start">
+              <thead>
+                <tr>
+                  <th class="text-start p-1 border-b">{{ t`Date` }}</th>
+                  <th class="text-start p-1 border-b">{{ t`Description` }}</th>
+                  <th class="text-start p-1 border-b">{{ t`Amount` }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(row, i) in ofxSkippedDuplicates"
+                  :key="'ofx-skip-' + i"
+                >
+                  <td class="p-1 border-b text-start">{{ row.date }}</td>
+                  <td class="p-1 border-b text-start">{{ row.description }}</td>
+                  <td class="p-1 border-b text-start">{{ row.amount }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <div v-if="headers.length && fileKind === 'csv'" class="space-y-2">
         <h2 class="text-sm font-medium">{{ t`Column mapping` }}</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-          <FormControl
-            :border="true"
-            size="small"
-            :show-label="true"
-            :df="idxDateField"
-            :value="String(idxDate)"
-            @change="(v) => (idxDate = Number(v))"
-          />
-          <FormControl
-            :border="true"
-            size="small"
-            :show-label="true"
-            :df="idxDescField"
-            :value="String(idxDesc)"
-            @change="(v) => (idxDesc = Number(v))"
-          />
-          <FormControl
-            :border="true"
-            size="small"
-            :show-label="true"
-            :df="idxAmountField"
-            :value="String(idxAmount)"
-            @change="(v) => (idxAmount = Number(v))"
-          />
+          <label class="block space-y-1">
+            <span class="font-medium">{{ t`Which column is the Date?` }}</span>
+            <select
+              class="
+                border
+                rounded
+                px-2
+                py-1
+                w-full
+                dark:bg-gray-900 dark:border-gray-700
+              "
+              :value="String(idxDate)"
+              @change="onMapSelect('idxDate', $event)"
+            >
+              <option
+                v-for="opt in headerColumnOptions"
+                :key="'date-' + opt.value"
+                :value="opt.value"
+              >
+                {{ opt.label }}
+              </option>
+            </select>
+          </label>
+          <label class="block space-y-1">
+            <span class="font-medium">{{
+              t`Which column is the Description?`
+            }}</span>
+            <select
+              class="
+                border
+                rounded
+                px-2
+                py-1
+                w-full
+                dark:bg-gray-900 dark:border-gray-700
+              "
+              :value="String(idxDesc)"
+              @change="onMapSelect('idxDesc', $event)"
+            >
+              <option
+                v-for="opt in headerColumnOptions"
+                :key="'desc-' + opt.value"
+                :value="opt.value"
+              >
+                {{ opt.label }}
+              </option>
+            </select>
+          </label>
+          <label class="block space-y-1">
+            <span class="font-medium">{{
+              t`Which column is the Amount?`
+            }}</span>
+            <select
+              class="
+                border
+                rounded
+                px-2
+                py-1
+                w-full
+                dark:bg-gray-900 dark:border-gray-700
+              "
+              :value="String(idxAmount)"
+              @change="onMapSelect('idxAmount', $event)"
+            >
+              <option value="-1">
+                {{ t`— use debit/credit (advanced) —` }}
+              </option>
+              <option
+                v-for="opt in headerColumnOptions"
+                :key="'amt-' + opt.value"
+                :value="opt.value"
+              >
+                {{ opt.label }}
+              </option>
+            </select>
+          </label>
         </div>
         <button
           v-if="isFeedCsvMapping"
@@ -218,30 +446,77 @@
           v-if="!isFeedCsvMapping || showAdvancedCsv"
           class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm"
         >
-          <FormControl
-            :border="true"
-            size="small"
-            :show-label="true"
-            :df="idxDebitField"
-            :value="String(idxDebit)"
-            @change="(v) => (idxDebit = Number(v))"
-          />
-          <FormControl
-            :border="true"
-            size="small"
-            :show-label="true"
-            :df="idxCreditField"
-            :value="String(idxCredit)"
-            @change="(v) => (idxCredit = Number(v))"
-          />
-          <FormControl
-            :border="true"
-            size="small"
-            :show-label="true"
-            :df="idxRefField"
-            :value="String(idxRef)"
-            @change="(v) => (idxRef = Number(v))"
-          />
+          <label class="block space-y-1">
+            <span class="font-medium">{{ t`Debit column (optional)` }}</span>
+            <select
+              class="
+                border
+                rounded
+                px-2
+                py-1
+                w-full
+                dark:bg-gray-900 dark:border-gray-700
+              "
+              :value="String(idxDebit)"
+              @change="onMapSelect('idxDebit', $event)"
+            >
+              <option
+                v-for="opt in optionalColumnOptions"
+                :key="'deb-' + opt.value"
+                :value="opt.value"
+              >
+                {{ opt.label }}
+              </option>
+            </select>
+          </label>
+          <label class="block space-y-1">
+            <span class="font-medium">{{ t`Credit column (optional)` }}</span>
+            <select
+              class="
+                border
+                rounded
+                px-2
+                py-1
+                w-full
+                dark:bg-gray-900 dark:border-gray-700
+              "
+              :value="String(idxCredit)"
+              @change="onMapSelect('idxCredit', $event)"
+            >
+              <option
+                v-for="opt in optionalColumnOptions"
+                :key="'crd-' + opt.value"
+                :value="opt.value"
+              >
+                {{ opt.label }}
+              </option>
+            </select>
+          </label>
+          <label class="block space-y-1">
+            <span class="font-medium">{{
+              t`Reference column (optional)`
+            }}</span>
+            <select
+              class="
+                border
+                rounded
+                px-2
+                py-1
+                w-full
+                dark:bg-gray-900 dark:border-gray-700
+              "
+              :value="String(idxRef)"
+              @change="onMapSelect('idxRef', $event)"
+            >
+              <option
+                v-for="opt in optionalColumnOptions"
+                :key="'ref-' + opt.value"
+                :value="opt.value"
+              >
+                {{ opt.label }}
+              </option>
+            </select>
+          </label>
         </div>
       </div>
 
@@ -262,6 +537,50 @@
         >
           {{ previewSkippedSummary }}
         </p>
+        <div v-if="previewBundle.skippedDuplicates.length" class="text-xs mb-2">
+          <button
+            type="button"
+            class="text-amber-700 dark:text-amber-300 underline text-start"
+            @click="skippedDupesExpanded = !skippedDupesExpanded"
+          >
+            {{
+              skippedDupesExpanded
+                ? t`Hide skipped duplicates (${previewBundle.skippedDuplicates.length})`
+                : t`Show skipped duplicates (${previewBundle.skippedDuplicates.length})`
+            }}
+          </button>
+          <div
+            v-if="skippedDupesExpanded"
+            class="
+              mt-2
+              max-h-32
+              overflow-auto
+              border
+              dark:border-gray-700
+              rounded
+            "
+          >
+            <table class="min-w-full text-start">
+              <thead>
+                <tr>
+                  <th class="text-start p-1 border-b">{{ t`Date` }}</th>
+                  <th class="text-start p-1 border-b">{{ t`Description` }}</th>
+                  <th class="text-start p-1 border-b">{{ t`Amount` }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(row, i) in previewBundle.skippedDuplicates"
+                  :key="'skip-' + i"
+                >
+                  <td class="p-1 border-b text-start">{{ row.date }}</td>
+                  <td class="p-1 border-b text-start">{{ row.description }}</td>
+                  <td class="p-1 border-b text-start">{{ row.amount }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
         <div
           class="
             max-h-48
@@ -312,7 +631,27 @@
         </div>
       </div>
 
-      <Button type="primary" @click="saveStatement">
+      <p
+        v-if="canSave && bankAccount && importRowCount > 0"
+        class="text-sm text-gray-700 dark:text-gray-300"
+      >
+        {{ importConfirmLine }}
+      </p>
+      <p
+        v-else-if="fileName && bankAccount && !canSave"
+        class="text-sm text-amber-800 dark:text-amber-200"
+      >
+        {{
+          t`Map Date and Amount (or debit/credit), then import when the preview looks right.`
+        }}
+      </p>
+
+      <Button
+        v-if="fileName && bankAccount"
+        type="primary"
+        :disabled="parsingBusy || !canSave"
+        @click="saveStatement"
+      >
         {{
           isFeedWindow && !fromReconcile
             ? t`Import transactions`
@@ -345,12 +684,13 @@ import {
   feedDateAmountKey,
   loadExistingDateAmountKeysForFeed,
 } from 'src/utils/bankFeedHelpers';
+import { createManualBankAccount } from 'src/utils/manualBankAccountCreate';
 import { parseOfxBankFile, type OfxParsedRow } from 'src/utils/ofxBankImport';
 import { parseCSV } from 'utils/csvParser';
 import { ModelNameEnum } from 'models/types';
 import { AccountTypeEnum } from 'models/baseModels/Account/types';
 import { accountDisplayName } from 'utils/accountDisplay';
-import { defineComponent } from 'vue';
+import { defineComponent, nextTick } from 'vue';
 
 const RECON_HINT_KEY = 'lbReconcileStatementHint';
 
@@ -471,9 +811,59 @@ export default defineComponent({
       ofxParsed: [] as OfxParsedRow[],
       showAdvancedCsv: false,
       boundCloudSessionRefresh: null as (() => void) | null,
+      parsingBusy: false,
+      skippedDupesExpanded: false,
+      inlineBankSaving: false,
+      inlineBankNameError: '' as string,
+      inlineBankForm: {
+        kind: 'bank' as 'bank' | 'credit_card',
+        accountName: '',
+        openingBalance: '0',
+        openingDate: '',
+      },
     };
   },
   computed: {
+    showInlineBankCreate(): boolean {
+      return this.bankAccounts.length === 0;
+    },
+    inlineBalanceFloat(): number | null {
+      const raw = this.inlineBankForm.openingBalance.trim().replace(/,/g, '');
+      if (raw === '') {
+        return 0;
+      }
+      const n = Number.parseFloat(raw);
+      return Number.isFinite(n) ? n : null;
+    },
+    canSaveInlineBank(): boolean {
+      return (
+        !!this.inlineBankForm.accountName.trim() &&
+        !!this.inlineBankForm.openingDate &&
+        this.inlineBalanceFloat !== null &&
+        !this.inlineBankNameError
+      );
+    },
+    importRowCount(): number {
+      if (this.fileKind === 'ofx') {
+        return this.buildOfxSaveRows().rows.length;
+      }
+      return this.previewRows.length;
+    },
+    ofxSkippedDuplicates(): {
+      date: string;
+      description: string;
+      amount: number;
+    }[] {
+      if (this.fileKind !== 'ofx' || !this.ofxParsed.length) {
+        return [];
+      }
+      return this.buildOfxSaveRows().skippedDuplicates;
+    },
+    importConfirmLine(): string {
+      const acct = this.bankAccounts.find((a) => a.name === this.bankAccount);
+      const label = acct ? accountDisplayName(acct) : this.bankAccount;
+      return t`Importing ${this.importRowCount} rows into ${label}.`;
+    },
     isFeedWindow(): boolean {
       return this.kindFromRoute === 'feed_window';
     },
@@ -495,11 +885,8 @@ export default defineComponent({
       return this.matrix.slice(1, 4);
     },
     pageTitle(): string {
-      if (this.fromReconcile) {
-        return t`Import bank statement`;
-      }
       if (this.isFeedCsvMapping) {
-        return t`Match your columns for ${this.bankAccount || '…'}`;
+        return t`Import and match your bank file`;
       }
       return t`Import bank statement`;
     },
@@ -508,7 +895,7 @@ export default defineComponent({
     },
     headerColumnOptions(): { label: string; value: string }[] {
       return this.headers.map((h, i) => ({
-        label: h || `(${i})`,
+        label: (h || '').trim() || t`Column ${i + 1}`,
         value: String(i),
       }));
     },
@@ -525,58 +912,8 @@ export default defineComponent({
         filters: {
           isGroup: false,
           accountType: AccountTypeEnum.Bank,
+          disabled: false,
         },
-      } as Field;
-    },
-    idxDateField(): Field {
-      return {
-        fieldtype: 'AutoComplete',
-        fieldname: 'idxDate',
-        label: t`Which column is the Date?`,
-        options: this.headerColumnOptions,
-      } as Field;
-    },
-    idxDescField(): Field {
-      return {
-        fieldtype: 'AutoComplete',
-        fieldname: 'idxDesc',
-        label: t`Which column is the Description?`,
-        options: this.headerColumnOptions,
-      } as Field;
-    },
-    idxAmountField(): Field {
-      return {
-        fieldtype: 'AutoComplete',
-        fieldname: 'idxAmount',
-        label: t`Which column is the Amount?`,
-        options: [
-          { label: t`— use debit/credit (advanced) —`, value: '-1' },
-          ...this.headerColumnOptions,
-        ],
-      } as Field;
-    },
-    idxDebitField(): Field {
-      return {
-        fieldtype: 'AutoComplete',
-        fieldname: 'idxDebit',
-        label: t`Debit column (optional)`,
-        options: this.optionalColumnOptions,
-      } as Field;
-    },
-    idxCreditField(): Field {
-      return {
-        fieldtype: 'AutoComplete',
-        fieldname: 'idxCredit',
-        label: t`Credit column (optional)`,
-        options: this.optionalColumnOptions,
-      } as Field;
-    },
-    idxRefField(): Field {
-      return {
-        fieldtype: 'AutoComplete',
-        fieldname: 'idxRef',
-        label: t`Reference column (optional)`,
-        options: this.optionalColumnOptions,
       } as Field;
     },
     previewBundle(): {
@@ -584,6 +921,11 @@ export default defineComponent({
       duplicateCount: number;
       invalidDateCount: number;
       possibleDupCount: number;
+      skippedDuplicates: {
+        date: string;
+        description: string;
+        amount: number;
+      }[];
     } {
       return this.computeRows();
     },
@@ -628,7 +970,7 @@ export default defineComponent({
         return false;
       }
       if (this.fileKind === 'ofx') {
-        return this.ofxParsed.length > 0;
+        return this.buildOfxSaveRows().rows.length > 0;
       }
       return this.matrix.length > 1 && this.previewRows.length > 0;
     },
@@ -654,6 +996,7 @@ export default defineComponent({
     },
   },
   async mounted() {
+    this.inlineBankForm.openingDate = this.todayIso();
     await this.loadBankAccounts();
     this.applyRouteQuery();
     const ctx = await ensureLivebooksCloudBookId(fyo);
@@ -679,6 +1022,13 @@ export default defineComponent({
   },
   methods: {
     t,
+    onMapSelect(field, e) {
+      const v = Number(e?.target?.value);
+      if (!Number.isFinite(v)) {
+        return;
+      }
+      this[field] = v;
+    },
     accountLabel(a: { name: string; accountName?: string }) {
       return accountDisplayName(a);
     },
@@ -802,10 +1152,20 @@ export default defineComponent({
     },
     async loadBankAccounts() {
       const rows = (await fyo.db.getAll(ModelNameEnum.Account, {
-        fields: ['name', 'accountName'],
-        filters: { accountType: AccountTypeEnum.Bank, isGroup: false },
-      })) as { name: string; accountName?: string }[];
+        fields: ['name', 'accountName', 'disabled'],
+        filters: {
+          accountType: AccountTypeEnum.Bank,
+          isGroup: false,
+          disabled: false,
+        },
+      })) as { name: string; accountName?: string; disabled?: boolean }[];
       this.bankAccounts = rows;
+      if (
+        this.bankAccount &&
+        !rows.some((r) => r.name === this.bankAccount)
+      ) {
+        this.bankAccount = '';
+      }
     },
     async refreshCloudBookContext() {
       this.cloudBookId = '';
@@ -857,7 +1217,43 @@ export default defineComponent({
       showToast({ type: 'success', message: this.cloudMsg });
       await this.loadCloudFiles();
     },
+    async trySaveInlineBank() {
+      if (this.inlineBankSaving || !this.canSaveInlineBank) {
+        return;
+      }
+      this.inlineBankNameError = '';
+      this.inlineBankSaving = true;
+      try {
+        const result = await createManualBankAccount(fyo, {
+          accountName: this.inlineBankForm.accountName,
+          kind: this.inlineBankForm.kind,
+          openingBalance: this.inlineBankForm.openingBalance,
+          openingDate: this.inlineBankForm.openingDate,
+        });
+        if (!result.ok) {
+          if (result.error === t`An account with this name already exists.`) {
+            this.inlineBankNameError = result.error;
+          } else {
+            showToast({ type: 'error', message: result.error });
+          }
+          return;
+        }
+        if (result.openingBalanceWarning) {
+          showToast({ type: 'error', message: result.openingBalanceWarning });
+        }
+        showToast({ type: 'success', message: t`Manual bank added.` });
+        await this.loadBankAccounts();
+        this.bankAccount = result.accountName;
+        this.inlineBankForm.accountName = '';
+        this.inlineBankForm.openingBalance = '0';
+      } finally {
+        this.inlineBankSaving = false;
+      }
+    },
     async pickFile() {
+      if (this.parsingBusy) {
+        return;
+      }
       const { text, name } = await selectTextFile([
         {
           name: 'Bank files',
@@ -867,37 +1263,66 @@ export default defineComponent({
       if (!text) {
         return;
       }
-      this.fileName = name || '';
-      const lower = (name || '').toLowerCase();
-      const isOfx = /\.(qbo|qfx|ofx)$/i.test(lower);
-      if (isOfx) {
-        const parsed = parseOfxBankFile(text);
-        if (!parsed.ok) {
-          showToast({ type: 'error', message: parsed.error });
+      this.parsingBusy = true;
+      this.skippedDupesExpanded = false;
+      try {
+        await nextTick();
+        const byteLen = new TextEncoder().encode(text).length;
+        // Hard cap before parse — full file is already in memory from the picker.
+        if (byteLen > 15 * 1024 * 1024) {
+          showToast({
+            type: 'error',
+            message: t`This file is too large to import (over 15 MB). Split the statement or export a smaller date range.`,
+            duration: 'long',
+          });
           return;
         }
-        this.fileKind = 'ofx';
-        this.ofxParsed = parsed.rows;
-        this.matrix = [];
-        this.showAdvancedCsv = false;
-      } else {
-        this.fileKind = 'csv';
-        this.ofxParsed = [];
-        this.matrix = parseCSV(text);
-        const cached = readCsvTemplate(this.bankAccount);
-        const sig = headerSignatureFor(this.headers);
-        if (cached && cached.headerSignature === sig) {
-          this.idxDate = cached.idxDate;
-          this.idxDesc = cached.idxDesc;
-          this.idxAmount = cached.idxAmount;
-          this.idxDebit = cached.idxDebit;
-          this.idxCredit = cached.idxCredit;
-          this.idxRef = cached.idxRef;
+        this.fileName = name || '';
+        const lower = (name || '').toLowerCase();
+        const isOfx = /\.(qbo|qfx|ofx)$/i.test(lower);
+        let parsedRowCount = 0;
+        if (isOfx) {
+          const parsed = parseOfxBankFile(text);
+          if (!parsed.ok) {
+            showToast({ type: 'error', message: parsed.error });
+            return;
+          }
+          this.fileKind = 'ofx';
+          this.ofxParsed = parsed.rows;
+          parsedRowCount = parsed.rows.length;
+          this.matrix = [];
+          this.showAdvancedCsv = false;
         } else {
-          this.guessColumns();
+          this.fileKind = 'csv';
+          this.ofxParsed = [];
+          // Cells are display-only (never eval'd). No CSV re-export of import
+          // rows in this flow — formula-injection risk is limited to display.
+          this.matrix = parseCSV(text);
+          parsedRowCount = Math.max(0, this.matrix.length - 1);
+          const cached = readCsvTemplate(this.bankAccount);
+          const sig = headerSignatureFor(this.headers);
+          if (cached && cached.headerSignature === sig) {
+            this.idxDate = cached.idxDate;
+            this.idxDesc = cached.idxDesc;
+            this.idxAmount = cached.idxAmount;
+            this.idxDebit = cached.idxDebit;
+            this.idxCredit = cached.idxCredit;
+            this.idxRef = cached.idxRef;
+          } else {
+            this.guessColumns();
+          }
         }
+        if (byteLen > 5 * 1024 * 1024 || parsedRowCount > 10000) {
+          showToast({
+            type: 'warning',
+            message: t`This file is large (${String(parsedRowCount)} rows). Import may take a while.`,
+            duration: 'long',
+          });
+        }
+        await this.refreshExistingDupKeys();
+      } finally {
+        this.parsingBusy = false;
       }
-      await this.refreshExistingDupKeys();
     },
     guessColumns() {
       const h = this.headers.map((x) => x.toLowerCase());
@@ -951,6 +1376,11 @@ export default defineComponent({
       duplicateCount: number;
       invalidDateCount: number;
       possibleDupCount: number;
+      skippedDuplicates: {
+        date: string;
+        description: string;
+        amount: number;
+      }[];
     } {
       if (this.matrix.length < 2) {
         return {
@@ -958,6 +1388,7 @@ export default defineComponent({
           duplicateCount: 0,
           invalidDateCount: 0,
           possibleDupCount: 0,
+          skippedDuplicates: [],
         };
       }
       const dataRows = this.matrix.slice(1);
@@ -967,6 +1398,11 @@ export default defineComponent({
       const ri = Number(this.idxRef);
       let invalidDateCount = 0;
       let duplicateCount = 0;
+      const skippedDuplicates: {
+        date: string;
+        description: string;
+        amount: number;
+      }[] = [];
       const feed = this.kindFromRoute === 'feed_window';
 
       if (feed) {
@@ -1004,6 +1440,7 @@ export default defineComponent({
           duplicateCount: 0,
           invalidDateCount,
           possibleDupCount,
+          skippedDuplicates: [],
         };
       }
 
@@ -1024,6 +1461,7 @@ export default defineComponent({
         const hash = simpleHash([date, desc, String(amt), ref].join('|'));
         if (seen.has(hash)) {
           duplicateCount += 1;
+          skippedDuplicates.push({ date, description: desc, amount: amt });
           continue;
         }
         seen.add(hash);
@@ -1041,16 +1479,42 @@ export default defineComponent({
         duplicateCount,
         invalidDateCount,
         possibleDupCount: 0,
+        skippedDuplicates,
       };
     },
-    buildOfxSaveRows(): Row[] {
+    buildOfxSaveRows(): {
+      rows: Row[];
+      duplicateCount: number;
+      skippedDuplicates: {
+        date: string;
+        description: string;
+        amount: number;
+      }[];
+    } {
+      const seenHash = new Set<string>();
       const seenDateAmt = new Set<string>();
       const out: Row[] = [];
+      const skippedDuplicates: {
+        date: string;
+        description: string;
+        amount: number;
+      }[] = [];
+      let duplicateCount = 0;
       for (const r of this.ofxParsed) {
         const ref = r.fitid || '';
         const hash = simpleHash(
           [r.date, r.description, String(r.amount), ref].join('|')
         );
+        if (seenHash.has(hash)) {
+          duplicateCount += 1;
+          skippedDuplicates.push({
+            date: r.date,
+            description: r.description,
+            amount: r.amount,
+          });
+          continue;
+        }
+        seenHash.add(hash);
         const dk = feedDateAmountKey(r.date, r.amount);
         const possibleDuplicate =
           this.existingDateAmountKeys.has(dk) || seenDateAmt.has(dk);
@@ -1064,7 +1528,7 @@ export default defineComponent({
           possibleDuplicate,
         });
       }
-      return out;
+      return { rows: out, duplicateCount, skippedDuplicates };
     },
     buildRows(): Row[] {
       return this.computeRows().rows;
@@ -1106,7 +1570,9 @@ export default defineComponent({
       let duplicateCount = 0;
       let invalidDateCount = 0;
       if (this.fileKind === 'ofx') {
-        rows = this.buildOfxSaveRows();
+        const ofxBundle = this.buildOfxSaveRows();
+        rows = ofxBundle.rows;
+        duplicateCount = ofxBundle.duplicateCount;
       } else {
         const bundle = this.computeRows();
         rows = bundle.rows;
@@ -1116,7 +1582,7 @@ export default defineComponent({
       this.duplicateCount = duplicateCount;
       this.invalidDateCount = invalidDateCount;
       if (!rows.length) {
-        if (duplicateCount > 0 && !this.isFeedWindow) {
+        if (duplicateCount > 0) {
           showToast({
             type: 'info',
             message: t`Nothing new to import. All rows are already on file.`,
