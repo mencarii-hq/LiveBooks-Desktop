@@ -3,7 +3,8 @@
     ref="filterPopover"
     v-if="fields.length"
     placement="bottom-end"
-    @close="emitFilterChange"
+    @open="onPopoverOpen"
+    @close="onPopoverClose"
     :close-on-click-outside="true"
     :close-on-click-content="false"
   >
@@ -25,10 +26,10 @@
     <template #content>
       <div>
         <div class="p-2">
-          <template v-if="explicitFilters.length">
+          <template v-if="draftFilters.length">
             <div class="flex flex-col gap-2">
               <div
-                v-for="(filter, i) in explicitFilters"
+                v-for="(filter, i) in draftFilters"
                 :key="filter.fieldname + getRandomString()"
                 class="flex items-center justify-between text-base gap-2"
               >
@@ -146,7 +147,7 @@
 
           <div class="flex">
             <div
-              v-if="filters.length"
+              v-if="newFilters.length || filters.length"
               class="
                 text-base
                 p-2
@@ -165,7 +166,7 @@
             </div>
 
             <div
-              v-if="filters.length"
+              v-if="newFilters.length"
               @click="applyFilters"
               class="
                 text-base
@@ -194,7 +195,7 @@
 import { Field, FieldTypeEnum } from 'schemas/types';
 import { fyo } from 'src/initFyo';
 import { getRandomString } from 'utils';
-import { defineComponent } from 'vue';
+import { defineComponent, PropType } from 'vue';
 import Button from './Button.vue';
 import Data from './Controls/Data.vue';
 import Select from './Controls/Select.vue';
@@ -232,7 +233,17 @@ export default defineComponent({
     Select,
     Data,
   },
-  props: { schemaName: { type: String, required: true } },
+  props: {
+    schemaName: { type: String, required: true },
+    excludeFields: {
+      type: Array as PropType<string[]>,
+      default: () => [],
+    },
+    includeFields: {
+      type: Array as PropType<string[]>,
+      default: () => [],
+    },
+  },
   emits: ['change'],
   data() {
     return {
@@ -248,12 +259,35 @@ export default defineComponent({
         FieldTypeEnum.AttachImage,
       ];
 
+      const excludeSet = new Set(this.excludeFields);
+      const includeSet = new Set(this.includeFields);
+      const whitelist = includeSet.size > 0;
+
       const listViewSettings =
         fyo.models[this.schemaName]?.getListViewSettings?.(fyo);
-      const statusField = listViewSettings?.columns?.[1] as any;
+      const statusColumn = listViewSettings?.columns?.[1] as
+        | string
+        | { fieldname?: string }
+        | undefined;
+      const statusFieldname =
+        typeof statusColumn === 'string'
+          ? statusColumn
+          : statusColumn?.fieldname;
 
-      const fields = fyo.schemaMap[this.schemaName]?.fields ?? [];
-      const filteredFields = fields.filter((f) => {
+      const allFields = fyo.schemaMap[this.schemaName]?.fields ?? [];
+      const filteredFields = allFields.filter((f) => {
+        if (excludeSet.has(f.fieldname)) {
+          return false;
+        }
+
+        if (whitelist) {
+          return includeSet.has(f.fieldname);
+        }
+
+        if (includeSet.has(f.fieldname)) {
+          return true;
+        }
+
         if (f.filter) {
           return true;
         }
@@ -269,19 +303,38 @@ export default defineComponent({
         return true;
       });
 
-      if (statusField && statusField.fieldname) {
+      for (const fieldname of this.includeFields) {
+        if (excludeSet.has(fieldname)) {
+          continue;
+        }
+        if (filteredFields.some((field) => field.fieldname === fieldname)) {
+          continue;
+        }
+
+        const field = allFields.find((f) => f.fieldname === fieldname);
+        if (field) {
+          filteredFields.push(field);
+        }
+      }
+
+      // Do not re-inject excluded columns (Cheque Register excludes account).
+      if (
+        statusFieldname &&
+        !excludeSet.has(statusFieldname) &&
+        (!whitelist || includeSet.has(statusFieldname))
+      ) {
         const statusFieldExists = filteredFields.some(
-          (field) => field.fieldname === statusField.fieldname
+          (field) => field.fieldname === statusFieldname
         );
 
         if (!statusFieldExists) {
-          const originalStatusField = fields.find(
-            (field) => field.fieldname === statusField.fieldname
+          const originalStatusField = allFields.find(
+            (field) => field.fieldname === statusFieldname
           );
           if (originalStatusField) {
             filteredFields.unshift(originalStatusField);
-          } else {
-            filteredFields.unshift(statusField);
+          } else if (typeof statusColumn === 'object' && statusColumn) {
+            filteredFields.unshift(statusColumn as Field);
           }
         }
       }
@@ -290,7 +343,7 @@ export default defineComponent({
     },
     fieldOptions(): { label: string; value: string }[] {
       return this.fields.map((df) => ({
-        label: df.fieldname,
+        label: df.label,
         value: df.fieldname,
       }));
     },
@@ -303,11 +356,13 @@ export default defineComponent({
         value: c.label,
       }));
     },
-    explicitFilters(): Filter[] {
-      return this.filters.filter((f) => !f.implicit);
+    draftFilters(): Filter[] {
+      return this.newFilters.filter((f) => !f.implicit);
     },
     activeFilterCount(): number {
-      return this.explicitFilters.filter((filter) => filter.value).length;
+      return this.filters
+        .filter((f) => !f.implicit)
+        .filter((filter) => filter.value).length;
     },
     filterAppliedMessage(): string {
       if (this.activeFilterCount === 1) {
@@ -320,6 +375,15 @@ export default defineComponent({
 
   methods: {
     getRandomString,
+    cloneFilters(filters: Filter[]): Filter[] {
+      return JSON.parse(JSON.stringify(filters)) as Filter[];
+    },
+    onPopoverOpen(): void {
+      this.newFilters = this.cloneFilters(this.filters);
+    },
+    onPopoverClose(): void {
+      this.newFilters = this.cloneFilters(this.filters);
+    },
     getConditionLabel(value: string): string {
       const condition = conditions.find((c) => c.value === value);
       return condition ? condition.label : value;
@@ -336,7 +400,12 @@ export default defineComponent({
         return;
       }
 
-      this.addFilter(df.fieldname, 'like', '', false);
+      this.newFilters.push({
+        fieldname: df.fieldname,
+        condition: this.getConditionLabel('like') as Condition,
+        value: '',
+        implicit: false,
+      });
     },
     addFilter(
       fieldname: string,
@@ -352,7 +421,7 @@ export default defineComponent({
         implicit: !!implicit,
       };
       this.filters.push(newFilter);
-      this.newFilters.push(newFilter);
+      this.newFilters.push({ ...newFilter });
     },
 
     applyFilters() {
@@ -360,8 +429,11 @@ export default defineComponent({
     },
 
     removeFilter(index: number): void {
-      this.filters.splice(index, 1);
-      this.newFilters.splice(index, 1);
+      const filter = this.draftFilters[index];
+      const idx = this.newFilters.indexOf(filter);
+      if (idx >= 0) {
+        this.newFilters.splice(idx, 1);
+      }
     },
 
     clearAllFilters(): void {
@@ -376,13 +448,17 @@ export default defineComponent({
       key: K,
       value: Filter[K]
     ) {
+      const filter = this.draftFilters[index];
+      const idx = this.newFilters.indexOf(filter);
+      if (idx < 0) {
+        return;
+      }
+
       if (key === 'condition') {
         const displayCondition = this.getConditionLabel(value as string);
-        this.newFilters![index][key] = displayCondition as Filter[K];
-        this.filters[index][key] = displayCondition as Filter[K];
+        this.newFilters[idx][key] = displayCondition as Filter[K];
       } else {
-        this.newFilters![index][key] = value;
-        this.filters[index][key] = value;
+        this.newFilters[idx][key] = value;
       }
     },
 
@@ -427,23 +503,7 @@ export default defineComponent({
       }
 
       this.$emit('change', filters);
-      this.filters = [...this.newFilters];
-
-      if (this.newFilters.length) {
-        this.filters = this.filters.filter(
-          (filter) => filter.condition && filter.value && filter.fieldname
-        );
-        this.filters.push(this.newFilters[this.newFilters.length - 1]);
-      }
-
-      this.filters = Array.from(
-        new Map(
-          this.filters.map((filter) => [
-            `${filter.condition}-${filter.value}-${filter.fieldname}`,
-            filter,
-          ])
-        ).values()
-      );
+      this.filters = this.cloneFilters(this.newFilters);
     },
   },
 });

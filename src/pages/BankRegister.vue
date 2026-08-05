@@ -43,27 +43,16 @@
           class="flex-1 max-w-md"
           @change="onBankAccountChange"
         />
-        <div v-if="bankAccount" class="shrink-0 min-w-[10rem]">
-          <div class="text-gray-600 dark:text-gray-500 text-sm mb-1">
-            {{ t`Balance as of today` }}
-          </div>
-          <div
-            class="
-              text-base text-gray-900
-              dark:text-gray-25
-              border border-transparent
-              rounded
-              px-2
-              py-1.5
-              bg-gray-25
-              dark:bg-gray-850
-              font-medium
-              whitespace-nowrap
-            "
-          >
-            {{ balanceAsOfToday || '—' }}
-          </div>
-        </div>
+        <FormControl
+          v-if="bankAccount"
+          :border="true"
+          size="small"
+          :show-label="true"
+          :df="balanceAsOfTodayField"
+          :value="balanceAsOfToday"
+          :read-only="true"
+          class="shrink-0 min-w-[10rem]"
+        />
       </div>
 
       <div class="flex flex-col overflow-hidden px-4 flex-1">
@@ -196,6 +185,7 @@
 
 <script lang="ts">
 import { DateTime } from 'luxon';
+import { Money } from 'pesa';
 import { ModelNameEnum } from 'models/types';
 import { AccountTypeEnum } from 'models/baseModels/Account/types';
 import { Field } from 'schemas/types';
@@ -250,7 +240,7 @@ export default defineComponent({
       rows: [] as RegisterRow[],
       loading: false,
       openExportModal: false,
-      balanceAsOfToday: '' as string,
+      balanceAsOfToday: null as Money | null,
     };
   },
   computed: {
@@ -265,6 +255,14 @@ export default defineComponent({
           isGroup: false,
           accountType: ['in', [AccountTypeEnum.Bank, AccountTypeEnum.Cash]],
         },
+      } as Field;
+    },
+    balanceAsOfTodayField(): Field {
+      return {
+        fieldtype: 'Currency',
+        fieldname: 'balanceAsOfToday',
+        label: this.t`Balance as of today`,
+        readOnly: true,
       } as Field;
     },
     exportFilters(): QueryFilter {
@@ -326,7 +324,7 @@ export default defineComponent({
         await this.loadBalanceAsOfToday();
       } else {
         this.rows = [];
-        this.balanceAsOfToday = '';
+        this.balanceAsOfToday = null;
       }
     },
     async loadAccounts() {
@@ -521,7 +519,7 @@ export default defineComponent({
     },
     async loadBalanceAsOfToday() {
       if (!this.bankAccount) {
-        this.balanceAsOfToday = '';
+        this.balanceAsOfToday = null;
         return;
       }
       try {
@@ -581,9 +579,9 @@ export default defineComponent({
           }
           balance += money(ale.debit) - money(ale.credit);
         }
-        this.balanceAsOfToday = fyo.format(fyo.pesa(balance), 'Currency');
+        this.balanceAsOfToday = fyo.pesa(balance);
       } catch {
-        this.balanceAsOfToday = '';
+        this.balanceAsOfToday = null;
       }
     },
   },

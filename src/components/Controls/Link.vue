@@ -222,8 +222,11 @@ export default {
       if (!label && !this.value) {
         return;
       }
+      // Empty display with a committed value (focus race / remount) — restore
+      // label only. Never clear the parent; that made Cheque Register's bank
+      // picker reset when focus moved to Filter or elsewhere.
       if (!label) {
-        this.triggerChange('');
+        await this.setLinkValue(this.value);
         return;
       }
 
@@ -240,7 +243,7 @@ export default {
       }
 
       // No real option — restore committed value; do not link a phantom name.
-      this.setLinkValue(this.value);
+      await this.setLinkValue(this.value);
     },
     async openNewDoc() {
       const schemaName = this.df.target;

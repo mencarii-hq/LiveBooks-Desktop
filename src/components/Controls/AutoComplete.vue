@@ -198,6 +198,12 @@ export default {
     },
   },
   mounted() {
+    // Prefer the committed value. Resolving via getLinkValue before options
+    // load can yield '' and wipe a valid Link display (label !== value).
+    if (this.value) {
+      this.setLinkValue(this.value);
+      return;
+    }
     const value = this.linkValue || this.value;
     this.setLinkValue(this.getLinkValue(value));
   },
