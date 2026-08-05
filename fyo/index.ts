@@ -231,6 +231,8 @@ export class Fyo {
     updaterEnabled: true,
     appVersion: '',
     platform: '',
+    /** CPU arch from main (`arm64`, `x64`, …) for platform display labels. */
+    arch: '',
     language: '',
     instanceId: '',
     deviceId: '',

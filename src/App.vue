@@ -93,6 +93,10 @@ import {
 import { getSavePath } from './utils/ui';
 import { maybePromptMemorizedDue } from './utils/memorizedTransactions';
 import {
+  invalidateUsCaCompanyCache,
+  REGIONAL_LABELS_CHANGED_EVENT,
+} from 'utils/regional';
+import {
   clearSavedLastRoute,
   enableRoutePersistence,
   getSavedLastRoute,
@@ -151,6 +155,7 @@ export default defineComponent({
       companyName: string;
       darkMode: boolean | undefined;
       loadingWorkspace: boolean;
+      onRegionalLabelsChangedBound?: () => void;
     };
   },
   computed: {
@@ -210,6 +215,24 @@ export default defineComponent({
     const darkMode = !!fyo.singles.SystemSettings?.darkMode;
     setDarkMode(darkMode);
     this.darkMode = darkMode;
+
+    this.onRegionalLabelsChangedBound = () => {
+      if (this.searcher) {
+        this.searcher.refreshNonDocSearchList();
+      }
+    };
+    document.addEventListener(
+      REGIONAL_LABELS_CHANGED_EVENT,
+      this.onRegionalLabelsChangedBound
+    );
+  },
+  unmounted() {
+    if (this.onRegionalLabelsChangedBound) {
+      document.removeEventListener(
+        REGIONAL_LABELS_CHANGED_EVENT,
+        this.onRegionalLabelsChangedBound
+      );
+    }
   },
   methods: {
     prepareInitialScreen(): string | null {
@@ -402,6 +425,7 @@ export default defineComponent({
     },
     async showDbSelector(): Promise<void> {
       await releaseBootSplash();
+      invalidateUsCaCompanyCache();
       localStorage.clear();
       clearSavedLastRoute();
       fyo.config.set('lastSelectedFilePath', null);

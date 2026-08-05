@@ -155,7 +155,6 @@
     }
   ],
   "quickEditFields": [
-    "accountName",
     "rootType",
     "parentAccount",
     "accountType",

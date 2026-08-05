@@ -279,13 +279,19 @@ export default function registerIpcMainActionListeners(main: Main) {
   );
 
   ipcMain.handle(IPC_ACTIONS.CHECK_FOR_UPDATES, async () => {
-    // Once per session for company-open; the 6h poll uses checkForAppUpdates directly.
     if (main.isDevelopment || main.checkedForUpdate || !main.updaterEnabled) {
-      return;
+      return { status: 'skipped' as const, reason: 'already_checked' };
     }
 
-    await checkForAppUpdates(main);
-    main.checkedForUpdate = true;
+    const result = await checkForAppUpdates(main);
+    if (result.status === 'started') {
+      main.checkedForUpdate = true;
+    }
+    return result;
+  });
+
+  ipcMain.handle(IPC_ACTIONS.CHECK_FOR_UPDATES_FORCE, async () => {
+    return await checkForAppUpdates(main, { force: true });
   });
 
   ipcMain.handle(IPC_ACTIONS.GET_LANGUAGE_MAP, async (_, code: string) => {
@@ -395,6 +401,7 @@ export default function registerIpcMainActionListeners(main: Main) {
       isDevelopment: main.isDevelopment,
       appEnv: main.appEnv,
       platform: process.platform,
+      arch: process.arch,
       version,
       telemetryEnabled: main.telemetryEnabled,
       updaterEnabled: main.updaterEnabled,

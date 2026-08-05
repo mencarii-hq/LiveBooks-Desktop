@@ -32,126 +32,63 @@
         />
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-          <label class="flex flex-col gap-1 text-sm">
-            <span class="text-gray-600 dark:text-gray-300">{{ t`Date` }}</span>
-            <input
-              v-model="form.date"
-              type="date"
-              class="
-                border
-                dark:border-gray-700
-                rounded
-                px-2
-                py-1.5
-                bg-white
-                dark:bg-gray-800 dark:border dark:border-gray-600
-              "
-            />
-          </label>
-          <label class="flex flex-col gap-1 text-sm">
-            <span class="text-gray-600 dark:text-gray-300"
-              >{{ t`Payee` }} <span class="text-red-500">*</span></span
-            >
-            <input
-              v-model="form.party"
-              list="register-write-party-list"
-              class="
-                border
-                dark:border-gray-700
-                rounded
-                px-2
-                py-1.5
-                bg-white
-                dark:bg-gray-800 dark:border dark:border-gray-600
-              "
-              :placeholder="t`Payee`"
-            />
-            <datalist id="register-write-party-list">
-              <option v-for="p in parties" :key="p" :value="p" />
-            </datalist>
-          </label>
-          <label class="flex flex-col gap-1 text-sm">
-            <span class="text-gray-600 dark:text-gray-300">{{
-              t`Category`
-            }}</span>
-            <select
-              v-model="form.categoryAccount"
-              class="
-                border
-                dark:border-gray-700
-                rounded
-                px-2
-                py-1.5
-                bg-white
-                dark:bg-gray-800 dark:border dark:border-gray-600
-              "
-            >
-              <option disabled value="">{{ t`Select category` }}</option>
-              <option
-                v-for="a in categoryAccounts"
-                :key="a.name"
-                :value="a.name"
-              >
-                {{ a.accountName || a.name }}
-              </option>
-            </select>
-          </label>
-          <label class="flex flex-col gap-1 text-sm">
-            <span class="text-gray-600 dark:text-gray-300"
-              >{{ t`Amount` }} <span class="text-red-500">*</span></span
-            >
-            <input
-              v-model.number="form.amount"
-              type="number"
-              min="0.01"
-              step="0.01"
-              class="
-                border
-                dark:border-gray-700
-                rounded
-                px-2
-                py-1.5
-                bg-white
-                dark:bg-gray-800 dark:border dark:border-gray-600
-              "
-            />
-          </label>
-          <label class="flex flex-col gap-1 text-sm">
-            <span class="text-gray-600 dark:text-gray-300">{{
-              t`Entry type`
-            }}</span>
-            <select
-              v-model="form.paymentType"
-              class="
-                border
-                dark:border-gray-700
-                rounded
-                px-2
-                py-1.5
-                bg-white
-                dark:bg-gray-800 dark:border dark:border-gray-600
-              "
-            >
-              <option value="Pay">{{ t`Payment` }}</option>
-              <option value="Receive">{{ t`Deposit` }}</option>
-            </select>
-          </label>
-          <label class="flex flex-col gap-1 text-sm">
-            <span class="text-gray-600 dark:text-gray-300">{{ t`Memo` }}</span>
-            <input
-              v-model="form.memo"
-              type="text"
-              class="
-                border
-                dark:border-gray-700
-                rounded
-                px-2
-                py-1.5
-                bg-white
-                dark:bg-gray-800 dark:border dark:border-gray-600
-              "
-            />
-          </label>
+          <FormControl
+            :border="true"
+            size="small"
+            :show-label="true"
+            :df="dateField"
+            :value="form.date"
+            @change="(v) => (form.date = String(v || ''))"
+          />
+          <FormControl
+            :border="true"
+            size="small"
+            :show-label="true"
+            :df="partyField"
+            :value="form.party"
+            @change="(v) => (form.party = String(v || ''))"
+          />
+          <FormControl
+            :border="true"
+            size="small"
+            :show-label="true"
+            :df="categoryField"
+            :value="form.categoryAccount"
+            @change="(v) => (form.categoryAccount = String(v || ''))"
+          />
+          <FormControl
+            :border="true"
+            size="small"
+            :show-label="true"
+            :df="amountField"
+            :value="form.amount"
+            @change="(v) => (form.amount = Number(v) || 0)"
+          />
+          <FormControl
+            :border="true"
+            size="small"
+            :show-label="true"
+            :df="paymentTypeField"
+            :value="form.paymentType"
+            @change="(v) => (form.paymentType = (v as 'Pay' | 'Receive') || 'Pay')"
+          />
+          <FormControl
+            :border="true"
+            size="small"
+            :show-label="true"
+            :df="paymentMethodField"
+            :value="form.paymentMethod"
+            @change="(v) => (form.paymentMethod = String(v || ''))"
+          />
+          <FormControl
+            class="sm:col-span-2"
+            :border="true"
+            size="small"
+            :show-label="true"
+            :df="memoField"
+            :value="form.memo"
+            @change="(v) => (form.memo = String(v || ''))"
+          />
         </div>
 
         <p v-if="formError" class="mt-3 text-sm text-red-600">
@@ -175,6 +112,7 @@ import { handleErrorWithDialog } from 'src/errorHandling';
 import {
   createRegisterPayment,
   memorizeRegisterFields,
+  resolveDefaultPaymentMethod,
 } from 'src/utils/memorizedTransactions';
 import {
   getLastRegisterBankAccount,
@@ -194,6 +132,7 @@ export default defineComponent({
       bankAccounts: [] as AccountOpt[],
       categoryAccounts: [] as AccountOpt[],
       parties: [] as string[],
+      paymentMethods: [] as { name: string; type?: string }[],
       saving: false,
       formError: '',
       form: {
@@ -203,6 +142,7 @@ export default defineComponent({
         amount: 0,
         paymentType: 'Pay' as 'Pay' | 'Receive',
         memo: '',
+        paymentMethod: '',
       },
     };
   },
@@ -220,6 +160,76 @@ export default defineComponent({
         },
       } as Field;
     },
+    dateField(): Field {
+      return {
+        fieldtype: 'Date',
+        fieldname: 'date',
+        label: this.t`Date`,
+      } as Field;
+    },
+    partyField(): Field {
+      return {
+        fieldtype: 'AutoComplete',
+        fieldname: 'party',
+        label: this.t`Payee`,
+        placeholder: this.t`Payee`,
+        required: true,
+        options: this.parties.map((p) => ({ label: p, value: p })),
+      } as Field;
+    },
+    categoryField(): Field {
+      return {
+        fieldtype: 'AutoComplete',
+        fieldname: 'categoryAccount',
+        label: this.t`Category`,
+        placeholder: this.t`Select category`,
+        required: true,
+        options: this.categoryAccounts.map((a) => ({
+          label: a.accountName || a.name,
+          value: a.name,
+        })),
+      } as Field;
+    },
+    amountField(): Field {
+      return {
+        fieldtype: 'Float',
+        fieldname: 'amount',
+        label: this.t`Amount`,
+        required: true,
+        minvalue: 0.01,
+      } as Field;
+    },
+    paymentTypeField(): Field {
+      return {
+        fieldtype: 'AutoComplete',
+        fieldname: 'paymentType',
+        label: this.t`Entry type`,
+        options: [
+          { label: this.t`Payment`, value: 'Pay' },
+          { label: this.t`Deposit`, value: 'Receive' },
+        ],
+      } as Field;
+    },
+    paymentMethodField(): Field {
+      return {
+        fieldtype: 'AutoComplete',
+        fieldname: 'paymentMethod',
+        label: this.t`Payment method`,
+        placeholder: this.t`Select method`,
+        required: true,
+        options: this.paymentMethods.map((m) => ({
+          label: m.name,
+          value: m.name,
+        })),
+      } as Field;
+    },
+    memoField(): Field {
+      return {
+        fieldtype: 'Data',
+        fieldname: 'memo',
+        label: this.t`Memo`,
+      } as Field;
+    },
   },
   watch: {
     bankAccount(value: string) {
@@ -232,6 +242,7 @@ export default defineComponent({
     try {
       await this.loadAccounts();
       await this.loadParties();
+      await this.loadPaymentMethods();
       this.applySavedBank();
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -296,6 +307,21 @@ export default defineComponent({
       })) as { name: string }[];
       this.parties = rows.map((r) => r.name);
     },
+    async loadPaymentMethods() {
+      try {
+        const methods = (await fyo.db.getAll(ModelNameEnum.PaymentMethod, {
+          fields: ['name', 'type'],
+          orderBy: 'name',
+          order: 'asc',
+        })) as { name: string; type?: string }[];
+        this.paymentMethods = methods;
+        if (!this.form.paymentMethod) {
+          this.form.paymentMethod = await resolveDefaultPaymentMethod(fyo);
+        }
+      } catch {
+        this.paymentMethods = [];
+      }
+    },
     async submitEntry() {
       this.formError = '';
       if (!this.bankAccount) {
@@ -308,6 +334,10 @@ export default defineComponent({
       }
       if (!this.form.categoryAccount) {
         this.formError = this.t`Category is required.`;
+        return;
+      }
+      if (!this.form.paymentMethod) {
+        this.formError = this.t`Payment method is required.`;
         return;
       }
       if (!(this.form.amount > 0)) {
@@ -324,6 +354,7 @@ export default defineComponent({
           amount: this.form.amount,
           paymentType: this.form.paymentType,
           memo: this.form.memo,
+          paymentMethod: this.form.paymentMethod,
         });
         setLastRegisterBankAccount(this.bankAccount);
         await routeTo('/bank-register');
@@ -349,6 +380,7 @@ export default defineComponent({
           amount: this.form.amount,
           paymentType: this.form.paymentType,
           memo: this.form.memo,
+          paymentMethod: this.form.paymentMethod,
         });
       } catch (error) {
         await handleErrorWithDialog(error);

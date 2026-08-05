@@ -40,6 +40,96 @@
           :errors="errors"
           @value-change="onValueChange"
         />
+
+        <!-- System tab: LiveBooks Desktop version -->
+        <div
+          v-if="activeTab === 'SystemSettings'"
+          class="p-4 border-t dark:border-gray-800"
+        >
+          <h2
+            class="text-base text-gray-900 dark:text-gray-25 font-semibold mb-4"
+          >
+            {{ t`Display Zoom` }}
+          </h2>
+          <div class="flex items-end justify-between gap-4">
+            <div class="flex-1 max-w-md">
+              <div class="text-gray-600 dark:text-gray-500 text-sm mb-1">
+                {{ t`Adjust interface size in 10% steps` }}
+              </div>
+              <input
+                type="text"
+                readonly
+                tabindex="-1"
+                class="
+                  w-full
+                  text-base text-gray-900
+                  dark:text-gray-25
+                  border border-transparent
+                  rounded
+                  px-2
+                  py-1.5
+                  bg-gray-25
+                  dark:bg-gray-850
+                "
+                :value="zoomPercentLabel"
+              />
+            </div>
+            <div class="flex items-center gap-2 shrink-0 mb-0.5">
+              <Button
+                :disabled="!canZoomOut"
+                :title="t`Zoom out 10%`"
+                @click="zoomOut"
+              >
+                {{ t`Zoom out` }}
+              </Button>
+              <Button
+                :disabled="!canZoomIn"
+                :title="t`Zoom in 10%`"
+                @click="zoomIn"
+              >
+                {{ t`Zoom in` }}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          v-if="activeTab === 'SystemSettings'"
+          class="p-4 border-t dark:border-gray-800"
+        >
+          <h2
+            class="text-base text-gray-900 dark:text-gray-25 font-semibold mb-4"
+          >
+            {{ t`LiveBooks Desktop Version` }}
+          </h2>
+          <div class="flex items-end justify-between gap-4">
+            <div class="flex-1 max-w-md">
+              <div class="text-gray-600 dark:text-gray-500 text-sm mb-1">
+                {{ desktopPlatformLabel }}
+              </div>
+              <input
+                type="text"
+                readonly
+                tabindex="-1"
+                class="
+                  w-full
+                  text-base text-gray-900
+                  dark:text-gray-25
+                  border border-transparent
+                  rounded
+                  px-2
+                  py-1.5
+                  bg-gray-25
+                  dark:bg-gray-850
+                "
+                :value="appVersion"
+              />
+            </div>
+            <Button class="shrink-0 mb-0.5" @click="checkForUpdates">
+              {{ t`Check for updates` }}
+            </Button>
+          </div>
+        </div>
       </div>
 
       <!-- Tab Bar -->
@@ -93,10 +183,17 @@ import { handleErrorWithDialog } from 'src/errorHandling';
 import { getErrorMessage } from 'src/utils';
 import { evaluateHidden } from 'src/utils/doc';
 import { shortcutsKey } from 'src/utils/injectionKeys';
-import { showDialog } from 'src/utils/interactive';
+import { showDialog, showToast } from 'src/utils/interactive';
 import { docsPathMap } from 'src/utils/misc';
 import { docsPathRef } from 'src/utils/refs';
 import { UIGroupedFields } from 'src/utils/types';
+import {
+  DISPLAY_ZOOM_MAX,
+  DISPLAY_ZOOM_MIN,
+  getDisplayZoomFactor,
+  zoomDisplayIn,
+  zoomDisplayOut,
+} from 'src/utils/ui';
 import { computed, defineComponent, inject } from 'vue';
 import CommonFormSection from '../CommonForm/CommonFormSection.vue';
 
@@ -122,10 +219,12 @@ export default defineComponent({
       errors: {},
       activeTab: ModelNameEnum.AccountingSettings,
       groupedFields: null,
+      zoomFactor: 1,
     } as {
       errors: Record<string, string>;
       activeTab: string;
       groupedFields: null | UIGroupedFields;
+      zoomFactor: number;
     };
   },
   computed: {
@@ -189,6 +288,32 @@ export default defineComponent({
       }
       return [...this.groupedFields.keys()];
     },
+    appVersion(): string {
+      return this.fyo.store.appVersion || '0.0.0';
+    },
+    desktopPlatformLabel(): string {
+      const platform = this.fyo.store.platform;
+      const arch = this.fyo.store.arch || '';
+      if (platform === 'darwin') {
+        return arch === 'arm64' ? 'Mac Silicon' : 'Mac Intel';
+      }
+      if (platform === 'win32') {
+        return 'Windows';
+      }
+      if (platform === 'linux') {
+        return 'Linux';
+      }
+      return this.platform || 'Desktop';
+    },
+    canZoomOut(): boolean {
+      return this.zoomFactor > DISPLAY_ZOOM_MIN + 1e-6;
+    },
+    canZoomIn(): boolean {
+      return this.zoomFactor < DISPLAY_ZOOM_MAX - 1e-6;
+    },
+    zoomPercentLabel(): string {
+      return `${Math.round(this.zoomFactor * 100)}%`;
+    },
     activeGroup(): Map<string, Field[]> {
       if (!this.groupedFields) {
         return new Map();
@@ -205,6 +330,7 @@ export default defineComponent({
     },
   },
   mounted() {
+    this.zoomFactor = getDisplayZoomFactor();
     if (this.fyo.store.isDevelopment) {
       // @ts-ignore
       window.settings = this;
@@ -242,6 +368,12 @@ export default defineComponent({
       const names = new Set(this.schemas.map(({ name }) => name));
       names.add(ModelNameEnum.InventorySettings);
       return [...names];
+    },
+    zoomIn() {
+      this.zoomFactor = zoomDisplayIn(this.zoomFactor);
+    },
+    zoomOut() {
+      this.zoomFactor = zoomDisplayOut(this.zoomFactor);
     },
     async reset() {
       const resetableDocs = this.settingsDocNames()
@@ -322,6 +454,48 @@ export default defineComponent({
       const schemaName = field.schemaName ?? this.activeTab;
       return this.fyo.singles[schemaName] ?? null;
     },
+    async checkForUpdates(): Promise<void> {
+      const result = await ipc.checkForUpdatesForce();
+
+      if (result.status === 'skipped') {
+        if (result.reason === 'development') {
+          showToast({
+            type: 'info',
+            message: this
+              .t`Update checks are disabled while running in development.`,
+            duration: 'short',
+          });
+        } else if (result.reason === 'disabled') {
+          showToast({
+            type: 'info',
+            message: this.t`Automatic updates are not enabled for this build.`,
+            duration: 'short',
+          });
+        }
+        return;
+      }
+
+      if (result.status === 'started') {
+        showToast({
+          type: 'info',
+          message: this.t`Checking for updates…`,
+          duration: 'short',
+        });
+        return;
+      }
+
+      if (result.status === 'error') {
+        showToast({
+          type: 'error',
+          message:
+            result.reason === 'network'
+              ? this
+                  .t`Could not reach the update server. Check your connection and try again.`
+              : this.t`Could not check for updates.`,
+          duration: 'short',
+        });
+      }
+    },
     update(): void {
       this.updateGroupedFields();
     },
@@ -342,6 +516,10 @@ export default defineComponent({
         }
 
         if (field.meta) {
+          continue;
+        }
+
+        if (field.fieldname === 'version') {
           continue;
         }
 

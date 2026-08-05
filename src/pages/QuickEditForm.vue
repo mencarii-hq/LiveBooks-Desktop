@@ -87,7 +87,7 @@
         size="small"
         :df="titleField"
         :value="doc[titleField.fieldname]"
-        :read-only="doc.inserted || doc.schema.naming !== 'manual'"
+        :read-only="isTitleReadOnly"
         @change="(value) => valueChange(titleField as Field, value)"
       />
     </div>
@@ -229,8 +229,9 @@ export default defineComponent({
         return [];
       }
 
+      const titleFieldName = this.schema.titleField ?? 'name';
       const fieldnames = (this.schema.quickEditFields ?? ['name']).filter(
-        (f) => !this.hideFields.includes(f)
+        (f) => !this.hideFields.includes(f) && f !== titleFieldName
       );
 
       if (this.showFields?.length) {
@@ -242,6 +243,19 @@ export default defineComponent({
       }
 
       return fieldnames.map((f) => fyo.getField(this.schemaName, f));
+    },
+    /**
+     * Lock the title only when it is the document id (`name`).
+     * Display titles (e.g. Account.accountName) stay editable after save.
+     */
+    isTitleReadOnly(): boolean {
+      if (!this.doc || !this.titleField) {
+        return true;
+      }
+      if (this.titleField.fieldname !== 'name') {
+        return false;
+      }
+      return this.doc.inserted || this.doc.schema.naming !== 'manual';
     },
   },
   activated() {

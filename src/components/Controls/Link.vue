@@ -4,6 +4,7 @@ import Badge from 'src/components/Badge.vue';
 import { fyo } from 'src/initFyo';
 import { fuzzyMatch } from 'src/utils';
 import { getCreateFiltersFromListViewFilters } from 'src/utils/misc';
+import { accountDisplayName } from 'utils/accountDisplay';
 import { markRaw } from 'vue';
 import AutoComplete from './AutoComplete.vue';
 
@@ -44,9 +45,6 @@ export default {
       const value = newValue ?? this.value;
       const { fieldname, target } = this.df ?? {};
       const linkDisplayField = fyo.schemaMap[target ?? '']?.linkDisplayField;
-      if (!linkDisplayField) {
-        return (this.linkValue = value);
-      }
 
       try {
         let linkDoc = await this.doc?.loadAndGetLink(fieldname);
@@ -54,6 +52,19 @@ export default {
         if (!linkDoc && value && target) {
           linkDoc = await fyo.doc.getDoc(target, value);
         }
+
+        if (target === 'Account' && linkDoc) {
+          this.linkValue = accountDisplayName({
+            name: linkDoc.name,
+            accountName: linkDoc.get('accountName'),
+          });
+          return;
+        }
+
+        if (!linkDisplayField) {
+          return (this.linkValue = value);
+        }
+
         this.linkValue = linkDoc?.get(linkDisplayField) ?? value ?? '';
       } catch {
         // Missing / partial link targets are expected while typing.
@@ -76,7 +87,13 @@ export default {
       const schema = fyo.schemaMap[schemaName];
 
       const fields = [
-        ...new Set(['name', schema.titleField, this.df.groupBy]),
+        ...new Set([
+          'name',
+          schema.titleField,
+          schema.linkDisplayField,
+          this.df.groupBy,
+          ...(schemaName === 'Account' ? ['accountName'] : []),
+        ]),
       ].filter(Boolean);
 
       const results = await fyo.db.getAll(schemaName, {
@@ -86,7 +103,14 @@ export default {
 
       return (this.results = results
         .map((r) => {
-          const option = { label: r[schema.titleField], value: r.name };
+          const label =
+            schemaName === 'Account'
+              ? accountDisplayName({
+                  name: r.name,
+                  accountName: r.accountName,
+                })
+              : r[schema.titleField];
+          const option = { label, value: r.name };
           if (this.df.groupBy) {
             option.group = r[this.df.groupBy];
           }
@@ -257,11 +281,18 @@ export default {
       let createFilters = await getCreateFilters?.(this.doc);
 
       if (createFilters !== undefined) {
+        if (this.df.target === 'Account') {
+          delete createFilters.accountType;
+        }
         return createFilters;
       }
 
       const filters = (await this.getFilters()) ?? {};
-      return getCreateFiltersFromListViewFilters(filters);
+      const result = getCreateFiltersFromListViewFilters(filters);
+      if (this.df.target === 'Account') {
+        delete result.accountType;
+      }
+      return result;
     },
     async getFilters() {
       if (this.df.filters) {

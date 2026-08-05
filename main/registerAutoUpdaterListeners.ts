@@ -1,4 +1,4 @@
-import { app, dialog } from 'electron';
+import { dialog } from 'electron';
 import { autoUpdater, UpdateInfo } from 'electron-updater';
 import { emitMainProcessError } from '../backend/helpers';
 import { Main } from '../main';
@@ -7,21 +7,60 @@ import { isNetworkError } from './helpers';
 
 let updateCheckInFlight = false;
 
-/** Shared by the company-open IPC path and the 6h poll. */
-export async function checkForAppUpdates(main: Main): Promise<void> {
-  if (main.isDevelopment || !main.updaterEnabled || updateCheckInFlight) {
-    return;
+/**
+ * Timestamp until which update prompts are suppressed.
+ * Set when the user chooses "Not now" in the consent dialog.
+ */
+let declinedUntil = 0;
+
+/** Show "latest version" dialog only after a user-initiated force check. */
+let pendingNotAvailableDialog = false;
+
+export type UpdateCheckResult = {
+  status: 'skipped' | 'started' | 'error';
+  reason?: string;
+};
+
+/** Shared by the company-open IPC path and the poll. */
+export async function checkForAppUpdates(
+  main: Main,
+  options?: { force?: boolean }
+): Promise<UpdateCheckResult> {
+  if (main.isDevelopment) {
+    return { status: 'skipped', reason: 'development' };
+  }
+
+  if (!main.updaterEnabled) {
+    return { status: 'skipped', reason: 'disabled' };
+  }
+
+  if (updateCheckInFlight) {
+    return { status: 'skipped', reason: 'in_flight' };
+  }
+
+  if (!options?.force && declinedUntil > Date.now()) {
+    return { status: 'skipped', reason: 'declined' };
+  }
+
+  if (options?.force) {
+    pendingNotAvailableDialog = true;
   }
 
   updateCheckInFlight = true;
   try {
     await autoUpdater.checkForUpdates();
+    return { status: 'started' };
   } catch (error) {
+    pendingNotAvailableDialog = false;
     if (isNetworkError(error as Error)) {
-      return;
+      return { status: 'error', reason: 'network' };
     }
 
     emitMainProcessError(error);
+    return {
+      status: 'error',
+      reason: error instanceof Error ? error.message : String(error),
+    };
   } finally {
     updateCheckInFlight = false;
   }
@@ -29,14 +68,14 @@ export async function checkForAppUpdates(main: Main): Promise<void> {
 
 export default function registerAutoUpdaterListeners(main: Main) {
   autoUpdater.autoDownload = false;
-  // Stable releases: do not install prerelease artifacts unless explicitly enabled when LIVEBOOKS_UPDATER_ALLOW_PRERELEASE is set.
   const allowPrerelease =
     process.env.LIVEBOOKS_UPDATER_ALLOW_PRERELEASE === 'true' ||
     process.env.LIVEBOOKS_UPDATER_ALLOW_PRERELEASE === '1';
   autoUpdater.allowPrerelease = allowPrerelease;
-  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.autoInstallOnAppQuit = false;
 
   autoUpdater.on('error', (error) => {
+    pendingNotAvailableDialog = false;
     if (isNetworkError(error)) {
       return;
     }
@@ -45,28 +84,43 @@ export default function registerAutoUpdaterListeners(main: Main) {
   });
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
-  autoUpdater.on('update-available', async (info: UpdateInfo) => {
-    const currentVersion = app.getVersion();
-    const nextVersion = info.version;
-    const isCurrentBeta = currentVersion.includes('beta');
-    const isNextBeta = nextVersion.includes('beta');
-
-    let downloadUpdate = true;
-    if (!isCurrentBeta && isNextBeta) {
-      const option = await dialog.showMessageBox({
-        type: 'info',
-        title: 'Update Available',
-        message: `Download version ${nextVersion}?`,
-        buttons: ['Yes', 'No'],
-      });
-
-      downloadUpdate = option.response === 0;
-    }
-
-    if (!downloadUpdate) {
+  autoUpdater.on('update-not-available', async () => {
+    if (!pendingNotAvailableDialog) {
       return;
     }
 
+    pendingNotAvailableDialog = false;
+    await dialog.showMessageBox({
+      type: 'info',
+      title: 'No Updates',
+      message: "You're on the latest version",
+      buttons: ['OK'],
+    });
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
+  autoUpdater.on('update-available', async (info: UpdateInfo) => {
+    pendingNotAvailableDialog = false;
+    const nextVersion = info.version;
+
+    const option = await dialog.showMessageBox({
+      type: 'info',
+      title: 'Update Available',
+      message: `A new version (${nextVersion}) is available.`,
+      buttons: ['Update now', 'Not now'],
+      defaultId: 0,
+      cancelId: 1,
+    });
+
+    if (option.response !== 0) {
+      const intervalMs = resolveUpdaterCheckIntervalMs();
+      declinedUntil = Date.now() + intervalMs;
+      autoUpdater.autoInstallOnAppQuit = false;
+      return;
+    }
+
+    declinedUntil = 0;
+    autoUpdater.autoInstallOnAppQuit = true;
     await autoUpdater.downloadUpdate();
   });
 

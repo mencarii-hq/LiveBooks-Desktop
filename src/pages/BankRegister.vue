@@ -6,6 +6,8 @@
       </Button>
       <FilterDropdown
         :schema-name="ModelNameEnum.AccountingLedgerEntry"
+        :exclude-fields="['account']"
+        :include-fields="['party', 'date']"
         @change="applyFilter"
       />
       <Button
@@ -21,15 +23,47 @@
     </PageHeader>
 
     <div class="text-base flex flex-col overflow-hidden flex-1">
-      <div class="grid grid-cols-5 gap-4 p-4 border-b dark:border-gray-800">
+      <div
+        class="
+          flex
+          items-end
+          justify-between
+          gap-4
+          p-4
+          border-b
+          dark:border-gray-800
+        "
+      >
         <FormControl
           :border="true"
           size="small"
           :show-label="true"
           :df="bankAccountField"
           :value="bankAccount"
+          class="flex-1 max-w-md"
           @change="onBankAccountChange"
         />
+        <div v-if="bankAccount" class="shrink-0 min-w-[10rem]">
+          <div class="text-gray-600 dark:text-gray-500 text-sm mb-1">
+            {{ t`Balance as of today` }}
+          </div>
+          <div
+            class="
+              text-base text-gray-900
+              dark:text-gray-25
+              border border-transparent
+              rounded
+              px-2
+              py-1.5
+              bg-gray-25
+              dark:bg-gray-850
+              font-medium
+              whitespace-nowrap
+            "
+          >
+            {{ balanceAsOfToday || '—' }}
+          </div>
+        </div>
       </div>
 
       <div class="flex flex-col overflow-hidden px-4 flex-1">
@@ -161,6 +195,7 @@
 </template>
 
 <script lang="ts">
+import { DateTime } from 'luxon';
 import { ModelNameEnum } from 'models/types';
 import { AccountTypeEnum } from 'models/baseModels/Account/types';
 import { Field } from 'schemas/types';
@@ -215,6 +250,7 @@ export default defineComponent({
       rows: [] as RegisterRow[],
       loading: false,
       openExportModal: false,
+      balanceAsOfToday: '' as string,
     };
   },
   computed: {
@@ -287,8 +323,10 @@ export default defineComponent({
       if (this.bankAccount) {
         setLastRegisterBankAccount(this.bankAccount);
         await this.loadRows();
+        await this.loadBalanceAsOfToday();
       } else {
         this.rows = [];
+        this.balanceAsOfToday = '';
       }
     },
     async loadAccounts() {
@@ -325,6 +363,7 @@ export default defineComponent({
         setLastRegisterBankAccount(this.bankAccount);
       }
       await this.loadRows();
+      await this.loadBalanceAsOfToday();
     },
     async goWriteEntry() {
       if (!this.bankAccount) return;
@@ -478,6 +517,73 @@ export default defineComponent({
     async openRow(row: RegisterRow) {
       if (row.paymentName) {
         await routeTo(`/edit/Payment/${row.paymentName}`);
+      }
+    },
+    async loadBalanceAsOfToday() {
+      if (!this.bankAccount) {
+        this.balanceAsOfToday = '';
+        return;
+      }
+      try {
+        const endOfToday = DateTime.now().endOf('day').toISO();
+        const ales = (await fyo.db.getAll(ModelNameEnum.AccountingLedgerEntry, {
+          filters: {
+            account: this.bankAccount,
+            reverted: false,
+            date: ['<=', endOfToday],
+          },
+          fields: ['debit', 'credit', 'referenceType', 'referenceName'],
+        })) as {
+          debit?: { float?: number } | number;
+          credit?: { float?: number } | number;
+          referenceType?: string;
+          referenceName?: string;
+        }[];
+
+        const paymentNames = [
+          ...new Set(
+            ales
+              .filter((a) => a.referenceType === ModelNameEnum.Payment)
+              .map((a) => a.referenceName!)
+              .filter(Boolean)
+          ),
+        ];
+        const cancelled = new Set<string>();
+        if (paymentNames.length) {
+          const pays = (await fyo.db.getAll(ModelNameEnum.Payment, {
+            filters: { name: ['in', paymentNames] },
+            fields: ['name', 'cancelled'],
+          })) as { name: string; cancelled?: boolean }[];
+          for (const p of pays) {
+            if (p.cancelled) {
+              cancelled.add(p.name);
+            }
+          }
+        }
+
+        const money = (v: unknown) => {
+          if (v == null) return 0;
+          if (typeof v === 'number') return v;
+          if (typeof v === 'object' && v && 'float' in v) {
+            return Number((v as { float: number }).float) || 0;
+          }
+          return Number(v) || 0;
+        };
+
+        let balance = 0;
+        for (const ale of ales) {
+          if (
+            ale.referenceType === ModelNameEnum.Payment &&
+            ale.referenceName &&
+            cancelled.has(ale.referenceName)
+          ) {
+            continue;
+          }
+          balance += money(ale.debit) - money(ale.credit);
+        }
+        this.balanceAsOfToday = fyo.format(fyo.pesa(balance), 'Currency');
+      } catch {
+        this.balanceAsOfToday = '';
       }
     },
   },

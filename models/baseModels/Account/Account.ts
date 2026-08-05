@@ -12,7 +12,32 @@ import {
 } from 'fyo/model/types';
 import { ModelNameEnum } from 'models/types';
 import { QueryFilter } from 'utils/db/types';
+import { ValidationError } from 'fyo/utils/errors';
 import { AccountRootType, AccountRootTypeEnum, AccountType } from './types';
+
+/** Matches LiveBooks standardCOA placements (not generic ERPNext guesses). */
+const ACCOUNT_TYPE_ROOT_TYPE_MAP: Record<string, string> = {
+  Bank: 'Asset',
+  Cash: 'Asset',
+  Receivable: 'Asset',
+  'Fixed Asset': 'Asset',
+  Stock: 'Asset',
+  Temporary: 'Asset',
+  'Accumulated Depreciation': 'Asset',
+  Payable: 'Liability',
+  'Stock Received But Not Billed': 'Liability',
+  Tax: 'Liability',
+  Equity: 'Equity',
+  'Income Account': 'Income',
+  // Chargeable + Stock Adjustment live under Expenses in standardCOA.
+  Chargeable: 'Expense',
+  'Expense Account': 'Expense',
+  'Cost of Goods Sold': 'Expense',
+  Depreciation: 'Expense',
+  'Expenses Included In Valuation': 'Expense',
+  'Stock Adjustment': 'Expense',
+  'Round Off': 'Expense',
+};
 
 /**
  * CORE ACCOUNTING ENGINE — CRITICAL
@@ -80,12 +105,120 @@ export class Account extends Doc {
       this.name = generateDocId();
     }
 
-    if (this.accountType || !this.parentAccount) {
+    if (typeof this.accountName === 'string') {
+      this.accountName = this.accountName.trim();
+    }
+
+    // Hard-block duplicate accountName (case-insensitive)
+    if (this.accountName) {
+      const normalizedName = this.accountName.toLowerCase();
+      const allAccounts = (await this.fyo.db.getAll(ModelNameEnum.Account, {
+        fields: ['name', 'accountName'],
+      })) as { name: string; accountName?: string }[];
+      const duplicate = allAccounts.find(
+        (a) =>
+          a.name !== this.name &&
+          a.accountName &&
+          a.accountName.trim().toLowerCase() === normalizedName
+      );
+      if (duplicate) {
+        throw new ValidationError(
+          'Account name must be unique. Rename with a prefix or suffix to continue.'
+        );
+      }
+    }
+
+    if (!this.parentAccount) {
       return;
     }
 
-    const account = await this.fyo.db.get('Account', this.parentAccount);
-    this.accountType = account.accountType as AccountType;
+    // Persisted roots must stay parentless (cannot demote Asset/Liability/…).
+    if (this.inserted && this.name) {
+      const persisted = (await this.fyo.db.get(
+        ModelNameEnum.Account,
+        this.name
+      )) as { parentAccount?: string } | null;
+      if (persisted && !persisted.parentAccount) {
+        throw new ValidationError('Root accounts must stay without a parent.');
+      }
+    }
+
+    if (this.parentAccount === this.name) {
+      throw new ValidationError('An account cannot be its own parent.');
+    }
+
+    // Walk parent chain: validate immediate parent, detect cycles.
+    const visited = new Set<string>([this.name]);
+    let current: string | undefined = this.parentAccount;
+    let immediateParent: {
+      rootType?: string;
+      accountType?: string;
+      isGroup?: boolean;
+      parentAccount?: string;
+    } | null = null;
+
+    while (current) {
+      if (visited.has(current)) {
+        throw new ValidationError(
+          'Circular parent chain detected. An account cannot be a descendant of itself.'
+        );
+      }
+      visited.add(current);
+
+      const parentDoc = (await this.fyo.db.get(
+        ModelNameEnum.Account,
+        current
+      )) as {
+        rootType?: string;
+        accountType?: string;
+        isGroup?: boolean;
+        parentAccount?: string;
+      } | null;
+
+      if (!parentDoc) {
+        throw new ValidationError(
+          `Parent account "${current}" does not exist.`
+        );
+      }
+
+      if (!immediateParent) {
+        immediateParent = parentDoc;
+        if (!parentDoc.isGroup) {
+          throw new ValidationError(
+            `Parent account "${this.parentAccount}" is not a group account.`
+          );
+        }
+      }
+
+      current = parentDoc.parentAccount;
+    }
+
+    if (!immediateParent) {
+      return;
+    }
+
+    // accountType / rootType vs parent rootType compatibility
+    if (immediateParent.rootType) {
+      if (this.accountType) {
+        const expectedRootType = ACCOUNT_TYPE_ROOT_TYPE_MAP[this.accountType];
+        if (expectedRootType && expectedRootType !== immediateParent.rootType) {
+          throw new ValidationError(
+            `Account type "${this.accountType}" is not compatible with parent root type "${immediateParent.rootType}". ` +
+              `Expected root type: "${expectedRootType}".`
+          );
+        }
+      } else if (this.rootType && this.rootType !== immediateParent.rootType) {
+        // Groups often have no accountType; still block cross-rootType reparent.
+        throw new ValidationError(
+          `Account root type "${this.rootType}" is not compatible with parent root type "${immediateParent.rootType}".`
+        );
+      }
+    }
+
+    // Inherit type from parent for leaves only — do not stamp groups.
+    if (!this.accountType && !this.isGroup && immediateParent.accountType) {
+      this.accountType = immediateParent.accountType as AccountType;
+    }
   }
 
   static getListViewSettings(): ListViewSettings {
@@ -136,7 +269,8 @@ export class Account extends Doc {
 
   readOnly: ReadOnlyMap = {
     rootType: () => this.inserted,
-    parentAccount: () => this.inserted,
+    // Roots stay parentless; children remain reparentable.
+    parentAccount: () => this.inserted && !this.parentAccount,
     accountType: () => !!this.accountType && this.inserted,
     isGroup: () => this.inserted,
   };

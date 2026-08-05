@@ -11,97 +11,102 @@
       <div v-if="showLabel" :class="labelClasses">
         {{ df.label }}
       </div>
-      <div
-        class="flex items-center justify-between pe-2 rounded"
-        :style="containerStyles"
-        :class="containerClasses"
-      >
-        <input
-          ref="input"
-          spellcheck="false"
-          :class="inputClasses"
-          class="bg-transparent"
-          type="text"
-          :value="linkValue"
-          :placeholder="inputPlaceholder"
-          :readonly="isReadOnly"
-          :tabindex="isReadOnly ? '-1' : '0'"
-          @focus="(e) => !isReadOnly && onInputFocus(e)"
-          @click="(e) => !isReadOnly && onClick(e, toggleDropdown)"
-          @blur="(e) => !isReadOnly && onBlur(e.target.value, toggleDropdown)"
-          @input="(e) => onInput(e, toggleDropdown)"
-          @keydown.up="onKeyDownUp($event, toggleDropdown, highlightItemUp)"
-          @keydown.down="
-            onKeyDownDown($event, toggleDropdown, highlightItemDown)
-          "
-          @keydown.enter="
-            onPressEnter($event, toggleDropdown, selectHighlightedItem)
-          "
-          @keydown.tab="closeDropdown($event, toggleDropdown)"
-          @keydown.esc="closeDropdown($event, toggleDropdown)"
-        />
-
-        <svg
-          v-if="!isReadOnly && !canLink"
-          class="w-3 h-3"
-          style="background: inherit; margin-right: -3px"
-          viewBox="0 0 5 10"
-          xmlns="http://www.w3.org/2000/svg"
-          @click="(e) => !isReadOnly && onFocus(e, toggleDropdown)"
+      <div class="flex items-center gap-1">
+        <div
+          class="flex flex-1 items-center justify-between pe-2 rounded min-w-0"
+          :style="containerStyles"
+          :class="containerClasses"
         >
-          <path
-            d="M1 2.636L2.636 1l1.637 1.636M1 7.364L2.636 9l1.637-1.636"
-            class="stroke-current"
-            :class="
-              showMandatory ? 'text-red-400 dark:text-red-600' : 'text-gray-400'
+          <input
+            ref="input"
+            spellcheck="false"
+            :class="inputClasses"
+            class="bg-transparent"
+            type="text"
+            :value="linkValue"
+            :placeholder="inputPlaceholder"
+            :readonly="isReadOnly"
+            :tabindex="isReadOnly ? '-1' : '0'"
+            @focus="(e) => !isReadOnly && onInputFocus(e)"
+            @click="(e) => !isReadOnly && onClick(e, toggleDropdown)"
+            @blur="(e) => !isReadOnly && onBlur(e.target.value, toggleDropdown)"
+            @input="(e) => onInput(e, toggleDropdown)"
+            @keydown.up="onKeyDownUp($event, toggleDropdown, highlightItemUp)"
+            @keydown.down="
+              onKeyDownDown($event, toggleDropdown, highlightItemDown)
             "
-            fill="none"
-            fill-rule="evenodd"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+            @keydown.enter="
+              onPressEnter($event, toggleDropdown, selectHighlightedItem)
+            "
+            @keydown.tab="closeDropdown($event, toggleDropdown)"
+            @keydown.esc="closeDropdown($event, toggleDropdown)"
           />
-        </svg>
 
-        <div v-if="canLink" class="flex items-center gap-1">
-          <button
-            v-if="value && showClearButton"
-            class="
-              p-0.5
-              rounded
-              bg-transparent
-              text-gray-600
-              hover:text-gray-800
-              dark:text-gray-300 dark:hover:text-gray-100
-              transition-colors
-            "
-            @click.stop.prevent="clearValue"
-            @mousedown.prevent
-          >
-            <feather-icon name="x" class="w-3.5 h-3.5" />
-          </button>
-          <button
-            class="p-0.5 rounded -me1 bg-transparent"
-            @mouseenter="showQuickView = true"
-            @mouseleave="showQuickView = false"
-            @click="routeToLinkedDoc"
-          >
-            <Popover
-              :show-popup="showQuickView"
-              :entry-delay="300"
-              placement="bottom"
+          <div v-if="!isReadOnly" class="flex items-center gap-0.5 shrink-0">
+            <button
+              v-if="canLink && value && showClearButton"
+              class="
+                p-0.5
+                rounded
+                bg-transparent
+                text-gray-600
+                hover:text-gray-800
+                dark:text-gray-300 dark:hover:text-gray-100
+                transition-colors
+              "
+              @click.stop.prevent="clearValue"
+              @mousedown.prevent
             >
-              <template #target>
-                <feather-icon
-                  name="chevron-right"
-                  class="w-4 h-4 text-gray-600 dark:text-gray-300"
-                />
-              </template>
-              <template #content>
-                <QuickView :schema-name="linkSchemaName" :name="value" />
-              </template>
-            </Popover>
-          </button>
+              <feather-icon name="x" class="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              class="
+                p-0.5
+                rounded
+                bg-transparent
+                text-gray-400
+                hover:text-gray-600
+              "
+              @click.stop="(e) => onFocus(e, toggleDropdown)"
+              @mousedown.prevent
+            >
+              <feather-icon name="chevron-down" class="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
+
+        <button
+          v-if="canLink"
+          type="button"
+          class="
+            p-0.5
+            rounded
+            bg-transparent
+            text-gray-500
+            hover:text-gray-800
+            dark:text-gray-400 dark:hover:text-gray-100
+            shrink-0
+          "
+          title="Open linked document"
+          @mouseenter="showQuickView = true"
+          @mouseleave="showQuickView = false"
+          @click.stop.prevent="routeToLinkedDoc"
+          @mousedown.prevent
+        >
+          <Popover
+            :show-popup="showQuickView"
+            :entry-delay="300"
+            placement="bottom"
+          >
+            <template #target>
+              <feather-icon name="external-link" class="w-3.5 h-3.5" />
+            </template>
+            <template #content>
+              <QuickView :schema-name="linkSchemaName" :name="value" />
+            </template>
+          </Popover>
+        </button>
       </div>
     </template>
   </Dropdown>
@@ -327,7 +332,12 @@ export default {
         this.setSuggestion(suggestion);
       } else {
         const suggestions = await this.getSuggestions(label);
-        this.setSuggestion(suggestions[0]);
+        if (suggestions[0]) {
+          this.setSuggestion(suggestions[0]);
+        } else {
+          // Free-text AutoComplete (e.g. new payee): keep what the user typed.
+          this.triggerChange(label);
+        }
       }
     },
 

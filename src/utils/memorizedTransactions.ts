@@ -26,7 +26,25 @@ export type RegisterPaymentFields = {
   amount: number;
   paymentType: 'Pay' | 'Receive';
   memo?: string;
+  paymentMethod?: string;
 };
+
+export async function resolveDefaultPaymentMethod(fyo: Fyo): Promise<string> {
+  try {
+    const methods = (await fyo.db.getAll(ModelNameEnum.PaymentMethod, {
+      fields: ['name', 'type'],
+      orderBy: 'name',
+      order: 'asc',
+    })) as { name: string; type?: string }[];
+    const cash = methods.find((m) => m.name.trim().toLowerCase() === 'cash');
+    if (cash) return cash.name;
+    const bank = methods.find((m) => m.type === 'Bank');
+    if (bank) return bank.name;
+    return methods[0]?.name || 'Cash';
+  } catch {
+    return 'Cash';
+  }
+}
 
 /** Create + submit a register-style Payment (empty for[], Cash method). */
 export async function createRegisterPayment(
@@ -50,13 +68,13 @@ export async function createRegisterPayment(
     party: fields.party,
     date: fields.date,
     paymentType: fields.paymentType,
-    paymentMethod: 'Cash',
+    paymentMethod: fields.paymentMethod || 'Cash',
     amount: fyo.pesa(fields.amount),
     memo: fields.memo || '',
     for: [],
   }) as Payment;
 
-  await doc.set('paymentMethod', 'Cash');
+  await doc.set('paymentMethod', fields.paymentMethod || 'Cash');
   await doc.set('paymentType', fields.paymentType);
   await doc.set('party', fields.party);
   await doc.set('date', fields.date);
@@ -127,7 +145,7 @@ export async function memorizePayment(
     amount,
     memo: payment.memo || payment.referenceId || '',
     frequency: 'Monthly',
-    paymentMethod: 'Cash',
+    paymentMethod: (payment.paymentMethod as string) || 'Cash',
     nextDueDate: DateTime.now().plus({ months: 1 }).toISODate(),
   });
 
@@ -168,7 +186,7 @@ export async function memorizeRegisterFields(
     amount: fyo.pesa(fields.amount),
     memo: fields.memo || '',
     frequency: 'Monthly',
-    paymentMethod: 'Cash',
+    paymentMethod: fields.paymentMethod || 'Cash',
     nextDueDate: DateTime.now().plus({ months: 1 }).toISODate(),
   });
 
@@ -223,6 +241,7 @@ export async function createPaymentFromMemorized(
     amount,
     paymentType,
     memo: (mt.memo as string) || '',
+    paymentMethod: (mt.paymentMethod as string) || undefined,
   });
 }
 

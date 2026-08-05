@@ -26,6 +26,10 @@ const ipc = {
     return webFrame.getZoomFactor();
   },
 
+  setZoomFactor(factor: number) {
+    webFrame.setZoomFactor(factor);
+  },
+
   reloadWindow() {
     return ipcRenderer.send(IPC_MESSAGES.RELOAD_MAIN_WINDOW);
   },
@@ -118,7 +122,17 @@ const ipc = {
   },
 
   async checkForUpdates() {
-    await ipcRenderer.invoke(IPC_ACTIONS.CHECK_FOR_UPDATES);
+    return (await ipcRenderer.invoke(IPC_ACTIONS.CHECK_FOR_UPDATES)) as {
+      status: 'skipped' | 'started' | 'error';
+      reason?: string;
+    };
+  },
+
+  async checkForUpdatesForce() {
+    return (await ipcRenderer.invoke(IPC_ACTIONS.CHECK_FOR_UPDATES_FORCE)) as {
+      status: 'skipped' | 'started' | 'error';
+      reason?: string;
+    };
   },
 
   openLink(link: string) {
@@ -204,6 +218,7 @@ const ipc = {
       isDevelopment: boolean;
       appEnv: 'development' | 'staging' | 'production';
       platform: string;
+      arch: string;
       version: string;
     };
   },

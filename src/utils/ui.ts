@@ -25,6 +25,7 @@ import { fyo } from 'src/initFyo';
 import router from 'src/router';
 import { assertIsType } from 'utils/index';
 import { isUuidDocId } from 'utils/ids';
+import { isUsCaCompany } from 'utils/regional';
 import { SelectFileOptions } from 'utils/types';
 import { RouteLocationRaw } from 'vue-router';
 import { evaluateHidden } from './doc';
@@ -476,6 +477,50 @@ export function toggleSidebar(value?: boolean) {
   showSidebar.value = value;
 }
 
+/** Double-click on a `-webkit-app-region: drag` title area → maximize / restore. */
+export function handleWindowDragDoubleClick(event: MouseEvent) {
+  const target = event.target;
+  if (!(target instanceof Element)) {
+    return;
+  }
+  if (target.closest('.window-no-drag')) {
+    return;
+  }
+  if (typeof ipc?.toggleMaximize !== 'function') {
+    return;
+  }
+  ipc.toggleMaximize();
+}
+
+export const DISPLAY_ZOOM_STEP = 0.1;
+export const DISPLAY_ZOOM_MIN = 0.5;
+export const DISPLAY_ZOOM_MAX = 2;
+
+export function getDisplayZoomFactor(): number {
+  if (typeof ipc?.getZoomFactor !== 'function') {
+    return 1;
+  }
+  const z = Number(ipc.getZoomFactor());
+  return Number.isFinite(z) && z > 0 ? z : 1;
+}
+
+export function setDisplayZoomFactor(factor: number): number {
+  const next = Math.min(DISPLAY_ZOOM_MAX, Math.max(DISPLAY_ZOOM_MIN, factor));
+  if (typeof ipc?.setZoomFactor === 'function') {
+    ipc.setZoomFactor(next);
+    return getDisplayZoomFactor();
+  }
+  return next;
+}
+
+export function zoomDisplayIn(current = getDisplayZoomFactor()): number {
+  return setDisplayZoomFactor(current + DISPLAY_ZOOM_STEP);
+}
+
+export function zoomDisplayOut(current = getDisplayZoomFactor()): number {
+  return setDisplayZoomFactor(current - DISPLAY_ZOOM_STEP);
+}
+
 export function focusOrSelectFormControl(
   doc: Doc,
   ref: unknown,
@@ -712,7 +757,9 @@ async function showInsufficientInventoryDialog(doc: SalesInvoice) {
       .join(', ');
     const detail = [
       t`The following items have insufficient quantity for Shipment: ${list}`,
-      t`Continue submitting Sales Invoice?`,
+      isUsCaCompany(fyo)
+        ? t`Continue submitting Invoice?`
+        : t`Continue submitting Sales Invoice?`,
     ];
 
     return (await showDialog({

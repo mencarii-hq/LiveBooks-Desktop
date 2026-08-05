@@ -34,6 +34,7 @@ export enum IPC_ACTIONS {
   SEND_DESKTOP_EVENT = 'send-desktop-event',
   GET_LANGUAGE_MAP = 'get-language-map',
   CHECK_FOR_UPDATES = 'check-for-updates',
+  CHECK_FOR_UPDATES_FORCE = 'check-for-updates-force',
   CHECK_DB_ACCESS = 'check-db-access',
   SELECT_FILE = 'select-file',
   GET_CREDS = 'get-creds',

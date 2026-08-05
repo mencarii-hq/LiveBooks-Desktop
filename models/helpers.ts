@@ -43,6 +43,7 @@ import {
   resolveCachedExchangeRate,
 } from './exchangeRateCache';
 import { isPesa } from 'fyo/utils';
+import { isUsCaCompany } from 'utils/regional';
 import { numberSeriesDefaultsMap } from './baseModels/Defaults/Defaults';
 import { PriceList } from './baseModels/PriceList/PriceList';
 import { InvoiceItem } from './baseModels/InvoiceItem/InvoiceItem';
@@ -194,9 +195,9 @@ export function getMakeInvoiceAction(
     | ModelNameEnum.PurchaseReceipt
     | ModelNameEnum.SalesQuote
 ): Action {
-  let label = fyo.t`Sales Invoice`;
+  let label = isUsCaCompany(fyo) ? fyo.t`Invoice` : fyo.t`Sales Invoice`;
   if (schemaName === ModelNameEnum.PurchaseReceipt) {
-    label = fyo.t`Purchase Invoice`;
+    label = isUsCaCompany(fyo) ? fyo.t`Bill` : fyo.t`Purchase Invoice`;
   }
 
   return {
@@ -241,7 +242,7 @@ export function getCreateCustomerAction(fyo: Fyo): Action {
 export function getSalesQuoteAction(fyo: Fyo): Action {
   return {
     group: fyo.t`Create`,
-    label: fyo.t`Sales Quote`,
+    label: isUsCaCompany(fyo) ? fyo.t`Quote` : fyo.t`Sales Quote`,
     condition: (doc: Doc) => !doc.notInserted,
     action: async (doc, router) => {
       const salesQuoteData = (doc as Lead).createSalesQuote();
