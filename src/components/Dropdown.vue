@@ -19,6 +19,7 @@
       <div
         class="
           bg-white
+          text-gray-900
           dark:bg-gray-850 dark:text-white
           rounded
           w-full
@@ -33,6 +34,9 @@
             overflow-auto
             custom-scroll custom-scroll-thumb2
             text-sm
+            bg-white
+            text-gray-900
+            dark:bg-gray-850 dark:text-white
           "
         >
           <div
@@ -79,6 +83,8 @@
                   first:mt-0
                   cursor-pointer
                   truncate
+                  text-gray-900
+                  dark:text-gray-100
                 "
                 :class="
                   index === highlightedIndex

@@ -13,6 +13,7 @@
       dark:border-gray-800
     "
     style="height: 28px"
+    @dblclick="onTitleBarDoubleClick"
   >
     <p v-if="companyName && dbPath" class="mx-auto text-sm">
       {{ companyName }} - {{ dbPath }}
@@ -101,6 +102,12 @@ export default {
     toggleMaximize() {
       ipc.toggleMaximize();
       this.getIsMaximized();
+    },
+    onTitleBarDoubleClick(event) {
+      if (event.target?.closest?.('.window-no-drag')) {
+        return;
+      }
+      this.toggleMaximize();
     },
     closeWindow() {
       ipc.closeWindow();

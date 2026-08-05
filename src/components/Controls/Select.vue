@@ -41,27 +41,16 @@
                 >{{ selectValue ? selectValue : value }}</span
               >
               <span v-else>{{ inputPlaceholder }}</span>
-              <svg
+              <feather-icon
                 v-if="!isReadOnly"
-                class="w-3 h-3"
-                style="background: inherit; margin-right: -3px"
-                viewBox="0 0 5 10"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M1 2.636L2.636 1l1.637 1.636M1 7.364L2.636 9l1.637-1.636"
-                  class="stroke-current"
-                  :class="
-                    showMandatory
-                      ? 'text-red-400 dark:text-red-600'
-                      : 'text-gray-400 dark:text-gray-600'
-                  "
-                  fill="none"
-                  fill-rule="evenodd"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
+                name="chevron-down"
+                class="w-3.5 h-3.5"
+                :class="
+                  showMandatory
+                    ? 'text-red-400 dark:text-red-600'
+                    : 'text-gray-400 dark:text-gray-600'
+                "
+              />
             </div>
           </div>
         </div>
@@ -75,6 +64,12 @@
             custom-scroll custom-scroll-thumb1
             w-60
             cursor-pointer
+            bg-white
+            text-sm text-gray-900
+            dark:bg-gray-850 dark:text-white
+            rounded
+            border border-gray-200
+            dark:border-gray-700
           "
         >
           <li
@@ -134,6 +129,17 @@ export default defineComponent({
     closeDropDown: {
       type: Boolean,
       default: true,
+    },
+  },
+  watch: {
+    value: {
+      immediate: true,
+      handler(v: string) {
+        const opt = this.options?.find(
+          (o: SelectOption) => o.value === v || o.label === v
+        );
+        this.selectValue = opt?.label ?? v ?? '';
+      },
     },
   },
   computed: {

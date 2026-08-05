@@ -13,6 +13,7 @@
       border ? 'border-b dark:border-gray-800' : '',
       platform !== 'Windows' ? 'window-drag' : '',
     ]"
+    @dblclick="handleWindowDragDoubleClick"
   >
     <Transition name="spacer" class="border-none">
       <div
@@ -59,6 +60,7 @@
 <script lang="ts">
 import { languageDirectionKey } from 'src/utils/injectionKeys';
 import { showSidebar } from 'src/utils/refs';
+import { handleWindowDragDoubleClick } from 'src/utils/ui';
 import { defineComponent, inject, Transition } from 'vue';
 import PageHeaderNavGroup from './PageHeaderNavGroup.vue';
 
@@ -70,7 +72,11 @@ export default defineComponent({
     searchborder: { type: Boolean, default: true },
   },
   setup() {
-    return { showSidebar, languageDirection: inject(languageDirectionKey) };
+    return {
+      showSidebar,
+      languageDirection: inject(languageDirectionKey),
+      handleWindowDragDoubleClick,
+    };
   },
   computed: {
     showBorder() {

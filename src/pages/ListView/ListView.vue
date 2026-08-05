@@ -166,9 +166,18 @@ export default defineComponent({
     },
     actionOptions(): { value: string; label: string }[] {
       return [
-        { value: 'SalesQuote', label: 'Sales Quote' },
-        { value: 'SalesInvoice', label: 'Sales Invoice' },
-        { value: 'PurchaseInvoice', label: 'Purchase Invoice' },
+        {
+          value: 'SalesQuote',
+          label: fyo.schemaMap.SalesQuote?.label ?? 'Sales Quote',
+        },
+        {
+          value: 'SalesInvoice',
+          label: fyo.schemaMap.SalesInvoice?.label ?? 'Sales Invoice',
+        },
+        {
+          value: 'PurchaseInvoice',
+          label: fyo.schemaMap.PurchaseInvoice?.label ?? 'Purchase Invoice',
+        },
       ];
     },
   },

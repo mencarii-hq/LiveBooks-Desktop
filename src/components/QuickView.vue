@@ -1,16 +1,29 @@
 <template>
   <div style="min-width: 192px; max-width: 300px">
     <div
-      class="p-2 flex justify-between"
+      class="p-2 flex justify-between gap-2"
       :class="values.length ? 'border-b dark:border-gray-800' : ''"
     >
       <p
-        v-if="schema?.naming !== 'random' && !schema?.isChild"
-        class="font-semibold text-base text-gray-900 dark:text-gray-25"
+        v-if="displayTitle"
+        class="
+          font-semibold
+          text-base text-gray-900
+          dark:text-gray-25
+          min-w-0
+          break-words
+        "
       >
-        {{ name }}
+        {{ displayTitle }}
       </p>
-      <p class="font-semibold text-base text-gray-600 dark:text-gray-300">
+      <p
+        class="
+          font-semibold
+          text-base text-gray-600
+          dark:text-gray-300
+          shrink-0
+        "
+      >
         {{ schema?.label ?? '' }}
       </p>
     </div>
@@ -30,7 +43,9 @@
 </template>
 <script lang="ts">
 import { isFalsy } from 'fyo/utils';
-import { Field } from 'schemas/types';
+import { Field, FieldTypeEnum } from 'schemas/types';
+import { accountDisplayName } from 'utils/accountDisplay';
+import { isUuidDocId } from 'utils/ids';
 import { defineComponent } from 'vue';
 
 export default defineComponent({
@@ -39,7 +54,10 @@ export default defineComponent({
     name: { type: String, required: true },
   },
   data() {
-    return { values: [] } as { values: { label: string; value: string }[] };
+    return {
+      values: [] as { label: string; value: string }[],
+      displayTitle: '',
+    };
   },
   computed: {
     schema() {
@@ -78,25 +96,76 @@ export default defineComponent({
           fields: fields.map((f) => f.fieldname),
           filters: { name: this.name },
         })
-      )[0];
+      )[0] as Record<string, unknown> | undefined;
 
       if (!data) {
+        this.displayTitle = '';
+        this.values = [];
         return;
       }
 
-      this.values = fields
-        .map((f) => {
-          const value = data[f.fieldname];
-          if (isFalsy(value)) {
-            return { value: '', label: '' };
-          }
+      const titleField =
+        this.schema?.linkDisplayField || this.schema?.titleField;
+      const titleValue = titleField
+        ? String(data[titleField] ?? '').trim()
+        : '';
+      if (titleValue) {
+        this.displayTitle = titleValue;
+      } else if (this.schemaName === 'Account') {
+        this.displayTitle = accountDisplayName({
+          name: this.name,
+          accountName: data.accountName as string | undefined,
+        });
+      } else if (
+        this.schema?.naming !== 'random' &&
+        !this.schema?.isChild &&
+        !isUuidDocId(this.name)
+      ) {
+        this.displayTitle = this.name;
+      } else {
+        this.displayTitle = titleValue || '';
+      }
 
-          return {
-            value: this.fyo.format(data[f.fieldname], f),
-            label: f.label,
-          };
-        })
-        .filter((i) => !!i.value);
+      this.values = (
+        await Promise.all(
+          fields.map(async (f) => {
+            const value = data[f.fieldname];
+            if (isFalsy(value)) {
+              return { value: '', label: '' };
+            }
+
+            let display = this.fyo.format(data[f.fieldname], f);
+            if (
+              (f.fieldtype === FieldTypeEnum.Link ||
+                f.fieldtype === FieldTypeEnum.DynamicLink) &&
+              typeof value === 'string'
+            ) {
+              const target =
+                f.fieldtype === FieldTypeEnum.Link
+                  ? f.target
+                  : (data[f.references as string] as string | undefined);
+              if (target === 'Account') {
+                try {
+                  const linked = (await this.fyo.db.get('Account', value)) as {
+                    accountName?: string;
+                  };
+                  display = accountDisplayName({
+                    name: value,
+                    accountName: linked?.accountName,
+                  });
+                } catch {
+                  /* keep formatted value */
+                }
+              }
+            }
+
+            return {
+              value: display,
+              label: f.label,
+            };
+          })
+        )
+      ).filter((i) => !!i.value);
     },
   },
 });

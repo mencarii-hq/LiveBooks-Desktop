@@ -5,6 +5,7 @@
       'pointer-events-none': loadingDatabase,
       'window-drag': platform !== 'Windows',
     }"
+    @dblclick="handleWindowDragDoubleClick"
   >
     <div
       class="
@@ -15,6 +16,7 @@
         relative
         bg-white
         dark:bg-gray-875
+        window-no-drag
       "
       style="height: 700px"
     >
@@ -363,7 +365,12 @@ import { handleErrorWithDialog } from 'src/errorHandling';
 import { showToast } from 'src/utils/interactive';
 import { updateConfigFiles } from 'src/utils/misc';
 import { purgeCloudPlaidItemsForInstance } from 'src/utils/livebooksCloudBook';
-import { deleteDb, getSavePath, getSelectedFilePath } from 'src/utils/ui';
+import {
+  deleteDb,
+  getSavePath,
+  getSelectedFilePath,
+  handleWindowDragDoubleClick,
+} from 'src/utils/ui';
 import { moveCompanyFile } from 'src/utils/companyDb';
 import type { ConfigFilesWithModified } from 'utils/types';
 import { defineComponent } from 'vue';
@@ -422,6 +429,7 @@ export default defineComponent({
     }
   },
   methods: {
+    handleWindowDragDoubleClick,
     truncate(value: string) {
       if (value.length < 72) {
         return value;
