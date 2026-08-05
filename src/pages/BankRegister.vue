@@ -7,7 +7,16 @@
       <FilterDropdown
         :schema-name="ModelNameEnum.AccountingLedgerEntry"
         :exclude-fields="['account']"
-        :include-fields="['party', 'date']"
+        :include-fields="[
+          'party',
+          'date',
+          'debit',
+          'credit',
+          'referenceType',
+          'referenceName',
+          'cleared',
+          'reconciled',
+        ]"
         @change="applyFilter"
       />
       <Button
@@ -204,7 +213,7 @@ import {
 } from 'src/utils/registerBankAccount';
 import { routeTo } from 'src/utils/ui';
 import { QueryFilter } from 'utils/db/types';
-import { defineComponent } from 'vue';
+import { defineComponent, toRaw } from 'vue';
 
 type AccountOpt = { name: string; accountName?: string };
 type RegisterRow = {
@@ -379,7 +388,10 @@ export default defineComponent({
       this.loading = true;
       try {
         // Bank picker owns account; Filter can add party/date/etc.
-        const restFilters = { ...this.listFilters };
+        // Strip Vue proxies — IPC structured clone rejects them.
+        const restFilters = JSON.parse(
+          JSON.stringify(toRaw(this.listFilters) ?? {})
+        ) as QueryFilter;
         delete restFilters.account;
         const ales = (await fyo.db.getAll(ModelNameEnum.AccountingLedgerEntry, {
           filters: {
