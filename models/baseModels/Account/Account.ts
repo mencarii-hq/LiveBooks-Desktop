@@ -4,6 +4,7 @@ import { generateDocId, isUuidDocId } from 'utils/ids';
 import {
   DefaultMap,
   FiltersMap,
+  HiddenMap,
   ListViewSettings,
   RequiredMap,
   TreeViewSettings,
@@ -52,6 +53,16 @@ export class Account extends Doc {
   parentAccount?: string;
   /** When true, account is treated as archived (hidden from feeds and active pickers). */
   disabled?: boolean;
+  /** Next check number assigned when printing checks (Bank accounts only). */
+  nextCheckNumber?: number;
+  /** JSON array of voided check numbers; never reused (Bank accounts only). */
+  voidedCheckNumbers?: string;
+
+  /** Check numbering fields are only meaningful for Bank accounts. */
+  hidden: HiddenMap = {
+    nextCheckNumber: () => this.accountType !== 'Bank',
+    voidedCheckNumbers: () => this.accountType !== 'Bank',
+  };
 
   get isDebit() {
     if (this.rootType === AccountRootTypeEnum.Asset) {

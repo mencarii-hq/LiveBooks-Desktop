@@ -47,6 +47,7 @@ export enum ModelNameEnum {
   Payment = 'Payment',
   PaymentMethod = 'PaymentMethod',
   PaymentFor = 'PaymentFor',
+  CheckPrintSettings = 'CheckPrintSettings',
   MemorizedTransaction = 'MemorizedTransaction',
   PriceList = 'PriceList',
   PriceListItem = 'PriceListItem',
@@ -94,4 +95,4 @@ export enum ModelNameEnum {
 
 export type ModelName = keyof typeof ModelNameEnum;
 
-export type PaymentMethodType = 'Cash' | 'Bank';
+export type PaymentMethodType = 'Cash' | 'Bank' | 'Check';

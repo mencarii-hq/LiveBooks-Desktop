@@ -97,9 +97,16 @@
     },
     {
       "fieldname": "referenceId",
-      "label": "Ref. / Cheque No.",
-      "placeholder": "Ref. / Cheque No.",
+      "label": "Ref. / Check No.",
+      "placeholder": "Ref. / Check No.",
       "fieldtype": "Data",
+      "section": "Details"
+    },
+    {
+      "fieldname": "printLater",
+      "label": "Print Later",
+      "fieldtype": "Check",
+      "default": false,
       "section": "Details"
     },
     {

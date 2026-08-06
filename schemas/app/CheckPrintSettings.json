@@ -1,0 +1,35 @@
+{
+  "name": "CheckPrintSettings",
+  "label": "Check Printing",
+  "isSingle": true,
+  "isChild": false,
+  "fields": [
+    {
+      "fieldname": "activeFormat",
+      "label": "Check Format",
+      "fieldtype": "Select",
+      "default": "voucher",
+      "options": [
+        {
+          "value": "voucher",
+          "label": "Voucher (1 per page)"
+        },
+        {
+          "value": "threePerPage",
+          "label": "3 per page"
+        },
+        {
+          "value": "ledgerStub",
+          "label": "Ledger / stub"
+        }
+      ]
+    },
+    {
+      "fieldname": "profiles",
+      "label": "Calibration Profiles",
+      "fieldtype": "Text",
+      "description": "JSON per-format calibration (page size + X/Y and per-field offsets in 1/100 inch). Managed from the Check Printing settings tab."
+    }
+  ],
+  "quickEditFields": ["activeFormat"]
+}

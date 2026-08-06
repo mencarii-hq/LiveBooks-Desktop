@@ -152,6 +152,20 @@
       "fieldtype": "Check",
       "default": false,
       "description": "Archived bank accounts stay in the ledger for history but are hidden from bank feeds and most pickers."
+    },
+    {
+      "fieldname": "nextCheckNumber",
+      "label": "Next Check Number",
+      "fieldtype": "Int",
+      "default": 1001,
+      "description": "Next number assigned when printing checks from this bank account."
+    },
+    {
+      "fieldname": "voidedCheckNumbers",
+      "label": "Voided Check Numbers",
+      "fieldtype": "Text",
+      "readOnly": true,
+      "description": "JSON list of check numbers voided on this account. Voided numbers are never reused."
     }
   ],
   "quickEditFields": [

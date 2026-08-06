@@ -298,19 +298,20 @@ export function getMakePaymentAction(fyo: Fyo): Action {
 }
 
 export function getLedgerLinkAction(fyo: Fyo, isStock = false): Action {
-  let label = fyo.t`Accounting Entries`;
+  let label = fyo.t`View Ledger`;
   let reportClassName: 'GeneralLedger' | 'StockLedger' = 'GeneralLedger';
 
   if (isStock) {
-    label = fyo.t`Stock Entries`;
+    label = fyo.t`View Stock Ledger`;
     reportClassName = 'StockLedger';
   }
 
   return {
     label,
-    group: fyo.t`View`,
+    group: label,
     condition: (doc: Doc) => doc.isSubmitted,
     action: async (doc: Doc, router: Router) => {
+      // Open GL/SL filtered to this document's ledger entries.
       const route = getLedgerLink(doc, reportClassName);
       await router.push(route);
     },
@@ -321,10 +322,11 @@ export function getLedgerLink(
   doc: Doc,
   reportClassName: 'GeneralLedger' | 'StockLedger'
 ) {
+  // Filters must be in `query` — Report.vue reads $route.query, not params.
   return {
     name: 'Report',
-    params: {
-      reportClassName,
+    params: { reportClassName },
+    query: {
       defaultFilters: JSON.stringify({
         referenceType: doc.schemaName,
         referenceName: doc.name,
