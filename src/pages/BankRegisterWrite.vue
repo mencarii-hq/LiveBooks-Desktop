@@ -11,6 +11,7 @@
 
     <div class="flex-1 overflow-y-auto custom-scroll custom-scroll-thumb1 p-4">
       <div
+        :key="formKey"
         class="
           w-form
           max-w-3xl
@@ -133,7 +134,6 @@ import {
   getLastRegisterBankAccount,
   setLastRegisterBankAccount,
 } from 'src/utils/registerBankAccount';
-import { routeTo } from 'src/utils/ui';
 import { defineComponent } from 'vue';
 
 type AccountOpt = { name: string; accountName?: string };
@@ -150,6 +150,8 @@ export default defineComponent({
       paymentMethods: [] as { name: string; type?: string }[],
       saving: false,
       formError: '',
+      // Bump after save so FormControls remount with cleared values.
+      formKey: 0,
       form: {
         date: DateTime.now().toISODate() || '',
         party: '',
@@ -164,15 +166,15 @@ export default defineComponent({
   },
   computed: {
     selectedMethodType(): string {
+      const name = this.form.paymentMethod.trim().toLowerCase();
+      // Prefer literal "Check" name even if an older book still has type Bank.
+      if (name === 'check') {
+        return 'Check';
+      }
       const m = this.paymentMethods.find(
         (pm) => pm.name === this.form.paymentMethod
       );
-      if (m?.type) {
-        return m.type;
-      }
-      return this.form.paymentMethod.trim().toLowerCase() === 'check'
-        ? 'Check'
-        : '';
+      return m?.type || '';
     },
     // Q-AF: only Pay + Check entries can be queued for batch printing.
     canQueue(): boolean {
@@ -390,16 +392,33 @@ export default defineComponent({
           paymentType: this.form.paymentType,
           memo: this.form.memo,
           paymentMethod: this.form.paymentMethod,
-          printLater: this.canQueue ? this.form.printLater : false,
+          printLater: !!(this.canQueue && this.form.printLater),
         });
         setLastRegisterBankAccount(this.bankAccount);
-        await routeTo('/bank-register');
+        await this.resetFormAfterSave();
       } catch (error) {
         await handleErrorWithDialog(error);
         this.formError = error instanceof Error ? error.message : String(error);
       } finally {
         this.saving = false;
       }
+    },
+    async resetFormAfterSave() {
+      const paymentMethod =
+        this.form.paymentMethod || (await resolveDefaultPaymentMethod(fyo));
+      const paymentType = this.form.paymentType;
+      this.form = {
+        date: DateTime.now().toISODate() || '',
+        party: '',
+        categoryAccount: '',
+        amount: 0,
+        paymentType,
+        memo: '',
+        paymentMethod,
+        printLater: false,
+      };
+      this.formError = '';
+      this.formKey += 1;
     },
     async memorizeCurrent() {
       this.formError = '';

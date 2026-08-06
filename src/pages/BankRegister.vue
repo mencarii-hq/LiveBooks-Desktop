@@ -98,10 +98,11 @@
             </div>
             <Row
               class="flex-1 text-gray-700 dark:text-gray-300 h-row-mid"
-              :ratio="[1.4, 1.2, 1.2, 1.2, 1, 1, 1]"
+              :ratio="[0.8, 1.3, 1.1, 1.1, 1.1, 1, 1, 1]"
               gap="1rem"
             >
               <div class="cell-header">{{ t`Date` }}</div>
+              <div class="cell-header">{{ t`Check No.` }}</div>
               <div class="cell-header">{{ t`Payee` }}</div>
               <div class="cell-header">{{ t`Category` }}</div>
               <div class="cell-header">{{ t`Memo` }}</div>
@@ -127,7 +128,7 @@
               flex-1
             "
           >
-            <div v-for="(row, i) in rows" :key="row.key">
+            <div v-for="(row, i) in rowsSlice" :key="row.key">
               <div
                 class="
                   flex
@@ -148,7 +149,7 @@
                     items-center
                   "
                 >
-                  {{ i + 1 }}
+                  {{ pageStart + i + 1 }}
                 </div>
                 <Row
                   gap="1rem"
@@ -159,12 +160,13 @@
                     flex-1
                     h-row-mid
                   "
-                  :ratio="[1.4, 1.2, 1.2, 1.2, 1, 1, 1]"
+                  :ratio="[0.8, 1.3, 1.1, 1.1, 1.1, 1, 1, 1]"
                   @click="openRow(row)"
                 >
                   <div class="cell-body" :title="formatRegisterDate(row.date)">
                     {{ formatRegisterDate(row.date) }}
                   </div>
+                  <div class="cell-body tabular-nums">{{ row.checkNo }}</div>
                   <div class="cell-body">{{ row.payee }}</div>
                   <div class="cell-body">{{ row.category }}</div>
                   <div class="cell-body">{{ row.memo }}</div>
@@ -179,8 +181,18 @@
                   </div>
                 </Row>
               </div>
-              <hr v-if="i !== rows.length - 1" class="dark:border-gray-800" />
+              <hr
+                v-if="i !== rowsSlice.length - 1"
+                class="dark:border-gray-800"
+              />
             </div>
+          </div>
+          <div v-if="rows.length" class="mt-auto flex-shrink-0">
+            <hr class="dark:border-gray-800" />
+            <Paginator
+              :item-count="rows.length"
+              @index-change="setPageIndices"
+            />
           </div>
         </template>
       </div>
@@ -209,6 +221,7 @@ import FilterDropdown from 'src/components/FilterDropdown.vue';
 import FormControl from 'src/components/Controls/FormControl.vue';
 import Modal from 'src/components/Modal.vue';
 import PageHeader from 'src/components/PageHeader.vue';
+import Paginator from 'src/components/Paginator.vue';
 import Row from 'src/components/Row.vue';
 import { fyo } from 'src/initFyo';
 import { handleErrorWithDialog } from 'src/errorHandling';
@@ -224,6 +237,7 @@ type AccountOpt = { name: string; accountName?: string };
 type RegisterRow = {
   key: string;
   date: string;
+  checkNo: string;
   payee: string;
   category: string;
   memo: string;
@@ -243,6 +257,7 @@ export default defineComponent({
     Modal,
     ExportWizard,
     FormControl,
+    Paginator,
   },
   data() {
     return {
@@ -252,12 +267,17 @@ export default defineComponent({
       accountNameById: {} as Record<string, string>,
       listFilters: {} as QueryFilter,
       rows: [] as RegisterRow[],
+      pageStart: 0,
+      pageEnd: 0,
       loading: false,
       openExportModal: false,
       balanceAsOfToday: null as Money | null,
     };
   },
   computed: {
+    rowsSlice(): RegisterRow[] {
+      return this.rows.slice(this.pageStart, this.pageEnd);
+    },
     bankAccountField(): Field {
       return {
         fieldtype: 'Link',
@@ -314,6 +334,10 @@ export default defineComponent({
     }
   },
   methods: {
+    setPageIndices({ start, end }: { start: number; end: number }) {
+      this.pageStart = start;
+      this.pageEnd = end;
+    },
     accountLabel(id?: string) {
       if (!id) return '';
       return this.accountNameById[id] || id;
@@ -473,7 +497,7 @@ export default defineComponent({
         const cancelled = new Set<string>();
         const paymentMap = new Map<
           string,
-          { memo: string; category: string; party: string }
+          { memo: string; category: string; party: string; checkNo: string }
         >();
 
         if (paymentNames.length) {
@@ -507,7 +531,8 @@ export default defineComponent({
             const categoryId =
               p.paymentType === 'Pay' ? p.paymentAccount : p.account;
             paymentMap.set(p.name, {
-              memo: p.memo || p.referenceId || '',
+              memo: p.memo || '',
+              checkNo: (p.referenceId || '').trim(),
               category: this.accountLabel(categoryId),
               party: p.party || '',
             });
@@ -543,6 +568,7 @@ export default defineComponent({
           rows.push({
             key: ale.name,
             date: this.normalizeRegisterDate(ale.date),
+            checkNo: payInfo?.checkNo || '',
             payee: payInfo?.party || ale.party || '',
             category: payInfo?.category || '',
             memo: payInfo?.memo || '',
@@ -567,7 +593,10 @@ export default defineComponent({
     },
     async openRow(row: RegisterRow) {
       if (row.paymentName) {
-        await routeTo(`/edit/Payment/${row.paymentName}`);
+        await routeTo({
+          path: `/edit/Payment/${row.paymentName}`,
+          query: { from: 'bank-register' },
+        });
       }
     },
     async loadBalanceAsOfToday() {
