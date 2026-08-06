@@ -47,6 +47,7 @@ export class Payment extends Transactional {
   paymentType?: PaymentType;
   paymentMethod?: string;
   referenceId?: string;
+  printLater?: boolean;
   memo?: string;
   referenceType?: ModelNameEnum.SalesInvoice | ModelNameEnum.PurchaseInvoice;
   for?: PaymentFor[];
@@ -674,7 +675,13 @@ export class Payment extends Transactional {
         }
 
         const reference = this?.for?.[0];
-        const refDoc = (await reference?.loadAndGetLink(
+        // Register / unallocated payments have no invoice: do not infer
+        // Pay/Receive from party role (Customer/Both used to force Receive).
+        if (!reference?.referenceName) {
+          return;
+        }
+
+        const refDoc = (await reference.loadAndGetLink(
           'referenceName'
         )) as Invoice | null;
 
@@ -710,6 +717,7 @@ export class Payment extends Transactional {
         }
         return PaymentTypeEnum.Pay;
       },
+      dependsOn: ['party', 'for'],
     },
     amount: {
       formula: () => this.getSum('for', 'amount', false),
@@ -776,6 +784,8 @@ export class Payment extends Transactional {
       !(this.attachment || !(this.isSubmitted || this.isCancelled)),
     for: () => !!((this.isSubmitted || this.isCancelled) && !this.for?.length),
     taxes: () => !this.taxes?.length,
+    // Q-AF: queue field only meaningful for Pay (deposits are never check-printable).
+    printLater: () => this.paymentType !== 'Pay',
   };
 
   static filters: FiltersMap = {
@@ -828,7 +838,125 @@ export class Payment extends Transactional {
     return [
       getLedgerLinkAction(fyo),
       {
-        label: fyo.t`Make recurring…`,
+        label: fyo.t`Print Check`,
+        condition: (doc) => {
+          const payment = doc as Payment;
+          // Q-AF: Print Check only for submitted Pay entries using Check.
+          return (
+            !!payment.name &&
+            !!payment.isSubmitted &&
+            !payment.isCancelled &&
+            payment.paymentType === 'Pay' &&
+            !!(payment.paymentMethod as string)
+          );
+        },
+        action: async (doc) => {
+          const payment = doc as Payment;
+          const { isCheckMethod } = await import(
+            'src/utils/memorizedTransactions'
+          );
+          const method = (payment.paymentMethod as string) || '';
+          if (!(await isCheckMethod(fyo, method))) {
+            const { showToast } = await import('src/utils/interactive');
+            showToast({
+              type: 'warning',
+              message: fyo.t`Payment method must be Check to print a check.`,
+            });
+            return;
+          }
+
+          // Already printed (X1): reprint keeping the same number.
+          const existingRef = (payment.referenceId as string)?.trim();
+          if (existingRef && !payment.printLater) {
+            const {
+              buildCheckDataForPayments,
+              loadCheckSettings,
+              printCheckBatch,
+            } = await import('src/utils/checkPrint/printChecks');
+            const settings = await loadCheckSettings(fyo);
+            const profile =
+              settings.profiles[settings.activeFormat] ??
+              settings.profiles.voucher;
+            const checks = await buildCheckDataForPayments(
+              fyo,
+              [String(payment.name)],
+              { [String(payment.name)]: existingRef }
+            );
+            await printCheckBatch(checks, settings.activeFormat, profile);
+            return;
+          }
+
+          const amount = payment.amount?.float ?? 0;
+          const { runCheckPrintFlow } = await import(
+            'src/utils/checkPrint/runCheckPrintFlow'
+          );
+          await runCheckPrintFlow(
+            fyo,
+            [
+              {
+                paymentName: String(payment.name),
+                bankAccount: String(payment.account || ''),
+                amount,
+              },
+            ],
+            {}
+          );
+        },
+      },
+      {
+        // Keep payment; void only the check # and send back to queue.
+        label: fyo.t`Void check # (requeue)…`,
+        condition: (doc) => {
+          const payment = doc as Payment;
+          return (
+            !!payment.name &&
+            !!payment.isSubmitted &&
+            !payment.isCancelled &&
+            payment.paymentType === 'Pay' &&
+            !payment.printLater &&
+            !!(payment.referenceId as string)?.trim()
+          );
+        },
+        action: async (doc) => {
+          const payment = doc as Payment;
+          const checkNo = String(payment.referenceId);
+          const { showDialog } = await import('src/utils/interactive');
+          const ok = await showDialog({
+            title: fyo.t`Void check #${checkNo}?`,
+            detail: [
+              fyo.t`Keeps this payment in the books.`,
+              fyo.t`Voids check #${checkNo} so it cannot be reused.`,
+              fyo.t`Returns this payment to Checks to Print for a new number.`,
+              fyo.t`Not the same as Cancel payment (which reverses the transaction).`,
+            ],
+            type: 'warning',
+            buttons: [
+              {
+                label: fyo.t`Don't void`,
+                action: () => false,
+                isEscape: true,
+              },
+              {
+                label: fyo.t`Void # & requeue`,
+                action: () => true,
+                isPrimary: true,
+              },
+            ],
+          });
+          if (!ok) return;
+          const { voidAndRequeue } = await import(
+            'src/utils/checkPrint/numbering'
+          );
+          await voidAndRequeue(fyo, String(payment.name));
+          const { showToast } = await import('src/utils/interactive');
+          showToast({
+            type: 'success',
+            message: fyo.t`Check #${checkNo} voided. Payment is back on Checks to Print.`,
+          });
+        },
+      },
+      {
+        label: fyo.t`Recurring`,
         group: fyo.t`Create`,
         condition: (doc) =>
           !!doc.party && !!doc.amount && !(doc as Payment).for?.length,

@@ -27,8 +27,34 @@ export type RegisterPaymentFields = {
   paymentType: 'Pay' | 'Receive';
   memo?: string;
   paymentMethod?: string;
+  /** Queue for batch check printing (only honored for Pay + Check — Q-AF). */
+  printLater?: boolean;
 };
 
+/** True when the resolved payment method is a Check-type method. */
+export async function isCheckMethod(
+  fyo: Fyo,
+  methodName: string
+): Promise<boolean> {
+  if (!methodName) return false;
+  if (methodName.trim().toLowerCase() === 'check') return true;
+  try {
+    const type = await fyo.getValue(
+      ModelNameEnum.PaymentMethod,
+      methodName,
+      'type'
+    );
+    return type === 'Check';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * R2: Register entries (payments and deposits) default to the Check method.
+ * Prefer a method of type `Check`, then one literally named "Check", then
+ * fall back to Cash / Bank / first available for older books.
+ */
 export async function resolveDefaultPaymentMethod(fyo: Fyo): Promise<string> {
   try {
     const methods = (await fyo.db.getAll(ModelNameEnum.PaymentMethod, {
@@ -36,17 +62,33 @@ export async function resolveDefaultPaymentMethod(fyo: Fyo): Promise<string> {
       orderBy: 'name',
       order: 'asc',
     })) as { name: string; type?: string }[];
+    const checkByType = methods.find((m) => m.type === 'Check');
+    if (checkByType) return checkByType.name;
+    const checkByName = methods.find(
+      (m) => m.name.trim().toLowerCase() === 'check'
+    );
+    if (checkByName) return checkByName.name;
     const cash = methods.find((m) => m.name.trim().toLowerCase() === 'cash');
     if (cash) return cash.name;
     const bank = methods.find((m) => m.type === 'Bank');
     if (bank) return bank.name;
-    return methods[0]?.name || 'Cash';
+    return methods[0]?.name || 'Check';
   } catch {
-    return 'Cash';
+    return 'Check';
   }
 }
 
 /** Create + submit a register-style Payment (empty for[], Cash method). */
+function normalizeRegisterPaymentType(
+  value: string | undefined
+): 'Pay' | 'Receive' {
+  if (value === 'Receive' || value === 'Deposit') {
+    return 'Receive';
+  }
+  // Pay, Payment, or anything else defaults to Pay
+  return 'Pay';
+}
+
 export async function createRegisterPayment(
   fyo: Fyo,
   fields: RegisterPaymentFields
@@ -57,35 +99,103 @@ export async function createRegisterPayment(
 
   await ensurePartyExists(fyo, fields.party);
 
+  // R2: register entries default to Check when no method is supplied.
+  const paymentMethod =
+    fields.paymentMethod || (await resolveDefaultPaymentMethod(fyo));
+
+  const paymentType = normalizeRegisterPaymentType(fields.paymentType);
+
   // Pay: credit bank (account), debit category (paymentAccount)
   // Receive: debit bank (paymentAccount), credit category (account)
   const account =
-    fields.paymentType === 'Pay' ? fields.bankAccount : fields.categoryAccount;
+    paymentType === 'Pay' ? fields.bankAccount : fields.categoryAccount;
   const paymentAccount =
-    fields.paymentType === 'Pay' ? fields.categoryAccount : fields.bankAccount;
+    paymentType === 'Pay' ? fields.categoryAccount : fields.bankAccount;
 
+  // Q-AF: only Pay + Check entries can be queued for printing.
+  const queue =
+    fields.printLater === true &&
+    paymentType === 'Pay' &&
+    (await isCheckMethod(fyo, paymentMethod));
+
+  // Do not seed paymentType before party: party formulas used to force
+  // Receive for Customer/Both and would overwrite Pay.
   const doc = fyo.doc.getNewDoc(ModelNameEnum.Payment, {
-    party: fields.party,
     date: fields.date,
-    paymentType: fields.paymentType,
-    paymentMethod: fields.paymentMethod || 'Cash',
+    paymentMethod,
     amount: fyo.pesa(fields.amount),
     memo: fields.memo || '',
     for: [],
   }) as Payment;
 
-  await doc.set('paymentMethod', fields.paymentMethod || 'Cash');
-  await doc.set('paymentType', fields.paymentType);
-  await doc.set('party', fields.party);
+  await doc.set('paymentMethod', paymentMethod);
   await doc.set('date', fields.date);
   await doc.set('amount', fyo.pesa(fields.amount));
   await doc.set('memo', fields.memo || '');
-  // Set accounts last so formulas do not overwrite
+  await doc.set('party', fields.party);
+  // Set type AFTER party so role-based formulas cannot win.
+  await doc.set('paymentType', paymentType);
+  await doc.set('printLater', queue);
+  // Set accounts after type so account formulas see the correct Pay/Receive.
   await doc.set('account', account);
   await doc.set('paymentAccount', paymentAccount);
+  // Account formulas depend on paymentType; re-assert in case they retriggered.
+  if (doc.paymentType !== paymentType) {
+    doc.paymentType = paymentType;
+  }
 
+  // Handwritten path (Print later unticked): assign next free check number
+  // immediately so X1 treats it as already printed.
+  let assignedHandNumber: string | null = null;
+  if (
+    !queue &&
+    paymentType === 'Pay' &&
+    (await isCheckMethod(fyo, paymentMethod))
+  ) {
+    try {
+      const { assignBatchNumbers } = await import(
+        'src/utils/checkPrint/numbering'
+      );
+      const { assignments } = await assignBatchNumbers(fyo, [
+        {
+          paymentName: 'pending',
+          bankAccount: fields.bankAccount,
+          amount: fields.amount,
+        },
+      ]);
+      if (assignments[0]) {
+        assignedHandNumber = assignments[0].checkNumber;
+        await doc.set('referenceId', assignedHandNumber);
+      }
+    } catch {
+      /* leave blank; user can type a number */
+    }
+  }
+
+  // Final guard: sync _preSync runs formulas; keep register Pay/Receive.
+  if (doc.paymentType !== paymentType) {
+    doc.paymentType = paymentType;
+  }
   await doc.sync();
   await doc.submit();
+
+  if (assignedHandNumber) {
+    try {
+      const { commitAssignments } = await import(
+        'src/utils/checkPrint/numbering'
+      );
+      await commitAssignments(fyo, [
+        {
+          paymentName: String(doc.name),
+          bankAccount: fields.bankAccount,
+          checkNumber: assignedHandNumber,
+        },
+      ]);
+    } catch {
+      /* number is already on the payment */
+    }
+  }
+
   return doc;
 }
 
@@ -110,7 +220,7 @@ export async function memorizePayment(
   if (payment.for?.length) {
     await showDialog({
       title: t`Cannot make recurring`,
-      detail: t`Invoice payments cannot be made recurring. Use Cheque Register for recurring payees.`,
+      detail: t`Invoice payments cannot be made recurring. Use Check Register for recurring payees.`,
       type: 'error',
     });
     return;

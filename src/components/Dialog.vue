@@ -45,6 +45,28 @@
           >
             {{ detailEmphasis }}
           </p>
+          <div v-if="confirmText" class="flex flex-col gap-1">
+            <p class="text-sm text-gray-600 dark:text-gray-300">
+              {{ confirmHint }}
+            </p>
+            <input
+              ref="confirmInput"
+              v-model="typedConfirm"
+              class="
+                text-sm
+                border
+                dark:border-gray-700
+                rounded
+                px-2
+                py-1.5
+                bg-white
+                dark:bg-gray-900 dark:text-gray-25
+              "
+              autocomplete="off"
+              spellcheck="false"
+              @keydown.enter.prevent="onConfirmEnter"
+            />
+          </div>
           <div class="flex justify-end gap-4 mt-4">
             <Button
               v-for="(b, index) of buttons"
@@ -52,6 +74,7 @@
               :key="b.label"
               style="min-width: 5rem"
               :type="b.isPrimary ? 'primary' : 'secondary'"
+              :disabled="b.isPrimary && !canConfirm"
               @click="() => handleClick(index)"
             >
               {{ b.label }}
@@ -63,6 +86,7 @@
   </Teleport>
 </template>
 <script lang="ts">
+import { t } from 'fyo';
 import { getIconConfig } from 'src/utils/interactive';
 import { DialogButton, ToastType } from 'src/utils/types';
 import { defineComponent, nextTick, PropType, ref } from 'vue';
@@ -82,6 +106,10 @@ export default defineComponent({
       type: String as PropType<string | undefined>,
       required: false,
     },
+    confirmText: {
+      type: String as PropType<string | undefined>,
+      required: false,
+    },
     buttons: {
       type: Array as PropType<DialogButton[]>,
       required: true,
@@ -94,11 +122,23 @@ export default defineComponent({
     };
   },
   data() {
-    return { open: false };
+    return { open: false, typedConfirm: '' };
   },
   computed: {
     config() {
       return getIconConfig(this.type);
+    },
+    canConfirm(): boolean {
+      if (!this.confirmText) {
+        return true;
+      }
+      return this.typedConfirm.trim() === this.confirmText;
+    },
+    confirmHint(): string {
+      if (!this.confirmText) {
+        return '';
+      }
+      return t`Type ${this.confirmText} to confirm`;
     },
   },
   watch: {
@@ -115,9 +155,17 @@ export default defineComponent({
       this.open = true;
     });
 
-    this.focusButton();
+    this.focusInitial();
   },
   methods: {
+    focusInitial() {
+      if (this.confirmText) {
+        const input = this.$refs.confirmInput as HTMLInputElement | undefined;
+        input?.focus();
+        return;
+      }
+      this.focusButton();
+    },
     focusButton() {
       let button = this.primary?.[0];
       if (!button) {
@@ -129,6 +177,16 @@ export default defineComponent({
       }
 
       button.$el.focus();
+    },
+    onConfirmEnter() {
+      if (!this.canConfirm) {
+        return;
+      }
+      const index = this.buttons.findIndex(({ isPrimary }) => isPrimary);
+      if (index === -1) {
+        return;
+      }
+      this.handleClick(index);
     },
     handleEscape(event: KeyboardEvent) {
       if (event.code !== 'Escape') {
@@ -152,6 +210,9 @@ export default defineComponent({
     },
     handleClick(index: number) {
       const button = this.buttons[index];
+      if (button.isPrimary && !this.canConfirm) {
+        return;
+      }
       button.action();
       this.open = false;
     },

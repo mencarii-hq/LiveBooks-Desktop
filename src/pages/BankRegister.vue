@@ -1,6 +1,9 @@
 <template>
   <div class="flex flex-col overflow-y-hidden h-full">
-    <PageHeader :title="t`Cheque Register`">
+    <PageHeader :title="t`Check Register`">
+      <Button :icon="false" @click="goChecksToPrint">
+        {{ t`Checks to Print` }}
+      </Button>
       <Button ref="exportButton" :icon="false" @click="openExportModal = true">
         {{ t`Export` }}
       </Button>
@@ -187,7 +190,7 @@
       <ExportWizard
         class="w-form"
         :schema-name="ModelNameEnum.AccountingLedgerEntry"
-        :title="t`Cheque Register`"
+        :title="t`Check Register`"
         :list-filters="exportFilters"
       />
     </Modal>
@@ -411,6 +414,12 @@ export default defineComponent({
         path: '/bank-register/write',
         query: { account: this.bankAccount },
       });
+    },
+    async goChecksToPrint() {
+      if (this.bankAccount) {
+        setLastRegisterBankAccount(this.bankAccount);
+      }
+      await routeTo('/checks-to-print');
     },
     async loadRows() {
       if (!this.bankAccount) {

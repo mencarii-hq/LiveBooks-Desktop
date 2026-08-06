@@ -1,7 +1,7 @@
 <template>
-  <!-- Single action: run on click (no nested dropdown). -->
+  <!-- Single action: run on click (no nested dropdown), unless forced. -->
   <Button
-    v-if="actions && actions.length === 1"
+    v-if="actions && actions.length === 1 && !forceDropdown"
     :type="type"
     :icon="false"
     @click="runSingle"
@@ -52,6 +52,8 @@ export default defineComponent({
     actions: { type: Array as PropType<Action[]>, default: () => [] },
     type: { type: String, default: 'secondary' },
     icon: { type: Boolean, default: true },
+    /** Always show the menu (never auto-run a lone action). */
+    forceDropdown: { type: Boolean, default: false },
   },
   computed: {
     doc() {

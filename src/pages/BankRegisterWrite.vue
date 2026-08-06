@@ -2,7 +2,7 @@
   <div class="flex flex-col overflow-y-hidden h-full">
     <PageHeader :title="t`Write Entry`">
       <Button :disabled="saving" @click="memorizeCurrent">
-        {{ t`Memorize…` }}
+        {{ t`Recurring` }}
       </Button>
       <Button type="primary" :disabled="saving" @click="submitEntry">
         {{ saving ? t`Saving…` : t`Save` }}
@@ -89,6 +89,21 @@
             :value="form.memo"
             @change="(v) => (form.memo = String(v || ''))"
           />
+
+          <label
+            v-if="canQueue"
+            class="
+              sm:col-span-2
+              flex
+              items-center
+              gap-2
+              text-sm text-gray-700
+              dark:text-gray-300
+            "
+          >
+            <input v-model="form.printLater" type="checkbox" class="h-4 w-4" />
+            {{ t`Print later (add to Checks to Print queue)` }}
+          </label>
         </div>
 
         <p v-if="formError" class="mt-3 text-sm text-red-600">
@@ -143,10 +158,28 @@ export default defineComponent({
         paymentType: 'Pay' as 'Pay' | 'Receive',
         memo: '',
         paymentMethod: '',
+        printLater: false,
       },
     };
   },
   computed: {
+    selectedMethodType(): string {
+      const m = this.paymentMethods.find(
+        (pm) => pm.name === this.form.paymentMethod
+      );
+      if (m?.type) {
+        return m.type;
+      }
+      return this.form.paymentMethod.trim().toLowerCase() === 'check'
+        ? 'Check'
+        : '';
+    },
+    // Q-AF: only Pay + Check entries can be queued for batch printing.
+    canQueue(): boolean {
+      return (
+        this.selectedMethodType === 'Check' && this.form.paymentType === 'Pay'
+      );
+    },
     bankAccountField(): Field {
       return {
         fieldtype: 'Link',
@@ -201,7 +234,9 @@ export default defineComponent({
     },
     paymentTypeField(): Field {
       return {
-        fieldtype: 'AutoComplete',
+        // Select (not AutoComplete): show labels Payment/Deposit while
+        // storing Pay/Receive for Payment.paymentType.
+        fieldtype: 'Select',
         fieldname: 'paymentType',
         label: this.t`Entry type`,
         options: [
@@ -355,6 +390,7 @@ export default defineComponent({
           paymentType: this.form.paymentType,
           memo: this.form.memo,
           paymentMethod: this.form.paymentMethod,
+          printLater: this.canQueue ? this.form.printLater : false,
         });
         setLastRegisterBankAccount(this.bankAccount);
         await routeTo('/bank-register');

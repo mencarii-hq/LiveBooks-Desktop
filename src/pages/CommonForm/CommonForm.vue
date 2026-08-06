@@ -52,20 +52,18 @@
         <feather-icon name="printer" class="w-4 h-4"></feather-icon>
       </Button>
       <Button
-        :icon="true"
-        :title="t`Toggle between form and full width`"
-        @click="toggleWidth"
+        v-if="printCheckAction"
+        :title="printCheckTitle"
+        @click="runPrintCheck"
       >
-        <feather-icon
-          :name="useFullWidth ? 'minimize' : 'maximize'"
-          class="w-4 h-4"
-        ></feather-icon>
+        {{ printCheckLabel }}
       </Button>
       <DropdownWithActions
         v-for="group of groupedActions"
-        :key="group.label"
+        :key="group.group || 'more'"
         :type="group.type"
         :actions="group.actions"
+        :force-dropdown="!group.group"
       >
         <p v-if="group.group">
           {{ group.group }}
@@ -187,6 +185,7 @@
 <script lang="ts">
 import { DocValue } from 'fyo/core/types';
 import { Doc } from 'fyo/model/doc';
+import { Action } from 'fyo/model/types';
 import { DEFAULT_CURRENCY } from 'fyo/utils/consts';
 import { ValidationError } from 'fyo/utils/errors';
 import { getDocStatus } from 'models/helpers';
@@ -212,6 +211,7 @@ import {
   getDocReferenceLabel,
   getFieldsGroupedByTabAndSection,
   getFormRoute,
+  getActionsForDoc,
   getGroupedActionsForDoc,
   isPrintable,
   routeTo,
@@ -416,12 +416,72 @@ export default defineComponent({
 
       return group;
     },
+    printCheckAction(): Action | null {
+      if (!this.hasDoc) {
+        return null;
+      }
+      const label = this.t`Print Check`;
+      return getActionsForDoc(this.doc).find((a) => a.label === label) ?? null;
+    },
+    printCheckAlreadyNumbered(): boolean {
+      if (!this.hasDoc || this.doc.schemaName !== 'Payment') {
+        return false;
+      }
+      const payment = this.doc as {
+        referenceId?: string;
+        printLater?: boolean;
+      };
+      return !!(payment.referenceId as string)?.trim() && !payment.printLater;
+    },
+    printCheckLabel(): string {
+      return this.printCheckAlreadyNumbered
+        ? this.t`Reprint Check`
+        : this.t`Print Check`;
+    },
+    printCheckTitle(): string {
+      if (this.printCheckAlreadyNumbered) {
+        return this
+          .t`Print again using the same check number. To void that number and get a new one, use Void check # (requeue).`;
+      }
+      return this
+        .t`Print this payment as a check (assigns a number if needed).`;
+    },
     groupedActions(): ActionGroup[] {
       if (!this.hasDoc) {
         return [];
       }
 
-      return getGroupedActionsForDoc(this.doc);
+      const groups = getGroupedActionsForDoc(this.doc).map((g) => ({
+        ...g,
+        actions: [...g.actions],
+      }));
+
+      // Print Check is shown as its own toolbar button — drop from menus.
+      const printLabel = this.t`Print Check`;
+      for (const g of groups) {
+        g.actions = g.actions.filter((a) => a.label !== printLabel);
+      }
+
+      const fullSizeAction = {
+        label: this.useFullWidth ? this.t`Exit full size` : this.t`Full size`,
+        action: async () => {
+          await this.toggleWidth();
+        },
+      };
+
+      let more = groups.find((g) => !g.group);
+      if (!more) {
+        more = {
+          group: '',
+          label: '',
+          type: 'secondary',
+          actions: [],
+        };
+        groups.push(more);
+      }
+      more.actions.push(fullSizeAction);
+
+      return groups.filter((g) => g.actions.length > 0);
     },
   },
   beforeMount() {
@@ -466,6 +526,13 @@ export default defineComponent({
   },
   methods: {
     routeTo,
+    async runPrintCheck() {
+      const action = this.printCheckAction;
+      if (!action?.action) {
+        return;
+      }
+      await action.action(this.doc, this.$router);
+    },
     async toggleWidth() {
       const value = !this.useFullWidth;
       await this.fyo.singles.Misc?.setAndSync('useFullWidth', value);

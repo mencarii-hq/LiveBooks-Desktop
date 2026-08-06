@@ -223,7 +223,7 @@ export default {
         return;
       }
       // Empty display with a committed value (focus race / remount) — restore
-      // label only. Never clear the parent; that made Cheque Register's bank
+      // label only. Never clear the parent; that made Check Register's bank
       // picker reset when focus moved to Filter or elsewhere.
       if (!label) {
         await this.setLinkValue(this.value);

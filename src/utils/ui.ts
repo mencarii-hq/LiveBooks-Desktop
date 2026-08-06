@@ -155,7 +155,9 @@ export async function deleteDocWithPrompt(doc: Doc) {
 
 export async function cancelDocWithPrompt(doc: Doc) {
   let detail = t`This action is permanent`;
-  if (['SalesInvoice', 'PurchaseInvoice'].includes(doc.schemaName)) {
+  if (doc.schemaName === 'Payment') {
+    detail = t`Cancels this payment and reverses its ledger entries. It will not go back to Checks to Print. Use “Void check # (requeue)” if you only need a new check number.`;
+  } else if (['SalesInvoice', 'PurchaseInvoice'].includes(doc.schemaName)) {
     const payments = (
       await fyo.db.getAll('Payment', {
         fields: ['name'],
@@ -205,12 +207,18 @@ export async function cancelDocWithPrompt(doc: Doc) {
   }
 
   return (await showDialog({
-    title: t`Cancel ${getDocReferenceLabel(doc)}?`,
+    title:
+      doc.schemaName === 'Payment'
+        ? t`Cancel payment ${getDocReferenceLabel(doc)}?`
+        : t`Cancel ${getDocReferenceLabel(doc)}?`,
     detail,
+    detailEmphasis: t`This cannot be undone.`,
+    confirmText: 'CANCEL',
     type: 'warning',
     buttons: [
       {
-        label: t`Yes`,
+        label:
+          doc.schemaName === 'Payment' ? t`Cancel payment` : t`Cancel Entry`,
         async action() {
           try {
             await doc.cancel();
@@ -224,7 +232,7 @@ export async function cancelDocWithPrompt(doc: Doc) {
         isPrimary: true,
       },
       {
-        label: t`No`,
+        label: t`Keep`,
         action() {
           return false;
         },
@@ -310,12 +318,16 @@ function getViewActions(doc: Doc): Action[] {
 }
 
 function getCancelAction(doc: Doc): Action {
+  const isPayment = doc.schemaName === 'Payment';
+  const label = isPayment ? t`Cancel payment` : t`Cancel`;
   return {
-    label: t`Cancel`,
+    label,
     component: {
-      template: '<span class="text-red-700">{{ t`Cancel` }}</span>',
+      template: isPayment
+        ? '<span class="text-red-700">{{ t`Cancel payment` }}</span>'
+        : '<span class="text-red-700">{{ t`Cancel` }}</span>',
     },
-    condition: (doc: Doc) => doc.canCancel,
+    condition: (d: Doc) => d.canCancel,
     async action() {
       await commonDocCancel(doc);
     },

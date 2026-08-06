@@ -316,7 +316,7 @@ export default defineComponent({
         }
       }
 
-      // Do not re-inject excluded columns (Cheque Register excludes account).
+      // Do not re-inject excluded columns (Check Register excludes account).
       if (
         statusFieldname &&
         !excludeSet.has(statusFieldname) &&

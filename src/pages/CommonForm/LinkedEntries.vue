@@ -104,9 +104,9 @@
             @click="routeTo(sn, String(e.name))"
           >
             <div class="flex justify-between">
-              <!-- Name -->
+              <!-- Name / human label (avoid raw UUID as primary) -->
               <p class="font-semibold dark:text-gray-25">
-                {{ e.name }}
+                {{ entryPrimaryLabel(e, sn) }}
               </p>
 
               <!-- Date -->
@@ -254,6 +254,27 @@ export default defineComponent({
   methods: {
     isPesa,
     colorClass: getBgTextColorClass,
+    entryPrimaryLabel(e: Record<string, unknown>, schemaName: string): string {
+      const name = String(e.name ?? '');
+      const isUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          name
+        );
+
+      if (schemaName === ModelNameEnum.AccountingLedgerEntry) {
+        return String(e.account || name);
+      }
+      if (schemaName === ModelNameEnum.StockLedgerEntry) {
+        return String(e.item || name);
+      }
+      if (schemaName === ModelNameEnum.JournalEntry) {
+        return String(e.entryType || name);
+      }
+      if (isUuid) {
+        return String(e.party || e.account || e.entryType || e.item || name);
+      }
+      return name;
+    },
     async routeTo(schemaName: string, name: string) {
       const route = getFormRoute(schemaName, name);
       await routeTo(route);
