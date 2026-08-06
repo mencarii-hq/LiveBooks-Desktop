@@ -1,5 +1,5 @@
 /**
- * Safe disconnect / delete / archive flows for bank (ledger) accounts on the Bank Feed Settings page.
+ * Safe disconnect / delete / archive flows for bank (ledger) accounts on Bank Feed Hub.
  */
 
 import { fyo } from 'src/initFyo';
@@ -94,8 +94,11 @@ export async function disconnectPlaidAccountFeedLocalAndRemote(
     return { ok: false, error: remote.error ?? 'Disconnect failed.' };
   }
   const itemRemoved = remote.itemRemoved === true;
+  // Always clear local map after successful soft-remove; keep ledger history.
   if (itemRemoved) {
     await deletePlaidMapsForItem(itemId);
+  } else {
+    await deletePlaidMapsForItemAccount(itemId, plaidAccountId);
   }
   return { ok: true, itemRemoved };
 }

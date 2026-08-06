@@ -196,8 +196,8 @@
         >
           {{
             reconcileTab === 'manual'
-              ? t`No manual bank accounts yet. Add one in Chart of Accounts or Bank Feed Settings to start reconciling.`
-              : t`No online bank accounts connected yet. Connect a bank in Bank Feed Settings to start reconciling.`
+              ? t`No manual bank accounts yet. Add one in Chart of Accounts or Bank Feed (Manual) to start reconciling.`
+              : t`No online bank accounts connected yet. Connect a bank in Bank Feed (Online) to start reconciling.`
           }}
         </p>
       </template>

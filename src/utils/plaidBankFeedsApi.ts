@@ -34,8 +34,8 @@ export type PlaidFeedItemRow = {
   user_permission_revoked_at?: string | null;
   pending_import_batches_count: number;
   pending_import_batches_by_plaid_account_id: Record<string, number>;
-  /** Plaid `account_id`s with feed paused (still linked at Plaid until institution is removed). */
-  feed_disconnected_account_ids?: string[];
+  /** Soft-removed account ids (LiveBooks feed tombstones). Presence of this field = soft-remove capability. */
+  removed_plaid_account_ids?: string[];
   last_pending_dropped_count?: number;
   health?: 'ok' | 'stale' | 'broken';
   recent_apply_failures?: PlaidApplyFailureRow[];
@@ -434,7 +434,7 @@ export async function ackImportBatch(
   return { ok: true };
 }
 
-/** Stop automatic imports for one Plaid sub-account. Removes the institution Item once every sub-account is disconnected. */
+/** Soft-remove one bank account from the LiveBooks feed. Cascade removes the bank when it was the last account. */
 export async function disconnectPlaidAccountFeed(
   bookId: string,
   itemId: string,
@@ -465,7 +465,7 @@ export async function disconnectPlaidAccountFeed(
   if (res.status === 404) {
     return {
       ok: false,
-      error: t`Plaid connection not found (it may already be disconnected).`,
+      error: t`Bank account not found (it may already be disconnected).`,
     };
   }
   if (!res.ok) {
@@ -479,42 +479,19 @@ export async function disconnectPlaidAccountFeed(
   return { ok: true, itemRemoved };
 }
 
-/** Resume cloud ingest for a sub-account after the user maps it again. */
-export async function enablePlaidAccountFeed(
-  bookId: string,
-  itemId: string,
-  plaidAccountId: string,
-  opts?: { promptTotp?: PromptTotpFn }
-): Promise<{ ok: boolean; error?: string; totpRequired?: boolean }> {
-  const res = await livebooksCloudRequestWithStepUp({
-    method: 'POST',
-    path: `/api/v1/books/${encodeURIComponent(
-      bookId
-    )}/plaid/items/${encodeURIComponent(itemId)}/accounts/${encodeURIComponent(
-      plaidAccountId
-    )}/enable_feed`,
-    promptTotp: opts?.promptTotp,
-  });
-  if (res.totpRequired) {
-    return {
-      ok: false,
-      error: MFA_BROWSER_STEP_UP_MESSAGE,
-      totpRequired: true,
-    };
+/** True when feeds payload includes soft-remove capability (cloud supports Disconnect account). */
+export function plaidFeedsSupportAccountSoftRemove(
+  items: PlaidFeedItemRow[] | null | undefined
+): boolean {
+  if (!items?.length) {
+    return false;
   }
-  if (res.status === 404) {
-    return {
-      ok: false,
-      error: t`Plaid connection not found (it may already be disconnected).`,
-    };
-  }
-  if (!res.ok) {
-    return { ok: false, error: messageFromCloudResponse(res.data, res.status) };
-  }
-  return { ok: true };
+  return items.some((row) =>
+    Object.prototype.hasOwnProperty.call(row, 'removed_plaid_account_ids')
+  );
 }
 
-/** Remove the Plaid Item server-side (token revoked at Plaid); local maps must be cleared separately. */
+/** Remove the bank connection server-side; local maps must be cleared separately. */
 export async function removePlaidItem(
   bookId: string,
   itemId: string,
@@ -537,7 +514,7 @@ export async function removePlaidItem(
   if (res.status === 404) {
     return {
       ok: false,
-      error: t`Plaid connection not found (it may already be disconnected).`,
+      error: t`Bank connection not found (it may already be disconnected).`,
     };
   }
   if (!res.ok) {

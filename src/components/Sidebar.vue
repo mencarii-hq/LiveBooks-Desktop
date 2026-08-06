@@ -13,7 +13,7 @@
       <div
         class=""
         :class="
-          platform === 'Mac' && languageDirection === 'ltr' ? 'mt-6' : 'mt-3'
+          platform === 'Mac' && languageDirection === 'ltr' ? 'mt-5' : 'mt-3'
         "
       >
         <div
@@ -51,7 +51,7 @@
             class="flex-shrink-0"
             :name="group.icon"
             :size="group.iconSize || '18'"
-            :height="group.iconHeight ?? 4"
+            :height="group.iconHeight ?? 3"
             :active="!!isGroupActive(group)"
             :darkMode="darkMode"
             :onPrimary="true"
@@ -99,7 +99,7 @@
     </div>
 
     <!-- Report Issue and DB Switcher -->
-    <div class="window-no-drag shrink-0 flex flex-col gap-2 py-2 px-4">
+    <div class="window-no-drag shrink-0 flex flex-col gap-2 px-4">
       <hr class="border-white border-opacity-20" />
       <button
         class="
@@ -116,7 +116,7 @@
         type="button"
         @click="giveFeedback"
       >
-        <feather-icon name="message-circle" class="h-4 w-4 flex-shrink-0" />
+        <feather-icon name="message-circle" class="h-3 w-3 flex-shrink-0" />
         <p>
           {{ t`Give feedback` }}
         </p>
@@ -140,7 +140,7 @@
       >
         <feather-icon
           :name="livebooksCloudManageButtonIcon"
-          class="h-4 w-4 flex-shrink-0"
+          class="h-3 w-3 flex-shrink-0"
         />
         <p class="break-words">
           {{ t`Manage Cloud` }}
@@ -702,13 +702,6 @@ export default defineComponent({
         return true;
       }
 
-      // Statement import is part of the Feeds flow
-      if (
-        route === '/bank-feeds' &&
-        currentPath.startsWith('/bank-statement-import')
-      ) {
-        return true;
-      }
 
       if (item.schemaName && params.schemaName === item.schemaName) {
         // Payment has two sidebar entries (Receivables vs Payables). Do not

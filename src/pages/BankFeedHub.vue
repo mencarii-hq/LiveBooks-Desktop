@@ -1,19 +1,7 @@
 <template>
   <div class="flex flex-col overflow-y-hidden h-full">
     <PageHeader :title="t`Bank Feed`">
-      <Button type="secondary" @click="goSettings">{{ t`Settings` }}</Button>
-    </PageHeader>
-    <div
-      class="
-        flex-1
-        overflow-y-auto overflow-x-hidden
-        custom-scroll custom-scroll-thumb1
-        p-4
-      "
-    >
-      <!-- Cloud sign-in messaging lives only on Settings → Online -->
-
-      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+      <template #left>
         <div
           class="
             inline-flex
@@ -25,7 +13,7 @@
         >
           <button
             type="button"
-            class="px-4 py-2 text-sm"
+            class="px-3 py-1.5 text-sm"
             :class="
               hubTab === 'manual'
                 ? 'bg-gray-200 dark:bg-gray-700 font-medium'
@@ -37,7 +25,7 @@
           </button>
           <button
             type="button"
-            class="px-4 py-2 text-sm border-s dark:border-gray-700"
+            class="px-3 py-1.5 text-sm border-s dark:border-gray-700"
             :class="
               hubTab === 'online'
                 ? 'bg-gray-200 dark:bg-gray-700 font-medium'
@@ -48,195 +36,477 @@
             {{ t`Online` }}
           </button>
         </div>
+      </template>
+      <Button
+        v-if="hubTab === 'manual' && archivedManualBankAccounts.length"
+        type="secondary"
+        @click="showArchived = !showArchived"
+      >
+        {{ showArchived ? t`Hide archived` : t`Show archived` }}
+      </Button>
+      <Button
+        v-if="hubTab === 'manual'"
+        type="primary"
+        @click="openManualSetup"
+      >
+        {{ t`Add bank` }}
+      </Button>
+      <template v-else>
+        <label
+          class="
+            inline-flex
+            items-center
+            gap-1.5
+            text-sm text-gray-700
+            dark:text-gray-200
+            border
+            dark:border-gray-700
+            rounded-md
+            px-2.5
+            h-8
+            bg-white
+            dark:bg-gray-800
+            cursor-pointer
+            select-none
+          "
+          :title="autostageTip"
+        >
+          <input
+            type="checkbox"
+            class="accent-green-600"
+            :checked="plaidAutoStageImportBatches"
+            @change="togglePlaidAutoStage"
+          />
+          <span>{{ t`Autostage` }}</span>
+          <span
+            class="
+              inline-flex
+              items-center
+              justify-center
+              w-3.5
+              h-3.5
+              rounded-full
+              border border-gray-300
+              dark:border-gray-600
+              text-[10px]
+              font-bold
+              text-gray-500
+            "
+            :title="autostageTip"
+            >i</span
+          >
+        </label>
+        <Button
+          type="primary"
+          :disabled="plaidLinkBusy || !bookId"
+          @click="linkBankWithPlaid()"
+        >
+          {{ t`Connect via Plaid` }}
+        </Button>
+      </template>
+    </PageHeader>
+    <div class="flex flex-1 min-h-0 overflow-hidden">
+      <div
+        class="
+          flex-1
+          min-w-0
+          overflow-y-auto overflow-x-hidden
+          custom-scroll custom-scroll-thumb1
+          p-4
+        "
+      >
+        <ManualBankSetupPanel
+          ref="manualSetup"
+          class="hidden"
+          variant="chrome"
+          :show-archived-list="false"
+          :show-add-button="false"
+          @changed="onManualBanksChanged"
+        />
+
+        <div
+          v-if="accountsLoading || feedsLoading"
+          class="text-sm text-gray-600 dark:text-gray-300"
+        >
+          {{ t`Loading accounts…` }}
+        </div>
+        <div
+          v-else-if="hubTab === 'online' && !visibleBankTables.length"
+          class="text-sm text-gray-600 dark:text-gray-300"
+        >
+          {{
+            bookId
+              ? t`No online banks connected yet. Use Connect via Plaid above to get started.`
+              : t`Sign into LiveBooks Cloud to connect online banks via Plaid.`
+          }}
+        </div>
+        <div
+          v-else-if="hubTab === 'manual' && !visibleBankTables.length"
+          class="text-sm text-gray-600 dark:text-gray-300"
+        >
+          {{
+            archivedManualBankAccounts.length && !showArchived
+              ? t`No active manual banks. Use Show archived to see hidden accounts, or Add bank to create one.`
+              : t`No manual banks yet. Use Add bank above to create one.`
+          }}
+        </div>
+        <div v-else class="space-y-6">
+          <div
+            v-for="bank in pagedBankTables"
+            :key="bank.itemId"
+            class="
+              border border-gray-200
+              dark:border-gray-700
+              rounded-lg
+              overflow-hidden
+              bg-white
+              dark:bg-gray-900
+            "
+          >
+            <table class="min-w-full text-sm text-start">
+              <caption
+                v-if="bank.kind === 'plaid'"
+                class="
+                  text-start
+                  px-3
+                  py-2.5
+                  text-base
+                  font-semibold
+                  text-gray-900
+                  dark:text-gray-100
+                  bg-gray-50
+                  dark:bg-gray-800
+                  border-b border-gray-200
+                  dark:border-gray-700
+                "
+              >
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <div class="min-w-0 flex-1">
+                    {{ bank.bankName }}
+                    <span
+                      v-if="bank.health"
+                      class="
+                        inline-block
+                        w-2
+                        h-2
+                        rounded-full
+                        ms-2
+                        align-middle
+                      "
+                      :class="{
+                        'bg-emerald-500': bank.health === 'ok',
+                        'bg-amber-500': bank.health === 'stale',
+                        'bg-red-500': bank.health === 'broken',
+                      }"
+                      :title="
+                        bank.health === 'ok'
+                          ? t`Connection healthy`
+                          : bank.health === 'stale'
+                          ? t`No recent sync from your bank.`
+                          : t`Connection broken — sign in again.`
+                      "
+                    />
+                    <p
+                      v-if="bank.ingestPaused"
+                      class="
+                        mt-1
+                        text-xs
+                        font-normal
+                        text-amber-700
+                        dark:text-amber-300
+                      "
+                    >
+                      {{
+                        t`Bank feeds paused — open Desktop and acknowledge old import batches to resume.`
+                      }}
+                    </p>
+                    <span
+                      v-if="bank.pendingAtBank > 0"
+                      class="
+                        ms-2
+                        text-xs
+                        px-1.5
+                        py-0.5
+                        rounded
+                        bg-blue-100
+                        dark:bg-blue-900/40
+                        text-blue-700
+                        dark:text-blue-100
+                        align-middle
+                      "
+                      :title="
+                        t`Transactions Plaid sent us that are still pending at the bank. They'll arrive once they post.`
+                      "
+                    >
+                      {{ t`${bank.pendingAtBank} pending at bank` }}
+                    </span>
+                  </div>
+                  <Button
+                    type="secondary"
+                    class="shrink-0 !text-xs"
+                    @click.stop="openBankManageDrawer(bank.itemId)"
+                  >
+                    {{ t`Manage` }}
+                  </Button>
+                </div>
+              </caption>
+              <thead class="bg-gray-50 dark:bg-gray-800 text-xs uppercase">
+                <tr>
+                  <th class="text-start p-3 border-b dark:border-gray-700">
+                    {{ t`Bank name` }}
+                  </th>
+                  <th class="text-start p-3 border-b dark:border-gray-700">
+                    {{ t`Bank balance` }}
+                  </th>
+                  <th class="text-start p-3 border-b dark:border-gray-700">
+                    {{ t`Last sync` }}
+                  </th>
+                  <th class="text-start p-3 border-b dark:border-gray-700">
+                    {{ t`To review` }}
+                  </th>
+                  <th class="text-start p-3 border-b dark:border-gray-700">
+                    {{ t`Ledger name` }}
+                  </th>
+                  <th class="text-start p-3 border-b dark:border-gray-700">
+                    {{ t`Ledger balance` }}
+                  </th>
+                  <th class="text-start p-3 border-b dark:border-gray-700">
+                    {{ t`Actions` }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="row in bank.rows"
+                  :key="row.bankAccountId"
+                  class="
+                    cursor-pointer
+                    hover:bg-gray-50
+                    dark:hover:bg-gray-800/80
+                    border-b
+                    dark:border-gray-800
+                    last:border-0
+                  "
+                  :class="{
+                    'bg-blue-50 dark:bg-blue-900/30':
+                      row.ledgerName && selectedAccount === row.ledgerName,
+                    'opacity-60': row.archived,
+                  }"
+                  @click="
+                    row.ledgerName && !row.archived
+                      ? selectAccount(row.ledgerName)
+                      : undefined
+                  "
+                >
+                  <td class="p-3 text-start font-medium">
+                    {{ row.bankAccountName }}
+                    <span
+                      v-if="row.archived"
+                      class="
+                        ms-2
+                        text-xs
+                        font-medium
+                        text-gray-500
+                        dark:text-gray-400
+                      "
+                    >
+                      {{ t`Archived` }}
+                    </span>
+                  </td>
+                  <td class="p-3 text-start tabular-nums">
+                    {{ row.bankBalanceLabel ?? t`—` }}
+                  </td>
+                  <td class="p-3 text-start text-gray-600 dark:text-gray-300">
+                    {{ row.lastSyncLabel || t`—` }}
+                  </td>
+                  <td class="p-3 text-start">
+                    <span
+                      v-if="row.toReviewCount > 0"
+                      class="
+                        text-xs
+                        font-medium
+                        px-2
+                        py-0.5
+                        rounded-full
+                        bg-amber-100
+                        text-amber-900
+                        dark:bg-amber-900/40 dark:text-amber-100
+                      "
+                    >
+                      {{ row.toReviewCount }}
+                    </span>
+                    <span v-else class="text-gray-500">0</span>
+                  </td>
+                  <td class="p-3 text-start">
+                    {{ row.ledgerAccountLabel ?? t`—` }}
+                  </td>
+                  <td class="p-3 text-start tabular-nums">
+                    {{ row.ledgerBalanceLabel ?? t`—` }}
+                  </td>
+                  <td class="p-3 text-start whitespace-nowrap" @click.stop>
+                    <div
+                      class="
+                        inline-flex
+                        flex-row
+                        items-center
+                        gap-2
+                        flex-nowrap
+                      "
+                    >
+                      <template v-if="row.ledgerName">
+                        <template v-if="bank.kind === 'manual' && row.archived">
+                          <Button
+                            type="secondary"
+                            @click="archiveOrDeleteManualBank(row)"
+                          >
+                            {{ t`Restore` }}
+                          </Button>
+                        </template>
+                        <template v-else-if="bank.kind === 'manual'">
+                          <Button
+                            type="primary"
+                            @click="goImportBankFile(row.ledgerName)"
+                          >
+                            {{ t`Import file` }}
+                          </Button>
+                          <Button
+                            type="secondary"
+                            @click="archiveOrDeleteManualBank(row)"
+                          >
+                            {{ manualLifecycleLabel(row.ledgerName) }}
+                          </Button>
+                        </template>
+                        <template v-else>
+                          <Button
+                            type="secondary"
+                            class="!text-xs"
+                            @click="
+                              openAccountManageDrawer(
+                                bank.itemId,
+                                row.bankAccountId
+                              )
+                            "
+                          >
+                            {{ t`Manage` }}
+                          </Button>
+                        </template>
+                      </template>
+                      <template v-else>
+                        <Button
+                          type="secondary"
+                          class="!text-xs"
+                          @click="
+                            openAccountManageDrawer(
+                              bank.itemId,
+                              row.bankAccountId
+                            )
+                          "
+                        >
+                          {{ t`Manage` }}
+                        </Button>
+                      </template>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-if="bank.rows.length === 0">
+                  <td
+                    class="p-3 text-sm text-gray-600 dark:text-gray-300"
+                    colspan="7"
+                  >
+                    {{ t`No bank accounts were returned for this connection.` }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div
+            v-if="showBankPager"
+            class="flex items-center justify-end gap-2 text-sm"
+          >
+            <Button
+              type="secondary"
+              :disabled="bankPage <= 0"
+              @click="bankPage = Math.max(0, bankPage - 1)"
+            >
+              {{ t`Previous` }}
+            </Button>
+            <span class="text-gray-600 dark:text-gray-300">
+              {{ t`Page` }} {{ bankPage + 1 }} / {{ bankPageCount }}
+            </span>
+            <Button
+              type="secondary"
+              :disabled="bankPage >= bankPageCount - 1"
+              @click="bankPage = Math.min(bankPageCount - 1, bankPage + 1)"
+            >
+              {{ t`Next` }}
+            </Button>
+          </div>
+        </div>
+
+        <div class="mt-8 border-t dark:border-gray-700 pt-4">
+          <BankAccountActivityPanel
+            v-if="selectedAccount"
+            :key="selectedAccount + ':' + importRefreshKey"
+            :account-name="selectedAccount"
+            :review-tab="reviewTab"
+            @update:review-tab="setReviewTab"
+            @import-bank-file="goImportBankFile"
+          />
+          <p
+            v-else-if="!accountsLoading && !feedsLoading"
+            class="text-sm text-gray-600 dark:text-gray-300"
+          >
+            {{ t`Select a bank to review activity.` }}
+          </p>
+        </div>
       </div>
 
-      <div
-        v-if="accountsLoading || feedsLoading"
-        class="text-sm text-gray-600 dark:text-gray-300"
-      >
-        {{ t`Loading accounts…` }}
-      </div>
-      <div
-        v-else-if="hubTab === 'online' && !visibleBankTables.length"
-        class="text-sm text-gray-600 dark:text-gray-300"
-      >
-        {{
-          t`No online banks connected yet. Set up an online bank in Settings above.`
-        }}
-      </div>
-      <div
-        v-else-if="hubTab === 'manual' && !visibleBankTables.length"
-        class="text-sm text-gray-600 dark:text-gray-300"
-      >
-        {{ t`No manual banks yet. Add a bank in Settings → Manual.` }}
-      </div>
-      <div v-else class="space-y-6">
-        <div
-          v-for="bank in visibleBankTables"
-          :key="bank.itemId"
-          class="
-            border border-gray-200
-            dark:border-gray-700
-            rounded-lg
-            overflow-hidden
-            bg-white
-            dark:bg-gray-900
-          "
+      <div class="flex h-full shrink-0">
+        <Drawer
+          :open="sideMode != null"
+          :title="sideDrawerTitle"
+          @close="closeSideDrawer"
         >
-          <table class="min-w-full text-sm text-start">
-            <caption
-              v-if="bank.kind === 'plaid'"
-              class="
-                text-start
-                px-3
-                py-2.5
-                text-sm
-                font-semibold
-                text-gray-900
-                dark:text-gray-100
-                bg-gray-50
-                dark:bg-gray-800
-                border-b border-gray-200
-                dark:border-gray-700
-              "
-            >
-              {{
-                bank.bankName
-              }}
-              <span
-                v-if="bank.health"
-                class="inline-block w-2 h-2 rounded-full ms-2 align-middle"
-                :class="{
-                  'bg-emerald-500': bank.health === 'ok',
-                  'bg-amber-500': bank.health === 'stale',
-                  'bg-red-500': bank.health === 'broken',
-                }"
-                :title="
-                  bank.health === 'ok'
-                    ? t`Connection healthy`
-                    : bank.health === 'stale'
-                    ? t`No recent sync from your bank.`
-                    : t`Connection broken — sign in again.`
-                "
-              />
-              <p
-                v-if="bank.ingestPaused"
-                class="
-                  mt-1
-                  text-xs
-                  font-normal
-                  text-amber-700
-                  dark:text-amber-300
-                "
-              >
-                {{
-                  t`Bank feeds paused — open Desktop and acknowledge old import batches to resume.`
-                }}
-              </p>
-              <span
-                v-if="bank.pendingAtBank > 0"
-                class="
-                  ms-2
-                  text-xs
-                  px-1.5
-                  py-0.5
-                  rounded
-                  bg-blue-100
-                  dark:bg-blue-900/40
-                  text-blue-700
-                  dark:text-blue-100
-                  align-middle
-                "
-                :title="
-                  t`Transactions Plaid sent us that are still pending at the bank. They'll arrive once they post.`
-                "
-              >
-                {{ t`${bank.pendingAtBank} pending at bank` }}
-              </span>
-            </caption>
-            <thead class="bg-gray-50 dark:bg-gray-800 text-xs uppercase">
-              <tr>
-                <th class="text-start p-3 border-b dark:border-gray-700">
-                  {{ t`Bank account name` }}
-                </th>
-                <th class="text-start p-3 border-b dark:border-gray-700">
-                  {{ t`Bank account balance` }}
-                </th>
-                <th class="text-start p-3 border-b dark:border-gray-700">
-                  {{ t`Last sync` }}
-                </th>
-                <th class="text-start p-3 border-b dark:border-gray-700">
-                  {{ t`To review` }}
-                </th>
-                <th class="text-start p-3 border-b dark:border-gray-700">
-                  {{ t`Ledger name` }}
-                </th>
-                <th class="text-start p-3 border-b dark:border-gray-700">
-                  {{ t`Ledger balance` }}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="row in bank.rows"
-                :key="row.bankAccountId"
-                class="
-                  cursor-pointer
-                  hover:bg-gray-50
-                  dark:hover:bg-gray-800/80
-                  border-b
-                  dark:border-gray-800
-                  last:border-0
-                "
-                @click="
-                  row.ledgerName ? openActivity(row.ledgerName) : undefined
-                "
-              >
-                <td class="p-3 text-start font-medium">
-                  {{ row.bankAccountName }}
-                </td>
-                <td class="p-3 text-start tabular-nums">
-                  {{ row.bankBalanceLabel ?? t`—` }}
-                </td>
-                <td class="p-3 text-start text-gray-600 dark:text-gray-300">
-                  {{ row.lastSyncLabel || t`—` }}
-                </td>
-                <td class="p-3 text-start">
-                  <span
-                    v-if="row.toReviewCount > 0"
-                    class="
-                      text-xs
-                      font-medium
-                      px-2
-                      py-0.5
-                      rounded-full
-                      bg-amber-100
-                      text-amber-900
-                      dark:bg-amber-900/40 dark:text-amber-100
-                    "
-                  >
-                    {{ row.toReviewCount }}
-                  </span>
-                  <span v-else class="text-gray-500">0</span>
-                </td>
-                <td class="p-3 text-start">
-                  {{ row.ledgerAccountLabel ?? t`—` }}
-                </td>
-                <td class="p-3 text-start tabular-nums">
-                  {{ row.ledgerBalanceLabel ?? t`—` }}
-                </td>
-              </tr>
-              <tr v-if="bank.rows.length === 0">
-                <td
-                  class="p-3 text-sm text-gray-600 dark:text-gray-300"
-                  colspan="6"
-                >
-                  {{ t`No bank accounts were returned for this connection.` }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+          <ManualBankSetupPanel
+            v-if="sideMode === 'add'"
+            key="add-bank"
+            variant="form"
+            :show-archived-list="false"
+            :show-add-button="false"
+            @created="onManualBankCreated"
+            @close="closeSideDrawer"
+          />
+          <BankStatementImport
+            v-else-if="sideMode === 'import' && importDrawerAccount"
+            :key="importDrawerAccount"
+            :embedded="true"
+            :preset-bank-account="importDrawerAccount"
+            @imported="onImportDrawerDone"
+            @close="closeSideDrawer"
+          />
+          <PlaidBankConnectionDrawer
+            v-else-if="sideMode === 'manageBank' && manageItemId"
+            :key="'bank:' + manageItemId"
+            :item-id="manageItemId"
+            @close="closeSideDrawer"
+            @changed="onManageChanged"
+            @reconnect="onReconnectFromDrawer"
+          />
+          <PlaidAccountManageDrawer
+            v-else-if="
+              sideMode === 'manageAccount' &&
+              manageItemId &&
+              managePlaidAccountId
+            "
+            :key="'acc:' + manageItemId + ':' + managePlaidAccountId"
+            :item-id="manageItemId"
+            :plaid-account-id="managePlaidAccountId"
+            @close="closeSideDrawer"
+            @changed="onManageChanged"
+            @import-file="onAccountImportFromDrawer"
+          />
+        </Drawer>
       </div>
     </div>
   </div>
@@ -245,6 +515,13 @@
 <script lang="ts">
 import Button from 'src/components/Button.vue';
 import PageHeader from 'src/components/PageHeader.vue';
+import BankAccountActivityPanel from 'src/components/bankFeed/BankAccountActivityPanel.vue';
+import ManualBankSetupPanel from 'src/components/bankFeed/ManualBankSetupPanel.vue';
+import PlaidBankConnectionDrawer from 'src/components/bankFeed/PlaidBankConnectionDrawer.vue';
+import PlaidAccountManageDrawer from 'src/components/bankFeed/PlaidAccountManageDrawer.vue';
+import Drawer from 'src/components/Drawer.vue';
+import BankStatementImport from 'src/pages/BankStatementImport.vue';
+import { countLedgerRowsForAccount } from 'src/utils/bankAccountSettings';
 import { t } from 'fyo';
 import { fyo } from 'src/initFyo';
 import { showToast } from 'src/utils/interactive';
@@ -263,6 +540,7 @@ import {
   feedItemById,
   isManualBankAccount,
   loadAllBankCoaAccounts,
+  loadArchivedBankCoaAccounts,
   loadPlaidAccountMaps,
   manualPendingCountFor,
   type BankCoaAccount,
@@ -313,6 +591,7 @@ type BankTableRow = {
   ledgerName: string | null;
   ledgerAccountLabel: string | null;
   ledgerBalanceLabel: string | null;
+  archived?: boolean;
 };
 
 type BankTable = {
@@ -329,10 +608,20 @@ type BankTable = {
 
 export default defineComponent({
   name: 'BankFeedHub',
-  components: { PageHeader, Button },
+  components: {
+    PageHeader,
+    Button,
+    BankAccountActivityPanel,
+    ManualBankSetupPanel,
+    PlaidBankConnectionDrawer,
+    PlaidAccountManageDrawer,
+    Drawer,
+    BankStatementImport,
+  },
   data() {
     return {
       bookId: '' as string,
+      plaidAutoStageImportBatches: true as boolean,
       feedsLoading: false,
       feedsError: '' as string,
       feedItems: [] as PlaidFeedItemRow[],
@@ -351,6 +640,8 @@ export default defineComponent({
         rootType?: string;
       }[],
       manualBankAccounts: [] as BankCoaAccount[],
+      archivedManualBankAccounts: [] as BankCoaAccount[],
+      showArchived: false,
       toReviewByAccount: {} as Record<string, number>,
       linkedAccountsByItem: {} as Record<string, PlaidLinkedAccountRow[]>,
       linkedAccountsError: {} as Record<string, string>,
@@ -368,6 +659,18 @@ export default defineComponent({
       >,
       accountsLoading: false,
       hubTab: 'manual' as 'manual' | 'online',
+      selectedAccount: '' as string,
+      reviewTab: 'review' as 'review' | 'reviewed' | 'excluded',
+      bankPage: 0,
+      sideMode: null as null | 'add' | 'import' | 'manageBank' | 'manageAccount',
+      importDrawerAccount: '' as string,
+      importRefreshKey: 0,
+      manageItemId: '' as string,
+      managePlaidAccountId: '' as string,
+      /** Survives keep-alive sidebar navigations when route has no ?account= / ?tab= */
+      persistedSelectedAccount: '' as string,
+      persistedHubTab: 'manual' as 'manual' | 'online',
+      manualLedgerRowCounts: {} as Record<string, number>,
     };
   },
   computed: {
@@ -384,6 +687,9 @@ export default defineComponent({
         out[a.name] = { rootType: a.rootType, accountName: a.accountName };
       }
       for (const a of this.manualBankAccounts) {
+        out[a.name] = { rootType: a.rootType, accountName: a.accountName };
+      }
+      for (const a of this.archivedManualBankAccounts) {
         out[a.name] = { rootType: a.rootType, accountName: a.accountName };
       }
       return out;
@@ -449,11 +755,31 @@ export default defineComponent({
           ledgerName: acc.name,
           ledgerAccountLabel: accountDisplayName(acc),
           ledgerBalanceLabel: this.balanceFor(acc.name, ledgerRootType),
+          archived: false,
         });
       }
-      manualRows.sort((a, b) =>
-        a.bankAccountName.localeCompare(b.bankAccountName)
-      );
+      if (this.showArchived) {
+        for (const acc of this.archivedManualBankAccounts) {
+          const ledgerRootType = this.ledgerByName[acc.name]?.rootType;
+          manualRows.push({
+            bankAccountId: acc.name,
+            bankAccountName: accountDisplayName(acc),
+            bankBalanceLabel: null,
+            lastSyncLabel: null,
+            toReviewCount: this.toReviewByAccount[acc.name] ?? 0,
+            ledgerName: acc.name,
+            ledgerAccountLabel: accountDisplayName(acc),
+            ledgerBalanceLabel: this.balanceFor(acc.name, ledgerRootType),
+            archived: true,
+          });
+        }
+      }
+      manualRows.sort((a, b) => {
+        if (!!a.archived !== !!b.archived) {
+          return a.archived ? 1 : -1;
+        }
+        return a.bankAccountName.localeCompare(b.bankAccountName);
+      });
       if (manualRows.length > 0) {
         tables.push({
           itemId: 'manual',
@@ -479,10 +805,81 @@ export default defineComponent({
       const want = this.hubTab === 'online' ? 'plaid' : 'manual';
       return this.bankTables.filter((t) => t.kind === want);
     },
+    hubRowCount(): number {
+      return this.visibleBankTables.reduce((n, b) => n + b.rows.length, 0);
+    },
+    showBankPager(): boolean {
+      return this.hubRowCount > 8;
+    },
+    bankPageCount(): number {
+      if (!this.showBankPager) {
+        return 1;
+      }
+      return Math.max(1, Math.ceil(this.hubRowCount / 5));
+    },
+    pagedBankTables(): BankTable[] {
+      if (!this.showBankPager) {
+        return this.visibleBankTables;
+      }
+      const start = this.bankPage * 5;
+      const end = start + 5;
+      let seen = 0;
+      const out: BankTable[] = [];
+      for (const bank of this.visibleBankTables) {
+        const rows: BankTableRow[] = [];
+        for (const row of bank.rows) {
+          if (seen >= start && seen < end) {
+            rows.push(row);
+          }
+          seen += 1;
+        }
+        if (rows.length) {
+          out.push({ ...bank, rows });
+        }
+      }
+      return out;
+    },
+    sideDrawerTitle(): string {
+      if (this.sideMode === 'add') {
+        return t`Add bank`;
+      }
+      if (this.sideMode === 'import') {
+        return t`Import file`;
+      }
+      if (this.sideMode === 'manageBank') {
+        const row = this.feedItems.find((r) => r.item_id === this.manageItemId);
+        const name = row?.institution_name?.trim() || this.manageItemId;
+        return name ? t`${name}` : t`Manage bank`;
+      }
+      if (this.sideMode === 'manageAccount') {
+        const bank = this.pagedBankTables.find(
+          (b) => b.itemId === this.manageItemId
+        );
+        const row = bank?.rows.find(
+          (r) => r.bankAccountId === this.managePlaidAccountId
+        );
+        const label =
+          row?.bankAccountName || this.managePlaidAccountId || t`Account`;
+        return t`${label}`;
+      }
+      return '';
+    },
+    autostageTip(): string {
+      return t`When on, new online import batches are auto-staged into Bank Account Activity (For Review). Applies to all online banks.`;
+    },
   },
   watch: {
-    '$route.query.tab'() {
-      this.syncHubTabFromRoute();
+    '$route.query': {
+      deep: true,
+      handler() {
+        this.syncHubStateFromRoute();
+      },
+    },
+    hubTab() {
+      this.bankPage = 0;
+    },
+    showArchived() {
+      this.bankPage = 0;
     },
     feedItems: {
       handler() {
@@ -491,8 +888,21 @@ export default defineComponent({
       deep: true,
     },
   },
+  activated() {
+    this.syncHubStateFromRoute();
+    this.restorePersistedSelectionIfNeeded();
+    void this.loadManualSection();
+  },
+  deactivated() {
+    if (this.selectedAccount) {
+      this.persistedSelectedAccount = this.selectedAccount;
+    }
+    this.persistedHubTab = this.hubTab;
+    this.closeSideDrawer();
+  },
   mounted() {
-    this.syncHubTabFromRoute();
+    this.syncHubStateFromRoute();
+    this.syncPlaidDesktopPreferences();
     void this.bootstrapAccounts();
     void this.bootstrapFeeds();
     this.boundVisibility = () => {
@@ -521,25 +931,112 @@ export default defineComponent({
   },
   methods: {
     t,
-    goSettings() {
-      void routeTo({
-        path: '/bank-feeds/settings',
-        query: { tab: this.hubTab },
-      });
+    openManualSetup() {
+      this.sideMode = 'add';
     },
-    syncHubTabFromRoute() {
-      const tab = this.$route.query.tab;
-      if (tab === 'online' || tab === 'manual') {
-        this.hubTab = tab;
-      } else {
-        this.hubTab = 'manual';
+    closeSideDrawer() {
+      this.sideMode = null;
+      this.importDrawerAccount = '';
+      this.manageItemId = '';
+      this.managePlaidAccountId = '';
+    },
+    syncPlaidDesktopPreferences() {
+      this.plaidAutoStageImportBatches = !!fyo.config.get(
+        'plaidAutoStageImportBatches',
+        true
+      );
+    },
+    togglePlaidAutoStage(ev: Event) {
+      const el = ev.target as HTMLInputElement | null;
+      const v = !!el?.checked;
+      this.plaidAutoStageImportBatches = v;
+      fyo.config.set('plaidAutoStageImportBatches', v);
+    },
+    openBankManageDrawer(itemId: string) {
+      this.importDrawerAccount = '';
+      this.managePlaidAccountId = '';
+      this.manageItemId = itemId;
+      this.sideMode = 'manageBank';
+    },
+    openAccountManageDrawer(itemId: string, plaidAccountId: string) {
+      if (!plaidAccountId) {
+        return;
+      }
+      this.importDrawerAccount = '';
+      this.manageItemId = itemId;
+      this.managePlaidAccountId = plaidAccountId;
+      this.sideMode = 'manageAccount';
+    },
+    onReconnectFromDrawer(itemId: string) {
+      void this.linkBankWithPlaid(itemId);
+    },
+    onAccountImportFromDrawer(accountName: string) {
+      this.goImportBankFile(accountName);
+    },
+    async onManualBanksChanged() {
+      await this.bootstrapAccounts();
+      await this.refreshManualLedgerCounts();
+      if (
+        this.selectedAccount &&
+        this.archivedManualBankAccounts.some(
+          (a) => a.name === this.selectedAccount
+        )
+      ) {
+        this.selectedAccount = '';
+        this.persistedSelectedAccount = '';
+      }
+    },
+    async onManualBankCreated(payload: { accountName: string }) {
+      this.closeSideDrawer();
+      await this.onManualBanksChanged();
+      if (payload?.accountName) {
+        this.selectAccount(payload.accountName);
+      }
+    },
+    async onManageChanged() {
+      await this.bootstrapAccounts();
+      await this.refreshFeeds(false);
+      await this.prefetchLinkedForAllItems();
+    },
+    async refreshManualLedgerCounts() {
+      const counts: Record<string, number> = {};
+      for (const a of this.manualBankAccounts) {
+        try {
+          counts[a.name] = await countLedgerRowsForAccount(a.name);
+        } catch {
+          counts[a.name] = 0;
+        }
+      }
+      this.manualLedgerRowCounts = counts;
+    },
+    manualLifecycleLabel(accountName: string): string {
+      const n = this.manualLedgerRowCounts[accountName] ?? 0;
+      return n === 0 ? t`Delete` : t`Archive`;
+    },
+    async archiveOrDeleteManualBank(row: BankTableRow) {
+      const panel = this.$refs.manualSetup as
+        | { runLifecycleForAccount?: (n: string, d?: string) => Promise<void> }
+        | undefined;
+      if (panel?.runLifecycleForAccount && row.ledgerName) {
+        await panel.runLifecycleForAccount(
+          row.ledgerName,
+          row.bankAccountName
+        );
       }
     },
     setHubTab(tab: 'manual' | 'online') {
       if (this.hubTab === tab && this.$route.query.tab === tab) {
         return;
       }
-      void routeTo({ path: '/bank-feeds', query: { tab } });
+      // Mode switch clears account selection on purpose.
+      this.persistedSelectedAccount = '';
+      this.selectedAccount = '';
+      this.persistedHubTab = tab;
+      this.closeSideDrawer();
+      void routeTo({
+        path: '/bank-feeds',
+        query: { tab, reviewTab: this.reviewTab },
+      });
     },
     async bootstrapAccounts() {
       this.accountsLoading = true;
@@ -570,18 +1067,24 @@ export default defineComponent({
         }
         this.totalsByAccount = map;
         await this.loadManualSection();
+        await this.refreshManualLedgerCounts();
       } finally {
         this.accountsLoading = false;
       }
     },
     async loadManualSection() {
       const all = await loadAllBankCoaAccounts();
+      const archivedAll = await loadArchivedBankCoaAccounts();
       const manual = all.filter((a) =>
         isManualBankAccount(a.name, this.plaidMapsFlat)
       );
+      const archivedManual = archivedAll.filter((a) =>
+        isManualBankAccount(a.name, this.plaidMapsFlat)
+      );
       this.manualBankAccounts = manual;
+      this.archivedManualBankAccounts = archivedManual;
       const counts: Record<string, number> = {};
-      for (const a of all) {
+      for (const a of [...all, ...archivedAll]) {
         try {
           counts[a.name] = await manualPendingCountFor(a.name);
         } catch {
@@ -603,10 +1106,117 @@ export default defineComponent({
       }
       return fyo.format(v, 'Currency');
     },
-    openActivity(accountName: string) {
-      void routeTo(
-        `/bank-feeds/activity/${encodeURIComponent(accountName)}`
-      );
+    syncHubStateFromRoute() {
+      const q = this.$route.query;
+      const tab = q.tab;
+      if (tab === 'online' || tab === 'manual') {
+        this.hubTab = tab;
+        this.persistedHubTab = tab;
+      } else if (this.persistedHubTab === 'online' || this.persistedHubTab === 'manual') {
+        this.hubTab = this.persistedHubTab;
+      } else {
+        this.hubTab = 'manual';
+      }
+      const rt = q.reviewTab;
+      if (rt === 'review' || rt === 'reviewed' || rt === 'excluded') {
+        this.reviewTab = rt;
+      }
+      const acc = q.account;
+      if (typeof acc === 'string' && acc) {
+        try {
+          this.selectedAccount = decodeURIComponent(acc);
+        } catch {
+          this.selectedAccount = acc;
+        }
+        this.persistedSelectedAccount = this.selectedAccount;
+      } else {
+        this.selectedAccount = '';
+      }
+    },
+    restorePersistedSelectionIfNeeded() {
+      const q = this.$route.query;
+      const hasAccount = typeof q.account === 'string' && !!q.account;
+      const hasTab = q.tab === 'online' || q.tab === 'manual';
+      if (hasAccount && hasTab) {
+        return;
+      }
+      const accountName = this.persistedSelectedAccount;
+      const tab = hasTab
+        ? (q.tab as 'manual' | 'online')
+        : this.persistedHubTab || this.hubTab;
+      if (!accountName && hasTab) {
+        return;
+      }
+      if (!accountName && !hasTab && tab === 'manual') {
+        return;
+      }
+      void routeTo({
+        path: '/bank-feeds',
+        query: {
+          tab,
+          ...(accountName
+            ? { account: encodeURIComponent(accountName) }
+            : {}),
+          reviewTab: this.reviewTab,
+        },
+      });
+    },
+    selectAccount(accountName: string) {
+      if (this.selectedAccount === accountName) {
+        return;
+      }
+      void routeTo({
+        path: '/bank-feeds',
+        query: {
+          tab: this.hubTab,
+          account: encodeURIComponent(accountName),
+          reviewTab: this.reviewTab,
+        },
+      });
+    },
+    setReviewTab(tab: 'review' | 'reviewed' | 'excluded') {
+      if (this.reviewTab === tab) {
+        return;
+      }
+      void routeTo({
+        path: '/bank-feeds',
+        query: {
+          tab: this.hubTab,
+          ...(this.selectedAccount
+            ? { account: encodeURIComponent(this.selectedAccount) }
+            : {}),
+          reviewTab: tab,
+        },
+      });
+    },
+    goImportBankFile(accountName: string) {
+      this.manageItemId = '';
+      this.importDrawerAccount = accountName;
+      this.sideMode = 'import';
+      if (this.selectedAccount !== accountName) {
+        void routeTo({
+          path: '/bank-feeds',
+          query: {
+            tab: this.hubTab,
+            account: encodeURIComponent(accountName),
+            reviewTab: 'review',
+          },
+        });
+      }
+    },
+    async onImportDrawerDone(payload: { bankAccount: string }) {
+      const accountName = payload?.bankAccount || this.importDrawerAccount;
+      this.closeSideDrawer();
+      this.importRefreshKey += 1;
+      await this.loadManualSection();
+      void routeTo({
+        path: '/bank-feeds',
+        query: {
+          tab: this.hubTab,
+          account: encodeURIComponent(accountName),
+          reviewTab: 'review',
+        },
+      });
     },
     plaidLinkPromptTotp() {
       return promptPlaidMfaTotp(
@@ -663,7 +1273,7 @@ export default defineComponent({
               openLivebooksCloudAccountSecurity();
               throw new Error(
                 ex.error ??
-                  t`Set up two-factor authentication on LiveBooks Cloud first.`
+                t`Set up two-factor authentication on LiveBooks Cloud first.`
               );
             }
             if (!ex.ok) {
@@ -721,10 +1331,10 @@ export default defineComponent({
     formatBankBalance(acc: PlaidLinkedAccountRow): string | null {
       const b = acc.balances ?? undefined;
       const current =
-        b && typeof b === 'object' ? (b ).current : undefined;
+        b && typeof b === 'object' ? (b).current : undefined;
       const available =
         b && typeof b === 'object'
-          ? (b ).available
+          ? (b).available
           : undefined;
       const v =
         typeof current === 'number'
@@ -898,9 +1508,14 @@ export default defineComponent({
       if (conflict) {
         const ownerLabel =
           conflict.plaidDisplayLabel || conflict.plaidAccountId;
+        const chartLabel = accountDisplayName(
+          this.ledgerByName[chart]
+            ? { name: chart, accountName: this.ledgerByName[chart].accountName }
+            : { name: chart }
+        );
         showToast({
           type: 'error',
-          message: t`"${chart}" is already mapped to Plaid account ${ownerLabel}. Each ledger account can only be linked to one Plaid sub-account.`,
+          message: t`"${chartLabel}" is already mapped to Plaid account ${ownerLabel}. Each ledger account can only be linked to one Plaid sub-account.`,
         });
         return;
       }
@@ -944,7 +1559,7 @@ export default defineComponent({
             if ((reopen.reopenedCount ?? 0) > 0) {
               showToast({
                 type: 'success',
-                message: t`Reopened ${reopen.reopenedCount} bank feed batch(es) so history can catch up.`,
+                message: t`Reopened ${String(reopen.reopenedCount)} bank feed batch(es) so history can catch up.`,
                 duration: 'long',
               });
               void refreshFeedsNow();
@@ -973,7 +1588,7 @@ export default defineComponent({
       const ctx = await ensureLivebooksCloudBookId(fyo);
       if (!ctx.ok) {
         // Do not surface cloud sign-in here — Manual feeds work offline;
-        // Online connect messaging lives on Settings → Online only.
+        // Online connect messaging lives on the Online tab.
         this.bookId = '';
         return;
       }

@@ -3,13 +3,10 @@ import CommonForm from 'src/pages/CommonForm/CommonForm.vue';
 import Dashboard from 'src/pages/Dashboard/Dashboard.vue';
 import GetStarted from 'src/pages/GetStarted.vue';
 import BankFeedHub from 'src/pages/BankFeedHub.vue';
-import BankAccountActivity from 'src/pages/BankAccountActivity.vue';
-import BankFeedSettings from 'src/pages/BankFeedSettings.vue';
 import BankReconcile from 'src/pages/BankReconcile.vue';
 import BankReconcileHub from 'src/pages/BankReconcileHub.vue';
 import BankRegister from 'src/pages/BankRegister.vue';
 import BankRegisterWrite from 'src/pages/BankRegisterWrite.vue';
-import BankStatementImport from 'src/pages/BankStatementImport.vue';
 import ChecksToPrint from 'src/pages/ChecksToPrint.vue';
 import ImportListsHub from 'src/pages/ImportListsHub.vue';
 import ImportWizard from 'src/pages/ImportWizard.vue';
@@ -124,14 +121,57 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/bank-feeds/settings',
-    name: 'Bank Feed Settings',
-    component: BankFeedSettings,
+    redirect: (to) => {
+      const tab = to.query?.tab;
+      const q: Record<string, string> = {};
+      if (tab === 'online' || tab === 'manual') {
+        q.tab = tab;
+      } else {
+        q.tab = 'manual';
+      }
+      for (const [k, v] of Object.entries(to.query ?? {})) {
+        if (k === 'tab') continue;
+        if (typeof v === 'string') q[k] = v;
+      }
+      return { path: '/bank-feeds', query: q };
+    },
   },
   {
     path: '/bank-feeds/activity/:accountName',
-    name: 'Bank Account Activity',
-    component: BankAccountActivity,
-    props: true,
+    redirect: (to) => {
+      const raw = String(to.params.accountName ?? '');
+      let account = raw;
+      try {
+        account = decodeURIComponent(raw);
+      } catch {
+        /* keep raw */
+      }
+      const q = { ...(to.query ?? {}) } as Record<string, unknown>;
+      const legacyTab = q.tab;
+      const legacyReview = q.reviewTab;
+      const reviewTab =
+        legacyTab === 'reviewed' ||
+        legacyTab === 'excluded' ||
+        legacyTab === 'review'
+          ? legacyTab
+          : legacyReview === 'reviewed' ||
+            legacyReview === 'excluded' ||
+            legacyReview === 'review'
+          ? legacyReview
+          : 'review';
+      // Old activity used ?tab= for review status; hub uses ?tab= for Manual|Online.
+      if (q.tab === 'review' || q.tab === 'reviewed' || q.tab === 'excluded') {
+        delete q.tab;
+      }
+      return {
+        path: '/bank-feeds',
+        query: {
+          ...q,
+          account: encodeURIComponent(account),
+          reviewTab,
+        },
+      };
+    },
   },
   {
     path: '/bank-register',
@@ -155,8 +195,7 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/bank-statement-import',
-    name: 'Bank Statement Import',
-    component: BankStatementImport,
+    redirect: { path: '/bank-feeds', query: { tab: 'manual' } },
   },
   {
     path: '/bank-reconcile/:name',

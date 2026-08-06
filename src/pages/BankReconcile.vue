@@ -811,7 +811,9 @@ export default defineComponent({
     },
     goToBankFeed() {
       void routeTo(
-        `/bank-feeds/activity/${encodeURIComponent(this.accountName)}`
+        `/bank-feeds?account=${encodeURIComponent(
+          this.accountName
+        )}&reviewTab=review`
       );
     },
     async bootstrap() {

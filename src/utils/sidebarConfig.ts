@@ -160,8 +160,6 @@ function getCompleteSidebar(): SidebarConfig {
       name: 'get-started',
       route: '/get-started',
       icon: 'general',
-      iconSize: '24',
-      iconHeight: 4,
       hidden: () => !!fyo.singles.SystemSettings?.hideGetStarted,
     },
     {

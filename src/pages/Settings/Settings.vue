@@ -54,7 +54,7 @@
           <div class="flex items-end justify-between gap-4">
             <div class="flex-1 max-w-md">
               <div class="text-gray-600 dark:text-gray-500 text-sm mb-1">
-                {{ t`Adjust interface size in 10% steps` }}
+                {{ t`Adjust interface size in 5% steps (50%–200%)` }}
               </div>
               <input
                 type="text"
@@ -77,14 +77,14 @@
             <div class="flex items-center gap-2 shrink-0 mb-0.5">
               <Button
                 :disabled="!canZoomOut"
-                :title="t`Zoom out 10%`"
+                :title="t`Zoom out 5%`"
                 @click="zoomOut"
               >
                 {{ t`Zoom out` }}
               </Button>
               <Button
                 :disabled="!canZoomIn"
-                :title="t`Zoom in 10%`"
+                :title="t`Zoom in 5%`"
                 @click="zoomIn"
               >
                 {{ t`Zoom in` }}
@@ -231,11 +231,13 @@ export default defineComponent({
       activeTab: ModelNameEnum.AccountingSettings,
       groupedFields: null,
       zoomFactor: 1,
+      _zoomSyncTimer: null as number | null,
     } as {
       errors: Record<string, string>;
       activeTab: string;
       groupedFields: null | UIGroupedFields;
       zoomFactor: number;
+      _zoomSyncTimer: number | null;
     };
   },
   computed: {
@@ -357,7 +359,10 @@ export default defineComponent({
     },
   },
   mounted() {
-    this.zoomFactor = getDisplayZoomFactor();
+    this.syncZoomFactor();
+    // Keyboard / View-menu zoom uses the same webFrame factor; poll lightly
+    // so the System tab label stays current while Settings is open.
+    this._zoomSyncTimer = window.setInterval(() => this.syncZoomFactor(), 400);
     if (this.fyo.store.isDevelopment) {
       // @ts-ignore
       window.settings = this;
@@ -365,7 +370,14 @@ export default defineComponent({
 
     this.update();
   },
+  beforeUnmount() {
+    if (this._zoomSyncTimer != null) {
+      window.clearInterval(this._zoomSyncTimer);
+      this._zoomSyncTimer = null;
+    }
+  },
   activated(): void {
+    this.syncZoomFactor();
     const tab = this.$route.query.tab;
     if (typeof tab === 'string' && this.tabLabels[tab]) {
       this.activeTab = tab;
@@ -395,6 +407,12 @@ export default defineComponent({
       const names = new Set(this.schemas.map(({ name }) => name));
       names.add(ModelNameEnum.InventorySettings);
       return [...names];
+    },
+    syncZoomFactor() {
+      const next = getDisplayZoomFactor();
+      if (next !== this.zoomFactor) {
+        this.zoomFactor = next;
+      }
     },
     zoomIn() {
       this.zoomFactor = zoomDisplayIn(this.zoomFactor);

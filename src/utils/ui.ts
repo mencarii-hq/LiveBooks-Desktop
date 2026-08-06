@@ -504,20 +504,31 @@ export function handleWindowDragDoubleClick(event: MouseEvent) {
   ipc.toggleMaximize();
 }
 
-export const DISPLAY_ZOOM_STEP = 0.1;
+export const DISPLAY_ZOOM_STEP = 0.05;
 export const DISPLAY_ZOOM_MIN = 0.5;
 export const DISPLAY_ZOOM_MAX = 2;
+
+/** Snap to 5% increments and clamp to 50%–200%. */
+export function normalizeDisplayZoomFactor(factor: number): number {
+  const stepped = Math.round(factor / DISPLAY_ZOOM_STEP) * DISPLAY_ZOOM_STEP;
+  const clamped = Math.min(
+    DISPLAY_ZOOM_MAX,
+    Math.max(DISPLAY_ZOOM_MIN, stepped)
+  );
+  // Avoid float noise (e.g. 1.0500000002) so labels stay on 5/10%.
+  return Math.round(clamped * 100) / 100;
+}
 
 export function getDisplayZoomFactor(): number {
   if (typeof ipc?.getZoomFactor !== 'function') {
     return 1;
   }
   const z = Number(ipc.getZoomFactor());
-  return Number.isFinite(z) && z > 0 ? z : 1;
+  return Number.isFinite(z) && z > 0 ? normalizeDisplayZoomFactor(z) : 1;
 }
 
 export function setDisplayZoomFactor(factor: number): number {
-  const next = Math.min(DISPLAY_ZOOM_MAX, Math.max(DISPLAY_ZOOM_MIN, factor));
+  const next = normalizeDisplayZoomFactor(factor);
   if (typeof ipc?.setZoomFactor === 'function') {
     ipc.setZoomFactor(next);
     return getDisplayZoomFactor();

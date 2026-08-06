@@ -144,7 +144,7 @@ export async function loadAllBankCoaAccounts(): Promise<BankCoaAccount[]> {
   })) as BankCoaAccount[];
 }
 
-/** Archived (disabled) bank leaf accounts — for restore UI on Bank Feed Settings. */
+/** Archived (disabled) bank leaf accounts — for restore UI on Bank Feed Hub Manual tab. */
 export async function loadArchivedBankCoaAccounts(): Promise<BankCoaAccount[]> {
   const rows = (await fyo.db.getAll(ModelNameEnum.Account, {
     fields: ['name', 'accountName', 'rootType', 'disabled'],

@@ -1,442 +1,308 @@
 <template>
-  <div class="flex flex-col overflow-y-hidden h-full">
-    <PageHeader :title="t`Bank Account Activity`">
-      <Button type="secondary" :disabled="refreshing" @click="reload">{{
-        refreshing ? t`Refreshing…` : t`Refresh`
-      }}</Button>
-      <Button
-        v-if="accountKind === 'plaid' && bookId && !plaidAutoStageImportBatches"
-        type="secondary"
-        :disabled="manualPullBusy || refreshing"
-        @click="pullPlaidBatchesNow"
-      >
-        {{ manualPullBusy ? t`Pulling…` : t`Pull bank feed` }}
-      </Button>
-      <Button
-        v-if="accountKind === 'manual' || accountKind === 'plaid'"
-        type="primary"
-        @click="goImportBankFile"
-      >
-        {{ t`Import bank file` }}
-      </Button>
-    </PageHeader>
+  <div class="bank-account-activity-panel">
+    <div v-if="decodeError" class="text-sm text-red-600 dark:text-red-400 mb-2">
+      {{ decodeError }}
+    </div>
 
     <div
-      class="
-        flex-1
-        overflow-y-auto overflow-x-hidden
-        custom-scroll custom-scroll-thumb1
-        p-4
-      "
+      v-if="accountKind === 'unknown' && !decodeError"
+      class="text-sm text-gray-600 dark:text-gray-300"
     >
-      <div
-        v-if="decodeError"
-        class="text-sm text-red-600 dark:text-red-400 mb-2"
-      >
-        {{ decodeError }}
-      </div>
+      {{ t`Loading…` }}
+    </div>
 
-      <div
-        v-if="accountKind === 'unknown' && !decodeError"
-        class="text-sm text-gray-600 dark:text-gray-300"
-      >
-        {{ t`Loading…` }}
-      </div>
-
-      <template v-else>
-        <div
-          v-if="accountKind !== 'unknown'"
-          class="
-            border border-gray-200
-            dark:border-gray-700
-            rounded-lg
-            overflow-hidden
-            bg-white
-            dark:bg-gray-900
-            mb-4
+    <template v-else>
+      <div class="flex border-b dark:border-gray-700 mb-4 gap-1">
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          type="button"
+          class="px-3 py-2 text-sm rounded-t border border-b-0 -mb-px"
+          :class="
+            activeTab === tab.id
+              ? 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 font-medium'
+              : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-300'
           "
+          @click="activeTab = tab.id"
         >
-          <table class="min-w-full text-sm text-start">
-            <thead class="bg-gray-50 dark:bg-gray-800 text-xs uppercase">
-              <tr>
-                <th class="text-start p-3 border-b dark:border-gray-700">
-                  {{ t`Bank name` }}
-                </th>
-                <th class="text-start p-3 border-b dark:border-gray-700">
-                  {{ t`Bank balance` }}
-                </th>
-                <th class="text-start p-3 border-b dark:border-gray-700">
-                  {{ t`Last sync` }}
-                </th>
-                <th class="text-start p-3 border-b dark:border-gray-700">
-                  {{ t`To review` }}
-                </th>
-                <th class="text-start p-3 border-b dark:border-gray-700">
-                  {{ t`Ledger name` }}
-                </th>
-                <th class="text-start p-3 border-b dark:border-gray-700">
-                  {{ t`Ledger balance` }}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="border-b dark:border-gray-800 last:border-0">
-                <td class="p-3 text-start font-medium">
-                  {{
-                    summaryBankAccountName || ledgerAccountLabel || accountTitle
-                  }}
-                </td>
-                <td class="p-3 text-start tabular-nums">
-                  {{ summaryBankBalanceLabel ?? t`—` }}
-                </td>
-                <td class="p-3 text-start text-gray-600 dark:text-gray-300">
-                  {{ summaryLastSyncLabel || t`—` }}
-                </td>
-                <td class="p-3 text-start">
-                  <span
-                    v-if="reviewBadgeCount > 0"
-                    class="
-                      text-xs
-                      font-medium
-                      px-2
-                      py-0.5
-                      rounded-full
-                      bg-amber-100
-                      text-amber-900
-                      dark:bg-amber-900/40 dark:text-amber-100
-                    "
-                  >
-                    {{ reviewBadgeCount }}
-                  </span>
-                  <span v-else class="text-gray-500">0</span>
-                </td>
-                <td class="p-3 text-start">
-                  {{ ledgerAccountLabel || accountTitle }}
-                </td>
-                <td class="p-3 text-start tabular-nums">
-                  {{ glBalanceLabel || t`—` }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="flex border-b dark:border-gray-700 mb-4 gap-1">
-          <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            type="button"
-            class="px-3 py-2 text-sm rounded-t border border-b-0 -mb-px"
-            :class="
-              activeTab === tab.id
-                ? 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 font-medium'
-                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-300'
+          {{ tab.label }}
+          <span
+            v-if="tab.id === 'review' && reviewBadgeCount > 0"
+            class="
+              ms-1
+              text-xs
+              px-1.5
+              py-0.5
+              rounded-full
+              bg-amber-100
+              text-amber-900
+              dark:bg-amber-900/40 dark:text-amber-100
             "
-            @click="activeTab = tab.id"
           >
-            {{ tab.label }}
-            <span
-              v-if="tab.id === 'review' && reviewBadgeCount > 0"
-              class="
-                ms-1
-                text-xs
-                px-1.5
-                py-0.5
-                rounded-full
-                bg-amber-100
-                text-amber-900
-                dark:bg-amber-900/40 dark:text-amber-100
-              "
-            >
-              {{ reviewBadgeCount }}
-            </span>
-          </button>
-        </div>
+            {{ reviewBadgeCount }}
+          </span>
+        </button>
+      </div>
 
-        <!-- Plaid sign-in / book error -->
-        <div
-          v-if="accountKind === 'plaid' && bookError"
-          class="text-sm text-red-600 mb-3"
-        >
-          {{ bookError }}
-        </div>
+      <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">
+        {{ tabHelp }}
+      </p>
 
-        <div
-          v-if="accountKind === 'plaid' && !bookError"
-          class="
-            mb-4
-            rounded
-            border border-slate-200
-            dark:border-slate-600
-            bg-slate-50
-            dark:bg-slate-900/40
-            p-3
-            text-sm text-slate-800
-            dark:text-slate-100
-          "
-        >
-          {{
-            t`Imported lines land in For Review. Nothing posts until you Add or Match. If auto-staging is off in Bank Feed Settings, use Pull bank feed.`
-          }}
-        </div>
+      <!-- Plaid sign-in / book error -->
+      <div
+        v-if="accountKind === 'plaid' && bookError"
+        class="text-sm text-red-600 mb-3"
+      >
+        {{ bookError }}
+      </div>
 
-        <div
-          v-if="accountKind === 'plaid' && plaidCatchUpBlocked"
-          class="
-            mb-4
-            border border-red-300
-            dark:border-red-700
-            bg-red-50
-            dark:bg-red-900/20
-            rounded
-            p-3
-            text-sm
-          "
-        >
-          <div class="font-medium mb-1 text-red-900 dark:text-red-100">
-            {{ t`Bank feed catch-up paused` }}
-          </div>
-          <div class="text-red-900 dark:text-red-100">
-            {{ plaidCatchUpBlocked.message }}
-          </div>
-          <div class="mt-2 flex flex-wrap gap-2">
-            <Button type="secondary" @click="goImportBankFile">
-              {{ t`Import CSV/OFX` }}
-            </Button>
-            <Button type="primary" @click="pullPlaidAnyway">
-              {{ t`Pull anyway` }}
-            </Button>
-          </div>
+      <div
+        v-if="accountKind === 'plaid' && plaidCatchUpBlocked"
+        class="
+          mb-4
+          border border-red-300
+          dark:border-red-700
+          bg-red-50
+          dark:bg-red-900/20
+          rounded
+          p-3
+          text-sm
+        "
+      >
+        <div class="font-medium mb-1 text-red-900 dark:text-red-100">
+          {{ t`Bank feed catch-up paused` }}
         </div>
-
-        <div
-          v-if="accountKind === 'plaid' && plaidCatchUpWarning"
-          class="mb-4 text-sm text-amber-800 dark:text-amber-200"
-        >
-          {{ plaidCatchUpWarning }}
+        <div class="text-red-900 dark:text-red-100">
+          {{ plaidCatchUpBlocked.message }}
         </div>
-
-        <!-- Recent apply failures (Plaid only). -->
-        <div
-          v-if="accountKind === 'plaid' && recentApplyFailures.length"
-          class="
-            mb-4
-            border border-amber-300
-            dark:border-amber-700
-            bg-amber-50
-            dark:bg-amber-900/20
-            rounded
-            p-3
-            text-sm
-          "
-        >
-          <div class="font-medium mb-1 text-amber-900 dark:text-amber-100">
-            {{
-              t`We couldn't apply ${recentApplyFailures.length} recent batch(es).`
-            }}
-          </div>
-          <ul
-            class="list-disc ms-5 space-y-1 text-amber-900 dark:text-amber-100"
-          >
-            <li
-              v-for="f in recentApplyFailures"
-              :key="f.public_id + f.created_at"
-            >
-              <span class="font-mono text-xs"
-                >{{ f.public_id.slice(0, 8) }}…</span
-              >
-              — {{ f.error_summary }}
-            </li>
-          </ul>
-          <div class="mt-2 text-xs text-amber-900 dark:text-amber-200">
-            {{
-              t`Click Refresh to retry. If retries keep failing, contact support.`
-            }}
-          </div>
-        </div>
-
-        <!-- Retracted-after-matched warning (Plaid only). -->
-        <div
-          v-if="
-            accountKind === 'plaid' &&
-            visibleRetractedMatched.length &&
-            !retractedBannerDismissed
-          "
-          class="
-            mb-4
-            border border-rose-300
-            dark:border-rose-700
-            bg-rose-50
-            dark:bg-rose-900/20
-            rounded
-            p-3
-            text-sm
-            flex flex-col
-            gap-2
-          "
-        >
-          <div class="font-medium text-rose-900 dark:text-rose-100">
-            {{
-              t`Your bank retracted ${visibleRetractedMatched.length} transaction(s) you had already reconciled.`
-            }}
-          </div>
-          <ul class="list-disc ms-5 space-y-1 text-rose-900 dark:text-rose-100">
-            <li
-              v-for="r in visibleRetractedMatched.slice(0, 5)"
-              :key="r.externalId"
-            >
-              <span class="font-mono text-xs">{{ r.externalId }}</span>
-              {{ r.statementName ? ' — ' + r.statementName : '' }}
-            </li>
-          </ul>
-          <div class="text-xs text-rose-900 dark:text-rose-200">
-            {{
-              t`Open the matched record and decide whether to keep, void, or unreconcile it.`
-            }}
-          </div>
-          <div class="flex justify-end">
-            <Button type="secondary" @click="dismissRetractedBanner">
-              {{ t`Dismiss` }}
-            </Button>
-          </div>
-        </div>
-
-        <!-- Unmapped Plaid sub-accounts banner -->
-        <div
-          v-if="accountKind === 'plaid' && hasUnmappedPendingBatches"
-          class="
-            mb-4
-            border border-amber-300
-            dark:border-amber-700
-            bg-amber-50
-            dark:bg-amber-900/20
-            rounded
-            p-3
-            text-sm
-            flex
-            items-center
-            justify-between
-            gap-3
-          "
-        >
-          <div class="text-amber-900 dark:text-amber-100">
-            {{
-              t`New transactions are waiting on a sub-account that isn't mapped yet. Map your Plaid sub-account to a bank account so they can show up here.`
-            }}
-          </div>
-          <Button type="secondary" @click="goToBankFeedSettings">
-            {{ t`Map accounts` }}
+        <div class="mt-2 flex flex-wrap gap-2">
+          <Button type="secondary" @click="goImportBankFile">
+            {{ t`Import CSV/OFX` }}
+          </Button>
+          <Button type="primary" @click="pullPlaidAnyway">
+            {{ t`Pull anyway` }}
           </Button>
         </div>
+      </div>
 
-        <!-- Auto-apply progress (one-shot, transient) -->
-        <div
-          v-if="autoApplyBusy"
-          class="text-xs text-gray-600 dark:text-gray-300 mb-2"
-        >
-          {{ t`Syncing new transactions from your bank…` }}
+      <div
+        v-if="accountKind === 'plaid' && plaidCatchUpWarning"
+        class="mb-4 text-sm text-amber-800 dark:text-amber-200"
+      >
+        {{ plaidCatchUpWarning }}
+      </div>
+
+      <!-- Recent apply failures (Plaid only). -->
+      <div
+        v-if="accountKind === 'plaid' && recentApplyFailures.length"
+        class="
+          mb-4
+          border border-amber-300
+          dark:border-amber-700
+          bg-amber-50
+          dark:bg-amber-900/20
+          rounded
+          p-3
+          text-sm
+        "
+      >
+        <div class="font-medium mb-1 text-amber-900 dark:text-amber-100">
+          {{
+            t`We couldn't apply ${recentApplyFailures.length} recent batch(es).`
+          }}
         </div>
+        <ul class="list-disc ms-5 space-y-1 text-amber-900 dark:text-amber-100">
+          <li
+            v-for="f in recentApplyFailures"
+            :key="f.public_id + f.created_at"
+          >
+            <span class="font-mono text-xs"
+              >{{ f.public_id.slice(0, 8) }}…</span
+            >
+            — {{ f.error_summary }}
+          </li>
+        </ul>
+        <div class="mt-2 text-xs text-amber-900 dark:text-amber-200">
+          {{
+            t`Use Sync on this bank to retry. If retries keep failing, contact support.`
+          }}
+        </div>
+      </div>
 
-        <!-- For Review tab -->
-        <div v-if="activeTab === 'review'">
-          <p class="text-sm text-gray-600 dark:text-gray-300 mb-4 max-w-3xl">
+      <!-- Retracted-after-matched warning (Plaid only). -->
+      <div
+        v-if="
+          accountKind === 'plaid' &&
+          visibleRetractedMatched.length &&
+          !retractedBannerDismissed
+        "
+        class="
+          mb-4
+          border border-rose-300
+          dark:border-rose-700
+          bg-rose-50
+          dark:bg-rose-900/20
+          rounded
+          p-3
+          text-sm
+          flex flex-col
+          gap-2
+        "
+      >
+        <div class="font-medium text-rose-900 dark:text-rose-100">
+          {{
+            t`Your bank retracted ${visibleRetractedMatched.length} transaction(s) you had already reconciled.`
+          }}
+        </div>
+        <ul class="list-disc ms-5 space-y-1 text-rose-900 dark:text-rose-100">
+          <li
+            v-for="r in visibleRetractedMatched.slice(0, 5)"
+            :key="r.externalId"
+          >
+            <span class="font-mono text-xs">{{ r.externalId }}</span>
+            {{ r.statementName ? ' — ' + r.statementName : '' }}
+          </li>
+        </ul>
+        <div class="text-xs text-rose-900 dark:text-rose-200">
+          {{
+            t`Open the matched record and decide whether to keep, void, or unreconcile it.`
+          }}
+        </div>
+        <div class="flex justify-end">
+          <Button type="secondary" @click="dismissRetractedBanner">
+            {{ t`Dismiss` }}
+          </Button>
+        </div>
+      </div>
+
+      <!-- Unmapped Plaid sub-accounts banner -->
+      <div
+        v-if="accountKind === 'plaid' && hasUnmappedPendingBatches"
+        class="
+          mb-4
+          border border-amber-300
+          dark:border-amber-700
+          bg-amber-50
+          dark:bg-amber-900/20
+          rounded
+          p-3
+          text-sm
+          flex
+          items-center
+          justify-between
+          gap-3
+        "
+      >
+        <div class="text-amber-900 dark:text-amber-100">
+          {{
+            t`New transactions are waiting on an account that isn't mapped yet. Open Manage on that account to map it to a ledger account.`
+          }}
+        </div>
+        <Button type="secondary" @click="goToBankFeedOnlineManage">
+          {{ t`Map accounts` }}
+        </Button>
+      </div>
+
+      <!-- Auto-apply progress (one-shot, transient) -->
+      <div
+        v-if="autoApplyBusy"
+        class="text-xs text-gray-600 dark:text-gray-300 mb-2"
+      >
+        {{ t`Syncing new transactions from your bank…` }}
+      </div>
+
+      <!-- For Review tab -->
+      <div v-if="activeTab === 'review'">
+        <!-- Unified review table -->
+        <div v-if="manualLoading" class="text-sm text-gray-600">
+          {{ t`Loading transactions…` }}
+        </div>
+        <div v-else-if="manualError" class="text-sm text-red-600">
+          {{ manualError }}
+        </div>
+        <div
+          v-else-if="!manualLinesForReview.length"
+          class="text-sm text-gray-600 dark:text-gray-300"
+        >
+          <template v-if="accountKind === 'manual'">
             {{
-              t`Inbox of imported bank activity. Pick a category and Add it to your books, or Match it to an existing entry. Excluded items move to the Excluded tab and are hidden from your reports.`
+              t`No transactions to review. Use Import bank file on this bank to import CSV, QBO, or QFX.`
             }}
-          </p>
-
-          <!-- Unified review table -->
-          <div v-if="manualLoading" class="text-sm text-gray-600">
-            {{ t`Loading transactions…` }}
-          </div>
-          <div v-else-if="manualError" class="text-sm text-red-600">
-            {{ manualError }}
-          </div>
-          <div
-            v-else-if="!manualLinesForReview.length"
-            class="text-sm text-gray-600 dark:text-gray-300"
-          >
-            <template v-if="accountKind === 'manual'">
-              {{
-                t`No transactions to review. Click Import bank file above to import CSV, QBO, or QFX.`
-              }}
-            </template>
-            <template v-else>
-              {{ t`Nothing pending for review for this account.` }}
-            </template>
-          </div>
-          <table
-            v-else
-            class="min-w-full text-sm text-start border dark:border-gray-700"
-          >
-            <thead class="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                <th class="text-start p-2 border-b">{{ t`Date` }}</th>
-                <th class="text-start p-2 border-b">{{ t`Description` }}</th>
-                <th class="text-start p-2 border-b w-28">{{ t`Status` }}</th>
-                <th class="text-start p-2 border-b">{{ t`Amount` }}</th>
-                <th class="text-start p-2 border-b">{{ t`Category` }}</th>
-                <th class="text-start p-2 border-b">{{ t`Actions` }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="line in manualLinesForReview"
-                :key="manualLineKey(line)"
-              >
-                <td class="p-2 border-b dark:border-gray-800 whitespace-nowrap">
-                  {{ line.date || '—' }}
-                </td>
-                <td class="p-2 border-b dark:border-gray-800 max-w-md">
-                  {{ line.description || '—' }}
-                </td>
-                <td class="p-2 border-b dark:border-gray-800 text-xs">
-                  <span
-                    v-if="line.possibleDuplicate"
-                    class="
-                      inline-block
-                      px-1.5
-                      py-0.5
-                      rounded
-                      bg-amber-100
-                      text-amber-900
-                      dark:bg-amber-900/40 dark:text-amber-100
-                    "
-                  >
-                    {{ t`Possible duplicate` }}
-                  </span>
-                  <span v-else class="text-gray-400">—</span>
-                </td>
-                <td
+          </template>
+          <template v-else>
+            {{ t`Nothing pending for review for this account.` }}
+          </template>
+        </div>
+        <table
+          v-else
+          class="min-w-full text-sm text-start border dark:border-gray-700"
+        >
+          <thead class="bg-gray-50 dark:bg-gray-800">
+            <tr>
+              <th class="text-start p-2 border-b">{{ t`Date` }}</th>
+              <th class="text-start p-2 border-b">{{ t`Description` }}</th>
+              <th class="text-start p-2 border-b w-28">{{ t`Status` }}</th>
+              <th class="text-start p-2 border-b">{{ t`Amount` }}</th>
+              <th class="text-start p-2 border-b">{{ t`Category` }}</th>
+              <th class="text-start p-2 border-b">{{ t`Actions` }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="line in manualLinesForReview" :key="manualLineKey(line)">
+              <td class="p-2 border-b dark:border-gray-800 whitespace-nowrap">
+                {{ line.date || '—' }}
+              </td>
+              <td class="p-2 border-b dark:border-gray-800 max-w-md">
+                {{ line.description || '—' }}
+              </td>
+              <td class="p-2 border-b dark:border-gray-800 text-xs">
+                <span
+                  v-if="line.possibleDuplicate"
                   class="
-                    p-2
-                    border-b
-                    dark:border-gray-800
-                    text-start
-                    tabular-nums
-                  "
-                  :class="
-                    line.amountFloat > 0
-                      ? 'text-emerald-700 dark:text-emerald-400'
-                      : ''
+                    inline-block
+                    px-1.5
+                    py-0.5
+                    rounded
+                    bg-amber-100
+                    text-amber-900
+                    dark:bg-amber-900/40 dark:text-amber-100
                   "
                 >
-                  {{ manualAmountLabel(line) }}
-                </td>
-                <td class="p-2 border-b dark:border-gray-800 max-w-[14rem]">
-                  <FormControl
-                    :border="true"
-                    size="small"
-                    :show-label="false"
-                    :df="categoryFieldForLine(line)"
-                    :value="categorySelections[manualLineKey(line)] || ''"
-                    @change="
-                      (v) =>
-                        setManualCategory(manualLineKey(line), String(v || ''))
-                    "
-                  />
-                </td>
-                <td class="p-2 border-b dark:border-gray-800 whitespace-nowrap">
+                  {{ t`Possible duplicate` }}
+                </span>
+                <span v-else class="text-gray-400">—</span>
+              </td>
+              <td
+                class="
+                  p-2
+                  border-b
+                  dark:border-gray-800
+                  text-start
+                  tabular-nums
+                "
+                :class="
+                  line.amountFloat > 0
+                    ? 'text-emerald-700 dark:text-emerald-400'
+                    : ''
+                "
+              >
+                {{ manualAmountLabel(line) }}
+              </td>
+              <td class="p-2 border-b dark:border-gray-800 max-w-[14rem]">
+                <FormControl
+                  :border="true"
+                  size="small"
+                  :show-label="false"
+                  :df="categoryFieldForLine(line)"
+                  :value="categorySelections[manualLineKey(line)] || ''"
+                  @change="
+                    (v) =>
+                      setManualCategory(manualLineKey(line), String(v || ''))
+                  "
+                />
+              </td>
+              <td class="p-2 border-b dark:border-gray-800 whitespace-nowrap">
+                <div class="inline-flex flex-row items-center gap-2">
                   <Button
                     v-if="matchCandidateFor(line)"
                     type="primary"
@@ -448,7 +314,7 @@
                   </Button>
                   <Button
                     type="primary"
-                    class="!text-xs !py-0.5 ms-1"
+                    class="!text-xs !py-0.5"
                     :disabled="
                       manualPendingRowKey === manualLineKey(line) ||
                       !categorySelections[manualLineKey(line)]
@@ -457,248 +323,187 @@
                   >
                     {{ t`Add` }}
                   </Button>
-                  <span class="relative inline-block ms-1">
-                    <button
-                      type="button"
-                      class="
-                        text-gray-500
-                        hover:text-gray-900
-                        dark:text-gray-300 dark:hover:text-gray-100
-                        rounded
-                        px-1.5
-                        py-0.5
-                        border border-transparent
-                        hover:border-gray-300
-                        dark:hover:border-gray-700
-                      "
-                      :disabled="manualPendingRowKey === manualLineKey(line)"
-                      @click="toggleKebab(manualLineKey(line))"
-                    >
-                      ⋮
-                    </button>
-                    <div
-                      v-if="openKebabKey === manualLineKey(line)"
-                      class="
-                        absolute
-                        z-10
-                        right-0
-                        mt-1
-                        w-32
-                        bg-white
-                        dark:bg-gray-800
-                        border border-gray-200
-                        dark:border-gray-600
-                        rounded
-                        shadow
-                        text-sm
-                      "
-                    >
-                      <button
-                        type="button"
-                        class="
-                          block
-                          w-full
-                          text-start
-                          px-3
-                          py-1.5
-                          hover:bg-gray-50
-                          dark:hover:bg-gray-800
-                        "
-                        @click="onSplit(line)"
-                      >
-                        {{ t`Split…` }}
-                      </button>
-                      <button
-                        type="button"
-                        class="
-                          block
-                          w-full
-                          text-start
-                          px-3
-                          py-1.5
-                          hover:bg-gray-50
-                          dark:hover:bg-gray-800
-                        "
-                        @click="excludeManualLine(line)"
-                      >
-                        {{ t`Exclude` }}
-                      </button>
-                    </div>
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                  <Button
+                    type="secondary"
+                    class="!text-xs !py-0.5"
+                    :disabled="manualPendingRowKey === manualLineKey(line)"
+                    @click="excludeManualLine(line)"
+                  >
+                    {{ t`Exclude` }}
+                  </Button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-        <!-- Reviewed tab -->
-        <div v-else-if="activeTab === 'reviewed'">
-          <p class="text-sm text-gray-600 dark:text-gray-300 mb-4 max-w-3xl">
-            {{
-              t`History of cleared transactions. Click Undo to send a row back to For Review. If a row is already reconciled, you'll be warned before it can throw off your beginning balance.`
-            }}
-          </p>
-          <div v-if="manualLoading" class="text-sm text-gray-600">
-            {{ t`Loading…` }}
-          </div>
-          <div
-            v-else-if="!manualLinesReviewed.length"
-            class="text-sm text-gray-600 dark:text-gray-300"
-          >
-            {{ t`No reviewed transactions yet.` }}
-          </div>
-          <table
-            v-else
-            class="min-w-full text-sm text-start border dark:border-gray-700"
-          >
-            <thead class="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                <th class="text-start p-2 border-b">{{ t`Date` }}</th>
-                <th class="text-start p-2 border-b">{{ t`Description` }}</th>
-                <th class="text-start p-2 border-b">{{ t`Amount` }}</th>
-                <th class="text-start p-2 border-b">{{ t`Matched to` }}</th>
-                <th class="text-start p-2 border-b">{{ t`Action` }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="line in manualLinesReviewed"
-                :key="manualLineKey(line)"
+      <!-- Reviewed tab -->
+      <div v-else-if="activeTab === 'reviewed'">
+        <div v-if="manualLoading" class="text-sm text-gray-600">
+          {{ t`Loading…` }}
+        </div>
+        <div
+          v-else-if="!manualLinesReviewed.length"
+          class="text-sm text-gray-600 dark:text-gray-300"
+        >
+          {{ t`No reviewed transactions yet.` }}
+        </div>
+        <table
+          v-else
+          class="min-w-full text-sm text-start border dark:border-gray-700"
+        >
+          <thead class="bg-gray-50 dark:bg-gray-800">
+            <tr>
+              <th class="text-start p-2 border-b">{{ t`Date` }}</th>
+              <th class="text-start p-2 border-b">{{ t`Description` }}</th>
+              <th class="text-start p-2 border-b">{{ t`Amount` }}</th>
+              <th class="text-start p-2 border-b">{{ t`Matched to` }}</th>
+              <th class="text-start p-2 border-b">{{ t`Action` }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="line in manualLinesReviewed" :key="manualLineKey(line)">
+              <td class="p-2 border-b dark:border-gray-800 whitespace-nowrap">
+                {{ line.date || '—' }}
+              </td>
+              <td class="p-2 border-b dark:border-gray-800">
+                {{ line.description || '—' }}
+              </td>
+              <td
+                class="
+                  p-2
+                  border-b
+                  dark:border-gray-800
+                  text-start
+                  tabular-nums
+                "
+                :class="
+                  line.amountFloat > 0
+                    ? 'text-emerald-700 dark:text-emerald-400'
+                    : ''
+                "
               >
-                <td class="p-2 border-b dark:border-gray-800 whitespace-nowrap">
-                  {{ line.date || '—' }}
-                </td>
-                <td class="p-2 border-b dark:border-gray-800">
-                  {{ line.description || '—' }}
-                </td>
-                <td
+                {{ manualAmountLabel(line) }}
+              </td>
+              <td class="p-2 border-b dark:border-gray-800 max-w-xs">
+                <span
+                  v-if="line.matchedReferenceName"
+                  class="font-mono text-xs"
+                >
+                  {{ line.matchedReferenceType }} ·
+                  {{ line.matchedReferenceName }}
+                </span>
+                <span v-else class="text-gray-500">—</span>
+              </td>
+              <td class="p-2 border-b dark:border-gray-800 whitespace-nowrap">
+                <Button
+                  type="secondary"
+                  :disabled="manualPendingRowKey === manualLineKey(line)"
+                  @click="undoManualLine(line)"
+                >
+                  {{ t`Undo` }}
+                </Button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Excluded tab -->
+      <div v-else>
+        <div v-if="manualLoading" class="text-sm text-gray-600">
+          {{ t`Loading…` }}
+        </div>
+        <div
+          v-else-if="!manualLinesExcluded.length"
+          class="text-sm text-gray-600 dark:text-gray-300"
+        >
+          {{ t`No excluded transactions.` }}
+        </div>
+        <table
+          v-else
+          class="min-w-full text-sm text-start border dark:border-gray-700"
+        >
+          <thead class="bg-gray-50 dark:bg-gray-800">
+            <tr>
+              <th class="text-start p-2 border-b">{{ t`Date` }}</th>
+              <th class="text-start p-2 border-b">{{ t`Description` }}</th>
+              <th class="text-start p-2 border-b">{{ t`Amount` }}</th>
+              <th class="text-start p-2 border-b">{{ t`Reason` }}</th>
+              <th class="text-start p-2 border-b">{{ t`Action` }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="line in manualLinesExcluded"
+              :key="manualLineKey(line)"
+              class="text-gray-500 dark:text-gray-500"
+            >
+              <td class="p-2 border-b whitespace-nowrap">
+                {{ line.date || '—' }}
+              </td>
+              <td class="p-2 border-b">{{ line.description || '—' }}</td>
+              <td class="p-2 border-b text-start tabular-nums">
+                {{ manualAmountLabel(line) }}
+              </td>
+              <td class="p-2 border-b text-xs align-top">
+                <span
+                  v-if="line.ignoreReason === 'plaid_removed'"
                   class="
-                    p-2
-                    border-b
-                    dark:border-gray-800
-                    text-start
-                    tabular-nums
+                    inline-block
+                    me-1
+                    mb-1
+                    px-1.5
+                    py-0.5
+                    rounded
+                    bg-blue-100
+                    text-blue-900
+                    dark:bg-blue-900/40 dark:text-blue-100
+                    text-[10px]
+                    font-medium
+                    uppercase
                   "
-                  :class="
-                    line.amountFloat > 0
-                      ? 'text-emerald-700 dark:text-emerald-400'
-                      : ''
+                  :title="
+                    t`Plaid later removed this transaction. Your books were not changed automatically — compare to your bank if amounts look off.`
                   "
                 >
-                  {{ manualAmountLabel(line) }}
-                </td>
-                <td class="p-2 border-b dark:border-gray-800 max-w-xs">
-                  <span
-                    v-if="line.matchedReferenceName"
-                    class="font-mono text-xs"
-                  >
-                    {{ line.matchedReferenceType }} ·
-                    {{ line.matchedReferenceName }}
-                  </span>
-                  <span v-else class="text-gray-500">—</span>
-                </td>
-                <td class="p-2 border-b dark:border-gray-800 whitespace-nowrap">
-                  <Button
-                    type="secondary"
-                    :disabled="manualPendingRowKey === manualLineKey(line)"
-                    @click="undoManualLine(line)"
-                  >
-                    {{ t`Undo` }}
-                  </Button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                  {{ t`Plaid removed` }}
+                </span>
+                <span>{{ line.ignoreReason || '—' }}</span>
+              </td>
+              <td class="p-2 border-b whitespace-nowrap">
+                <Button
+                  type="secondary"
+                  :disabled="manualPendingRowKey === manualLineKey(line)"
+                  @click="restoreManualLine(line)"
+                >
+                  {{ t`Restore` }}
+                </Button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </template>
 
-        <!-- Excluded tab -->
-        <div v-else>
-          <p class="text-sm text-gray-600 dark:text-gray-300 mb-4 max-w-3xl">
-            {{
-              t`Excluded transactions stay out of your ledger and reconciliation math. Restore brings a row back to For Review.`
-            }}
-          </p>
-          <div v-if="manualLoading" class="text-sm text-gray-600">
-            {{ t`Loading…` }}
-          </div>
-          <div
-            v-else-if="!manualLinesExcluded.length"
-            class="text-sm text-gray-600 dark:text-gray-300"
-          >
-            {{ t`No excluded transactions.` }}
-          </div>
-          <table
-            v-else
-            class="min-w-full text-sm text-start border dark:border-gray-700"
-          >
-            <thead class="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                <th class="text-start p-2 border-b">{{ t`Date` }}</th>
-                <th class="text-start p-2 border-b">{{ t`Description` }}</th>
-                <th class="text-start p-2 border-b">{{ t`Amount` }}</th>
-                <th class="text-start p-2 border-b">{{ t`Reason` }}</th>
-                <th class="text-start p-2 border-b">{{ t`Action` }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="line in manualLinesExcluded"
-                :key="manualLineKey(line)"
-                class="text-gray-500 dark:text-gray-500"
-              >
-                <td class="p-2 border-b whitespace-nowrap">
-                  {{ line.date || '—' }}
-                </td>
-                <td class="p-2 border-b">{{ line.description || '—' }}</td>
-                <td class="p-2 border-b text-start tabular-nums">
-                  {{ manualAmountLabel(line) }}
-                </td>
-                <td class="p-2 border-b text-xs align-top">
-                  <span
-                    v-if="line.ignoreReason === 'plaid_removed'"
-                    class="
-                      inline-block
-                      me-1
-                      mb-1
-                      px-1.5
-                      py-0.5
-                      rounded
-                      bg-blue-100
-                      text-blue-900
-                      dark:bg-blue-900/40 dark:text-blue-100
-                      text-[10px]
-                      font-medium
-                      uppercase
-                    "
-                    :title="
-                      t`Plaid later removed this transaction. Your books were not changed automatically — compare to your bank if amounts look off.`
-                    "
-                  >
-                    {{ t`Plaid removed` }}
-                  </span>
-                  <span>{{ line.ignoreReason || '—' }}</span>
-                </td>
-                <td class="p-2 border-b whitespace-nowrap">
-                  <Button
-                    type="secondary"
-                    :disabled="manualPendingRowKey === manualLineKey(line)"
-                    @click="restoreManualLine(line)"
-                  >
-                    {{ t`Restore` }}
-                  </Button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </template>
+    <div
+      v-if="accountKind === 'plaid' && bookId && !plaidAutoStageImportBatches"
+      class="mt-3"
+    >
+      <Button
+        type="secondary"
+        :disabled="manualPullBusy || refreshing"
+        @click="pullPlaidBatchesNow"
+      >
+        {{ manualPullBusy ? t`Pulling…` : t`Pull bank feed` }}
+      </Button>
     </div>
   </div>
 </template>
 
 <script lang="ts">
 import Button from 'src/components/Button.vue';
-import PageHeader from 'src/components/PageHeader.vue';
 import FormControl from 'src/components/Controls/FormControl.vue';
 import { Field } from 'schemas/types';
 import { t } from 'fyo';
@@ -759,11 +564,18 @@ type MergedBatch = ImportBatchListRow & { itemId: string; itemLabel: string };
 type CategoryOption = { name: string; accountName?: string };
 
 export default defineComponent({
-  name: 'BankAccountActivity',
-  components: { PageHeader, Button, FormControl },
+  name: 'BankAccountActivityPanel',
+  components: { Button, FormControl },
   props: {
     accountName: { type: String, required: true },
+    reviewTab: {
+      type: String,
+      default: 'review',
+      validator: (v: string) =>
+        v === 'review' || v === 'reviewed' || v === 'excluded',
+    },
   },
+  emits: ['update:reviewTab', 'import-bank-file'],
   data() {
     return {
       activeTab: 'review' as 'review' | 'reviewed' | 'excluded',
@@ -784,18 +596,17 @@ export default defineComponent({
       plaidAutoStageImportBatches: true,
       manualPullBusy: false,
       mappedPlaidAccountIds: new Set<string>() ,
-      categoryOptions: { expense: [], income: [] } as {
+      categoryOptions: { expense: [], income: [], other: [] } as {
         expense: CategoryOption[];
         income: CategoryOption[];
+        other: CategoryOption[];
       },
       categorySelections: {} as Record<string, string>,
       candidatesByLineKey: {} as Record<string, ReconcileCandidate | null>,
-      openKebabKey: '' as string,
       recentApplyFailures: [] as PlaidApplyFailureRow[],
       retractedMatched: [] as RetractedMatchedRow[],
       retractedBannerDismissed: false,
       boundCloudSessionRefresh: null as (() => void) | null,
-      boundDocumentClick: null as ((e: MouseEvent) => void) | null,
       glBalanceLabel: '' as string,
       summaryBankAccountName: '' as string,
       summaryBankBalanceLabel: null as string | null,
@@ -812,6 +623,15 @@ export default defineComponent({
     };
   },
   computed: {
+    tabHelp(): string {
+      if (this.activeTab === 'reviewed') {
+        return t`Added or matched. Undo sends a row back to For Review.`;
+      }
+      if (this.activeTab === 'excluded') {
+        return t`Hidden from your books. Restore sends a row back to For Review.`;
+      }
+      return t`Add to your books or Match to an existing entry. Nothing posts until you do.`;
+    },
     accountTitle(): string {
       try {
         return decodeURIComponent(this.accountName);
@@ -848,15 +668,22 @@ export default defineComponent({
       return this.retractedMatched;
     },
     flatCategoryOptions() {
+      const bank = this.accountTitle;
+      const map = (
+        rows: CategoryOption[],
+        group: string
+      ): { label: string; value: string; group: string }[] =>
+        rows
+          .filter((acc) => acc.name !== bank)
+          .map((acc) => ({
+            label: this.categoryLabel(acc),
+            value: acc.name,
+            group,
+          }));
       return [
-        ...this.categoryOptions.expense.map((acc) => ({
-          label: `${this.t`Expense`} · ${this.categoryLabel(acc)}`,
-          value: acc.name,
-        })),
-        ...this.categoryOptions.income.map((acc) => ({
-          label: `${this.t`Income`} · ${this.categoryLabel(acc)}`,
-          value: acc.name,
-        })),
+        ...map(this.categoryOptions.expense, this.t`Expense`),
+        ...map(this.categoryOptions.income, this.t`Income`),
+        ...map(this.categoryOptions.other, this.t`Transfer`),
       ];
     },
     categoryField(): Field {
@@ -876,7 +703,7 @@ export default defineComponent({
         void this.bootstrap();
       },
     },
-    '$route.query.tab': {
+    reviewTab: {
       immediate: true,
       handler(tab: unknown) {
         if (tab === 'review' || tab === 'reviewed' || tab === 'excluded') {
@@ -884,6 +711,14 @@ export default defineComponent({
         }
       },
     },
+    activeTab(tab: 'review' | 'reviewed' | 'excluded') {
+      if (tab !== this.reviewTab) {
+        this.$emit('update:reviewTab', tab);
+      }
+    },
+  },
+  activated() {
+    void this.bootstrap();
   },
   mounted() {
     this.boundCloudSessionRefresh = () => {
@@ -893,20 +728,6 @@ export default defineComponent({
       LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
       this.boundCloudSessionRefresh
     );
-    this.boundDocumentClick = (e: MouseEvent) => {
-      if (!this.openKebabKey) {
-        return;
-      }
-      const target = e.target as HTMLElement | null;
-      if (!target) {
-        return;
-      }
-      // Close the kebab if click is outside any kebab anchor.
-      if (!target.closest('[data-kebab-anchor]') && !target.closest('button')) {
-        this.openKebabKey = '';
-      }
-    };
-    document.addEventListener('click', this.boundDocumentClick);
   },
   beforeUnmount() {
     if (this.boundCloudSessionRefresh) {
@@ -914,9 +735,6 @@ export default defineComponent({
         LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
         this.boundCloudSessionRefresh
       );
-    }
-    if (this.boundDocumentClick) {
-      document.removeEventListener('click', this.boundDocumentClick);
     }
   },
   methods: {
@@ -959,7 +777,6 @@ export default defineComponent({
       this.bookId = '';
       this.mergedBatches = [];
       this.decodeError = '';
-      this.openKebabKey = '';
       this.summaryBankAccountName = '';
       this.summaryBankBalanceLabel = null;
       this.summaryLastSyncLabel = null;
@@ -1037,27 +854,43 @@ export default defineComponent({
     async loadCategoryOptions() {
       try {
         const rows = (await fyo.db.getAll(ModelNameEnum.Account, {
-          fields: ['name', 'accountName', 'rootType'],
+          fields: ['name', 'accountName', 'rootType', 'accountType'],
           filters: { isGroup: false, disabled: false },
-        })) as { name: string; accountName?: string; rootType?: string }[];
+        })) as {
+          name: string;
+          accountName?: string;
+          rootType?: string;
+          accountType?: string;
+        }[];
         const expense: CategoryOption[] = [];
         const income: CategoryOption[] = [];
+        const other: CategoryOption[] = [];
         for (const r of rows) {
+          const row = { name: r.name, accountName: r.accountName };
           if (r.rootType === 'Expense') {
-            expense.push({ name: r.name, accountName: r.accountName });
+            expense.push(row);
           } else if (r.rootType === 'Income') {
-            income.push({ name: r.name, accountName: r.accountName });
+            income.push(row);
+          } else if (
+            r.rootType === 'Asset' ||
+            r.rootType === 'Liability' ||
+            r.rootType === 'Equity'
+          ) {
+            // Transfers (e.g. credit-card payment) — exclude Cash for clarity.
+            if (r.accountType === 'Cash') {
+              continue;
+            }
+            other.push(row);
           }
         }
-        expense.sort((a, b) =>
-          accountDisplayName(a).localeCompare(accountDisplayName(b))
-        );
-        income.sort((a, b) =>
-          accountDisplayName(a).localeCompare(accountDisplayName(b))
-        );
-        this.categoryOptions = { expense, income };
+        const byName = (a: CategoryOption, b: CategoryOption) =>
+          accountDisplayName(a).localeCompare(accountDisplayName(b));
+        expense.sort(byName);
+        income.sort(byName);
+        other.sort(byName);
+        this.categoryOptions = { expense, income, other };
       } catch {
-        this.categoryOptions = { expense: [], income: [] };
+        this.categoryOptions = { expense: [], income: [], other: [] };
       }
     },
     async loadManualLines() {
@@ -1154,14 +987,7 @@ export default defineComponent({
       return fyo.format(line.amountFloat, 'Currency');
     },
     goImportBankFile() {
-      void routeTo({
-        path: '/bank-statement-import',
-        query: {
-          bankAccount: encodeURIComponent(this.accountTitle),
-          kind: 'feed_window',
-          returnTo: 'activity',
-        },
-      });
+      this.$emit('import-bank-file', this.accountTitle);
     },
     async loadGlBalance() {
       this.glBalanceLabel = '';
@@ -1191,9 +1017,6 @@ export default defineComponent({
       } catch {
         this.glBalanceLabel = '';
       }
-    },
-    toggleKebab(key: string) {
-      this.openKebabKey = this.openKebabKey === key ? '' : key;
     },
     async addLineToLedger(line: ManualFeedLine) {
       const key = this.manualLineKey(line);
@@ -1262,15 +1085,7 @@ export default defineComponent({
         this.manualPendingRowKey = '';
       }
     },
-    onSplit() {
-      this.openKebabKey = '';
-      showToast({
-        type: 'info',
-        message: t`Split is coming soon. For now, Add the full amount and create offsetting entries manually.`,
-      });
-    },
     async excludeManualLine(line: ManualFeedLine) {
-      this.openKebabKey = '';
       const key = this.manualLineKey(line);
       if (this.manualPendingRowKey) {
         return;
@@ -1552,9 +1367,9 @@ export default defineComponent({
         this.manualPullBusy = false;
       }
     },
-    goToBankFeedSettings() {
+    goToBankFeedOnlineManage() {
       void routeTo({
-        path: '/bank-feeds/settings',
+        path: '/bank-feeds',
         query: {
           tab: this.accountKind === 'manual' ? 'manual' : 'online',
         },

@@ -1,14 +1,15 @@
 <template>
-  <div class="flex flex-col overflow-y-hidden h-full">
-    <PageHeader :title="pageTitle" />
+  <div
+    class="flex flex-col"
+    :class="embedded ? 'h-auto' : 'overflow-y-hidden h-full'"
+  >
+    <PageHeader v-if="!embedded" :title="pageTitle" />
     <div
-      class="
-        flex-1
-        overflow-y-auto overflow-x-hidden
-        custom-scroll custom-scroll-thumb1
-        p-4
-        max-w-4xl
-        space-y-6
+      class="space-y-6"
+      :class="
+        embedded
+          ? ''
+          : 'flex-1 overflow-y-auto overflow-x-hidden custom-scroll custom-scroll-thumb1 p-4 max-w-4xl'
       "
     >
       <section
@@ -77,37 +78,6 @@
       >
         {{ reconcileBanner }}
       </div>
-      <section
-        v-if="cloudBookId && !fromReconcile"
-        class="border rounded-lg p-4 dark:border-gray-700"
-      >
-        <h2 class="text-sm font-medium mb-2">
-          {{ t`Plaid statements (cloud)` }}
-        </h2>
-        <p class="text-xs text-gray-600 dark:text-gray-300 mb-3">
-          {{
-            t`Sync stores official PDFs from Plaid in LiveBooks Cloud (book owner). Use period dates when importing lines from your own CSV export.`
-          }}
-        </p>
-        <Button class="me-2" type="secondary" @click="loadCloudFiles">
-          {{ t`Refresh list` }}
-        </Button>
-        <Button type="secondary" @click="syncCloudStatements">
-          {{ t`Sync from Plaid` }}
-        </Button>
-        <p
-          v-if="cloudMsg"
-          class="text-xs mt-2 text-gray-700 dark:text-gray-300"
-        >
-          {{ cloudMsg }}
-        </p>
-        <ul v-if="cloudFiles.length" class="mt-3 text-xs space-y-1 font-mono">
-          <li v-for="f in cloudFiles" :key="f.id">
-            {{ f.statement_id }} · {{ f.period_start }} → {{ f.period_end }} ·
-            PDF: {{ f.pdf ? t`yes` : t`no` }}
-          </li>
-        </ul>
-      </section>
 
       <section
         v-if="showInlineBankCreate"
@@ -233,7 +203,7 @@
       </section>
 
       <FormControl
-        v-if="!showInlineBankCreate"
+        v-if="!showInlineBankCreate && !embedded"
         class="max-w-md"
         :border="true"
         size="small"
@@ -243,6 +213,19 @@
         :read-only="bankAccountLocked"
         @change="(v) => (bankAccount = String(v || ''))"
       />
+      <p
+        v-else-if="embedded && bankAccount && !showInlineBankCreate"
+        class="text-sm text-gray-700 dark:text-gray-300"
+      >
+        <span class="font-medium">{{ t`Bank account` }}:</span>
+        {{
+          accountLabel(
+            bankAccounts.find((a) => a.name === bankAccount) || {
+              name: bankAccount,
+            }
+          )
+        }}
+      </p>
 
       <div>
         <Button type="secondary" :disabled="parsingBusy" @click="pickFile">{{
@@ -254,7 +237,9 @@
           class="mt-2 text-xs text-gray-600 dark:text-gray-300"
         >
           {{
-            t`Select a bank account, then choose a CSV, OFX, QBO, or QFX statement.`
+            bankAccountLocked
+              ? t`Choose a CSV, OFX, QBO, or QFX statement to import.`
+              : t`Select a bank account, then choose a CSV, OFX, QBO, or QFX statement.`
           }}
         </p>
       </div>
@@ -670,19 +655,13 @@ import { t } from 'fyo';
 import { Field } from 'schemas/types';
 import { fyo } from 'src/initFyo';
 import { showToast } from 'src/utils/interactive';
-import { LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT } from 'src/utils/livebooksCloud';
-import { ensureLivebooksCloudBookId } from 'src/utils/livebooksCloudBook';
-import { promptPlaidMfaTotp } from 'src/utils/plaidBankFeedsApi';
-import {
-  fetchCloudStatementFiles,
-  syncCloudStatementFiles,
-  type CloudStatementFileRow,
-} from 'src/utils/plaidStatementFilesApi';
 import { selectTextFile } from 'src/utils/ui';
 import { routeTo } from 'src/utils/ui';
 import {
   feedDateAmountKey,
+  isManualBankAccount,
   loadExistingDateAmountKeysForFeed,
+  loadPlaidAccountMaps,
 } from 'src/utils/bankFeedHelpers';
 import { createManualBankAccount } from 'src/utils/manualBankAccountCreate';
 import { parseOfxBankFile, type OfxParsedRow } from 'src/utils/ofxBankImport';
@@ -783,6 +762,11 @@ function parseRowDate(raw: string): string {
 export default defineComponent({
   name: 'BankStatementImport',
   components: { PageHeader, Button, FormControl },
+  props: {
+    embedded: { type: Boolean, default: false },
+    presetBankAccount: { type: String, default: '' },
+  },
+  emits: ['imported', 'close'],
   data() {
     return {
       bankAccount: '',
@@ -795,22 +779,18 @@ export default defineComponent({
       idxDebit: -1,
       idxCredit: -1,
       idxRef: -1,
-      cloudBookId: '' as string,
-      cloudFiles: [] as CloudStatementFileRow[],
-      cloudMsg: '' as string,
       fromReconcile: false,
       reconcileBanner: '' as string,
       setupToDate: '' as string,
       setupEndingBalance: '' as string,
       kindFromRoute: '' as '' | 'feed_window' | 'month_end',
-      returnTo: '' as '' | 'activity',
+      returnTo: '' as '' | 'hub',
       duplicateCount: 0,
       invalidDateCount: 0,
       existingDateAmountKeys: new Set<string>(),
       fileKind: '' as '' | 'csv' | 'ofx',
       ofxParsed: [] as OfxParsedRow[],
       showAdvancedCsv: false,
-      boundCloudSessionRefresh: null as (() => void) | null,
       parsingBusy: false,
       skippedDupesExpanded: false,
       inlineBankSaving: false,
@@ -868,7 +848,10 @@ export default defineComponent({
       return this.kindFromRoute === 'feed_window';
     },
     bankAccountLocked(): boolean {
-      return this.returnTo === 'activity' && this.kindFromRoute === 'feed_window';
+      return (
+        (this.returnTo === 'hub' && this.kindFromRoute === 'feed_window') ||
+        (this.embedded && !!this.presetBankAccount)
+      );
     },
     isFeedCsvMapping(): boolean {
       return (
@@ -976,6 +959,18 @@ export default defineComponent({
     },
   },
   watch: {
+    presetBankAccount: {
+      handler(v: string) {
+        if (!this.embedded) {
+          return;
+        }
+        const preset = String(v || '').trim();
+        if (preset && this.bankAccounts.some((a) => a.name === preset)) {
+          this.bankAccount = preset;
+          void this.refreshExistingDupKeys();
+        }
+      },
+    },
     bankAccount: {
       handler() {
         void this.refreshExistingDupKeys();
@@ -999,27 +994,8 @@ export default defineComponent({
     this.inlineBankForm.openingDate = this.todayIso();
     await this.loadBankAccounts();
     this.applyRouteQuery();
-    const ctx = await ensureLivebooksCloudBookId(fyo);
-    if (ctx.ok) {
-      this.cloudBookId = ctx.bookId;
-      await this.loadCloudFiles();
-    }
-    this.boundCloudSessionRefresh = () => {
-      void this.refreshCloudBookContext();
-    };
-    document.addEventListener(
-      LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
-      this.boundCloudSessionRefresh
-    );
   },
-  beforeUnmount() {
-    if (this.boundCloudSessionRefresh) {
-      document.removeEventListener(
-        LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
-        this.boundCloudSessionRefresh
-      );
-    }
-  },
+
   methods: {
     t,
     onMapSelect(field, e) {
@@ -1033,6 +1009,17 @@ export default defineComponent({
       return accountDisplayName(a);
     },
     applyRouteQuery() {
+      if (this.embedded) {
+        this.kindFromRoute = 'feed_window';
+        this.returnTo = 'hub';
+        this.fromReconcile = false;
+        const preset = this.presetBankAccount.trim();
+        if (preset && this.bankAccounts.some((a) => a.name === preset)) {
+          this.bankAccount = preset;
+        }
+        void this.refreshExistingDupKeys();
+        return;
+      }
       const q = this.$route.query as Record<string, unknown>;
       if (typeof q.bankAccount === 'string' && q.bankAccount) {
         try {
@@ -1052,8 +1039,8 @@ export default defineComponent({
       } else if (q.kind === 'month_end') {
         this.kindFromRoute = 'month_end';
       }
-      if (q.returnTo === 'activity') {
-        this.returnTo = 'activity';
+      if (q.returnTo === 'hub' || q.returnTo === 'activity') {
+        this.returnTo = 'hub';
       }
       void this.refreshExistingDupKeys();
       if (this.fromReconcile) {
@@ -1166,56 +1153,6 @@ export default defineComponent({
       ) {
         this.bankAccount = '';
       }
-    },
-    async refreshCloudBookContext() {
-      this.cloudBookId = '';
-      this.cloudFiles = [];
-      this.cloudMsg = '';
-      const ctx = await ensureLivebooksCloudBookId(fyo);
-      if (ctx.ok) {
-        this.cloudBookId = ctx.bookId;
-        await this.loadCloudFiles();
-      }
-    },
-    async loadCloudFiles() {
-      if (!this.cloudBookId) {
-        return;
-      }
-      this.cloudMsg = '';
-      const { files, error } = await fetchCloudStatementFiles(this.cloudBookId);
-      if (error) {
-        this.cloudMsg = error;
-        return;
-      }
-      this.cloudFiles = files;
-    },
-    async syncCloudStatements() {
-      if (!this.cloudBookId) {
-        return;
-      }
-      this.cloudMsg = t`Syncing…`;
-      const { ok, error, data } = await syncCloudStatementFiles(
-        this.cloudBookId,
-        undefined,
-        {
-          promptTotp: () =>
-            promptPlaidMfaTotp(
-              t`Enter your LiveBooks Cloud authenticator or backup code to sync bank statements.`
-            ),
-        }
-      );
-      if (!ok) {
-        this.cloudMsg = error ?? t`Sync failed`;
-        showToast({ type: 'error', message: this.cloudMsg });
-        return;
-      }
-      const created =
-        data && typeof data === 'object' && 'created' in data
-          ? Number((data as { created: unknown }).created)
-          : 0;
-      this.cloudMsg = t`Done. New files: ${String(created)}`;
-      showToast({ type: 'success', message: this.cloudMsg });
-      await this.loadCloudFiles();
     },
     async trySaveInlineBank() {
       if (this.inlineBankSaving || !this.canSaveInlineBank) {
@@ -1631,17 +1568,33 @@ export default defineComponent({
       if (this.fileKind === 'csv') {
         this.saveCsvTemplate();
       }
-      if (isFeed && this.returnTo === 'activity' && this.bankAccount) {
+      if (isFeed && this.returnTo === 'hub' && this.bankAccount) {
         showToast({
           type: 'success',
           message: t`Success! ${rows.length} transactions imported.`,
         });
+        if (this.embedded) {
+          this.$emit('imported', {
+            bankAccount: this.bankAccount,
+            rowCount: rows.length,
+          });
+          return;
+        }
         try {
-          await routeTo(
-            `/bank-feeds/activity/${encodeURIComponent(
-              this.bankAccount
-            )}?tab=review`
-          );
+          const hubTab = isManualBankAccount(
+            this.bankAccount,
+            await loadPlaidAccountMaps()
+          )
+            ? 'manual'
+            : 'online';
+          await routeTo({
+            path: '/bank-feeds',
+            query: {
+              tab: hubTab,
+              account: encodeURIComponent(this.bankAccount),
+              reviewTab: 'review',
+            },
+          });
         } catch {
           showToast({
             type: 'info',
