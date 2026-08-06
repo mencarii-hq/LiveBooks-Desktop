@@ -16,10 +16,21 @@ let declinedUntil = 0;
 /** Show "latest version" dialog only after a user-initiated force check. */
 let pendingNotAvailableDialog = false;
 
+const FORCE_WAIT_MS = 30_000;
+const FORCE_POLL_MS = 100;
+
 export type UpdateCheckResult = {
   status: 'skipped' | 'started' | 'error';
   reason?: string;
 };
+
+async function waitForUpdateCheckIdle(timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (updateCheckInFlight && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, FORCE_POLL_MS));
+  }
+  return !updateCheckInFlight;
+}
 
 /** Shared by the company-open IPC path and the poll. */
 export async function checkForAppUpdates(
@@ -35,7 +46,15 @@ export async function checkForAppUpdates(
   }
 
   if (updateCheckInFlight) {
-    return { status: 'skipped', reason: 'in_flight' };
+    if (!options?.force) {
+      return { status: 'skipped', reason: 'in_flight' };
+    }
+    // Settings → Check for updates: wait out dialogs/downloads instead of
+    // silently skipping while a background check still holds the lock.
+    const idle = await waitForUpdateCheckIdle(FORCE_WAIT_MS);
+    if (!idle) {
+      return { status: 'skipped', reason: 'in_flight' };
+    }
   }
 
   if (!options?.force && declinedUntil > Date.now()) {
@@ -128,10 +147,11 @@ export default function registerAutoUpdaterListeners(main: Main) {
       }
 
       declinedUntil = 0;
-      autoUpdater.autoInstallOnAppQuit = true;
       downloadStarted = true;
       await autoUpdater.downloadUpdate();
+      autoUpdater.autoInstallOnAppQuit = true;
     } catch (error) {
+      autoUpdater.autoInstallOnAppQuit = false;
       updateCheckInFlight = false;
       emitMainProcessError(error);
     } finally {

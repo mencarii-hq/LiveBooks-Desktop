@@ -8,6 +8,11 @@ import {
 } from 'electron';
 import type { ContextMenuParams, WebContents } from 'electron';
 import type { LivebooksAppEnv } from 'utils/livebooksAppEnv';
+import {
+  resetDisplayZoomMain,
+  zoomDisplayInMain,
+  zoomDisplayOutMain,
+} from './displayZoom';
 import { macShellAppLabel } from './macDevBranding';
 
 let devShortcutsRegistered = false;
@@ -165,11 +170,31 @@ function buildViewSubmenu(
     });
   }
 
+  // Use the same 10% clamped zoom as Settings → System (not Electron zoom-level roles).
   viewSubmenu.push(
     { type: 'separator' },
-    { role: 'resetZoom' },
-    { role: 'zoomIn' },
-    { role: 'zoomOut' },
+    {
+      label: 'Actual Size',
+      accelerator: 'CommandOrControl+0',
+      click: () => resetDisplayZoomMain(),
+    },
+    {
+      label: 'Zoom In',
+      accelerator: 'CommandOrControl+=',
+      click: () => zoomDisplayInMain(),
+    },
+    {
+      label: 'Zoom In',
+      accelerator: 'CommandOrControl+Plus',
+      visible: false,
+      acceleratorWorksWhenHidden: true,
+      click: () => zoomDisplayInMain(),
+    },
+    {
+      label: 'Zoom Out',
+      accelerator: 'CommandOrControl+-',
+      click: () => zoomDisplayOutMain(),
+    },
     { type: 'separator' },
     { role: 'togglefullscreen' }
   );
