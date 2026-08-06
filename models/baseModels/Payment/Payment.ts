@@ -842,16 +842,33 @@ export class Payment extends Transactional {
         condition: (doc) => {
           const payment = doc as Payment;
           // Q-AF: Print Check only for submitted Pay entries using Check.
+          if (
+            !payment.name ||
+            !payment.isSubmitted ||
+            payment.isCancelled ||
+            payment.paymentType !== 'Pay'
+          ) {
+            return false;
+          }
+          const method = payment.getLink('paymentMethod') as {
+            type?: string;
+          } | null;
+          const methodName = (payment.paymentMethod as string) ?? '';
           return (
-            !!payment.name &&
-            !!payment.isSubmitted &&
-            !payment.isCancelled &&
-            payment.paymentType === 'Pay' &&
-            !!(payment.paymentMethod as string)
+            method?.type === 'Check' ||
+            methodName.trim().toLowerCase() === 'check'
           );
         },
         action: async (doc) => {
           const payment = doc as Payment;
+          const { isCheckMethod } = await import(
+            'src/utils/memorizedTransactions'
+          );
+          if (
+            !(await isCheckMethod(fyo, (payment.paymentMethod as string) || ''))
+          ) {
+            return;
+          }
           const { loadCheckSettings, printPaymentAsCheck } = await import(
             'src/utils/checkPrint/printChecks'
           );
@@ -864,17 +881,41 @@ export class Payment extends Transactional {
         label: fyo.t`Void check # (requeue)…`,
         condition: (doc) => {
           const payment = doc as Payment;
+          if (
+            !payment.name ||
+            !payment.isSubmitted ||
+            payment.isCancelled ||
+            payment.paymentType !== 'Pay' ||
+            payment.printLater ||
+            !(payment.referenceId as string)?.trim()
+          ) {
+            return false;
+          }
+          // Sync gate: Check-type link (if loaded) or literal "Check" name.
+          const method = payment.getLink('paymentMethod') as {
+            type?: string;
+          } | null;
+          const methodName = (payment.paymentMethod as string) ?? '';
           return (
-            !!payment.name &&
-            !!payment.isSubmitted &&
-            !payment.isCancelled &&
-            payment.paymentType === 'Pay' &&
-            !payment.printLater &&
-            !!(payment.referenceId as string)?.trim()
+            method?.type === 'Check' ||
+            methodName.trim().toLowerCase() === 'check'
           );
         },
         action: async (doc) => {
           const payment = doc as Payment;
+          const { isCheckMethod } = await import(
+            'src/utils/memorizedTransactions'
+          );
+          if (
+            !(await isCheckMethod(fyo, (payment.paymentMethod as string) || ''))
+          ) {
+            const { showToast } = await import('src/utils/interactive');
+            showToast({
+              type: 'warning',
+              message: fyo.t`Only Check payments can void a check number.`,
+            });
+            return;
+          }
           const checkNo = String(payment.referenceId);
           const { showDialog } = await import('src/utils/interactive');
           const ok = await showDialog({

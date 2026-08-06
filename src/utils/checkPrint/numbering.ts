@@ -237,6 +237,12 @@ export async function voidAndRequeue(
     ModelNameEnum.Payment,
     paymentName
   )) as Payment;
+
+  const { isCheckMethod } = await import('src/utils/memorizedTransactions');
+  if (!(await isCheckMethod(fyo, payment.paymentMethod || ''))) {
+    throw new Error('Only Check payments can void a check number.');
+  }
+
   const bankAccount = payment.account as string;
   const oldNumber = (payment.referenceId ?? '').trim();
 

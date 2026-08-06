@@ -27,9 +27,12 @@ async function execute(dm: DatabaseManager) {
     fields: ['name', 'type'],
   })) as { name: string; type?: string }[] | undefined;
 
-  let hasCheck = (existing ?? []).some(
+  const checkRow = (existing ?? []).find(
     (m) => m.type === 'Check' || m.name.trim().toLowerCase() === 'check'
   );
+  let hasCheck = !!checkRow;
+  /** Actual PaymentMethod.name to repoint to (may not be literally "Check"). */
+  let checkMethodName = checkRow?.name;
   const chequeRow = (existing ?? []).find(
     (m) => m.name.trim().toLowerCase() === 'cheque'
   );
@@ -40,10 +43,7 @@ async function execute(dm: DatabaseManager) {
       .where({ name: chequeRow.name })
       .update({ name: 'Check', type: 'Check' });
     hasCheck = true;
-  } else if (chequeRow && hasCheck) {
-    // A Check method already exists — drop the duplicate legacy row.
-    // Payment / MemorizedTransaction references are repointed below.
-    await knex('PaymentMethod').where({ name: chequeRow.name }).delete();
+    checkMethodName = 'Check';
   }
 
   if (!hasCheck) {
@@ -58,23 +58,30 @@ async function execute(dm: DatabaseManager) {
       account: banks?.[0]?.name,
       ...getDefaultMetaFieldValueMap(),
     });
+    checkMethodName = 'Check';
   }
 
-  // 2. Migrate stored Cheque references to Check (match the legacy row's
-  //    exact name too, in case its casing differed from "Cheque").
+  // 2. Migrate stored Cheque references to the real Check method name
+  //    (match the legacy row's exact name too, in case its casing differed).
+  const targetCheckName = checkMethodName ?? 'Check';
   const legacyNames = [
     ...new Set(['Cheque', ...(chequeRow ? [chequeRow.name] : [])]),
   ];
 
   await knex('Payment')
     .whereIn('paymentMethod', legacyNames)
-    .update({ paymentMethod: 'Check' });
+    .update({ paymentMethod: targetCheckName });
 
   const hasMemorized = await knex.schema.hasTable('MemorizedTransaction');
   if (hasMemorized) {
     await knex('MemorizedTransaction')
       .whereIn('paymentMethod', legacyNames)
-      .update({ paymentMethod: 'Check' });
+      .update({ paymentMethod: targetCheckName });
+  }
+
+  // Drop duplicate legacy Cheque only after references have been repointed.
+  if (chequeRow && hasCheck && chequeRow.name !== targetCheckName) {
+    await knex('PaymentMethod').where({ name: chequeRow.name }).delete();
   }
 }
 

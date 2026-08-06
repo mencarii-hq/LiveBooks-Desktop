@@ -120,31 +120,43 @@ export class Account extends Doc {
       this.accountName = this.accountName.trim();
     }
 
-    // Hard-block duplicate accountName (case-insensitive)
+    // Hard-block duplicate accountName (case-insensitive) on create/rename.
+    // Existing books may already have case-insensitive duplicates; allow those
+    // accounts to keep saving as long as accountName is unchanged.
+    let persisted: { accountName?: string; parentAccount?: string } | null =
+      null;
+    if (this.inserted && this.name) {
+      persisted = (await this.fyo.db.get(ModelNameEnum.Account, this.name)) as {
+        accountName?: string;
+        parentAccount?: string;
+      } | null;
+    }
+
     if (this.accountName) {
       const normalizedName = this.accountName.toLowerCase();
-      const allAccounts = (await this.fyo.db.getAll(ModelNameEnum.Account, {
-        fields: ['name', 'accountName'],
-      })) as { name: string; accountName?: string }[];
-      const duplicate = allAccounts.find(
-        (a) =>
-          a.name !== this.name &&
-          a.accountName &&
-          a.accountName.trim().toLowerCase() === normalizedName
-      );
-      if (duplicate) {
-        throw new ValidationError(
-          'Account name must be unique. Rename with a prefix or suffix to continue.'
+      const nameUnchanged =
+        !!persisted?.accountName &&
+        persisted.accountName.trim().toLowerCase() === normalizedName;
+
+      if (!nameUnchanged) {
+        const allAccounts = (await this.fyo.db.getAll(ModelNameEnum.Account, {
+          fields: ['name', 'accountName'],
+        })) as { name: string; accountName?: string }[];
+        const duplicate = allAccounts.find(
+          (a) =>
+            a.name !== this.name &&
+            a.accountName &&
+            a.accountName.trim().toLowerCase() === normalizedName
         );
+        if (duplicate) {
+          throw new ValidationError(
+            'Account name must be unique. Rename with a prefix or suffix to continue.'
+          );
+        }
       }
     }
 
     if (this.inserted && this.name) {
-      const persisted = (await this.fyo.db.get(
-        ModelNameEnum.Account,
-        this.name
-      )) as { parentAccount?: string } | null;
-
       if (!this.parentAccount) {
         // Clearing parent on a non-root would orphan the account outside the tree.
         if (persisted?.parentAccount) {

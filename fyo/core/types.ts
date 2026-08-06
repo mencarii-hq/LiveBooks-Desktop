@@ -72,6 +72,8 @@ export type ConfigMap = {
   firstLaunchPingSent?: boolean;
   /** Phase 0: feedback survey prompt dismissed forever (or opened). */
   feedbackSurveyDismissed?: boolean;
+  /** Bank Feed Online: auto-stage new import batches into Account Activity. */
+  plaidAutoStageImportBatches?: boolean;
 };
 
 export interface ConfigFile {
