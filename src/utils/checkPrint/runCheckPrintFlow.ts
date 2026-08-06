@@ -89,9 +89,20 @@ export async function runCheckPrintFlow(
   );
 
   if (anyMissingAddress(checks)) {
+    const missing = [
+      ...new Set(
+        checks
+          .filter((c) => !c.address.trim())
+          .map((c) => String(c.payee || c.name || ''))
+      ),
+    ];
+    const names = missing.slice(0, 5).join(', ');
+    const more =
+      missing.length > 5 ? t` (+${String(missing.length - 5)} more)` : '';
+
     const proceed = await showDialog({
       title: t`Missing address`,
-      detail: t`One or more payees have no address on file. Print anyway?`,
+      detail: t`These payees have no address on file: ${names}${more}. Add an address on the payee (use the link in Checks to Print), then print again — or print anyway.`,
       type: 'warning',
       buttons: [
         { label: t`Cancel`, action: () => false, isEscape: true },

@@ -852,55 +852,11 @@ export class Payment extends Transactional {
         },
         action: async (doc) => {
           const payment = doc as Payment;
-          const { isCheckMethod } = await import(
-            'src/utils/memorizedTransactions'
+          const { loadCheckSettings, printPaymentAsCheck } = await import(
+            'src/utils/checkPrint/printChecks'
           );
-          const method = (payment.paymentMethod as string) || '';
-          if (!(await isCheckMethod(fyo, method))) {
-            const { showToast } = await import('src/utils/interactive');
-            showToast({
-              type: 'warning',
-              message: fyo.t`Payment method must be Check to print a check.`,
-            });
-            return;
-          }
-
-          // Already printed (X1): reprint keeping the same number.
-          const existingRef = (payment.referenceId as string)?.trim();
-          if (existingRef && !payment.printLater) {
-            const {
-              buildCheckDataForPayments,
-              loadCheckSettings,
-              printCheckBatch,
-            } = await import('src/utils/checkPrint/printChecks');
-            const settings = await loadCheckSettings(fyo);
-            const profile =
-              settings.profiles[settings.activeFormat] ??
-              settings.profiles.voucher;
-            const checks = await buildCheckDataForPayments(
-              fyo,
-              [String(payment.name)],
-              { [String(payment.name)]: existingRef }
-            );
-            await printCheckBatch(checks, settings.activeFormat, profile);
-            return;
-          }
-
-          const amount = payment.amount?.float ?? 0;
-          const { runCheckPrintFlow } = await import(
-            'src/utils/checkPrint/runCheckPrintFlow'
-          );
-          await runCheckPrintFlow(
-            fyo,
-            [
-              {
-                paymentName: String(payment.name),
-                bankAccount: String(payment.account || ''),
-                amount,
-              },
-            ],
-            {}
-          );
+          const settings = await loadCheckSettings(fyo);
+          await printPaymentAsCheck(fyo, payment, settings.activeFormat);
         },
       },
       {

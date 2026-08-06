@@ -84,3 +84,17 @@ export interface CheckData {
   amountWords: string;
   memo: string;
 }
+
+/** User-facing label for a check stock format. */
+export function checkFormatLabel(
+  format: CheckFormat,
+  t: (s: TemplateStringsArray, ...v: unknown[]) => string
+): string {
+  if (format === 'threePerPage') {
+    return t`3 per page`;
+  }
+  if (format === 'ledgerStub') {
+    return t`Ledger / stub`;
+  }
+  return t`Voucher (1 per page)`;
+}

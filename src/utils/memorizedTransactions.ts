@@ -112,11 +112,10 @@ export async function createRegisterPayment(
   const paymentAccount =
     paymentType === 'Pay' ? fields.categoryAccount : fields.bankAccount;
 
+  const wantQueue = !!fields.printLater;
+  const isCheck = await isCheckMethod(fyo, paymentMethod);
   // Q-AF: only Pay + Check entries can be queued for printing.
-  const queue =
-    fields.printLater === true &&
-    paymentType === 'Pay' &&
-    (await isCheckMethod(fyo, paymentMethod));
+  const queue = wantQueue && paymentType === 'Pay' && isCheck;
 
   // Do not seed paymentType before party: party formulas used to force
   // Receive for Customer/Both and would overwrite Pay.
@@ -135,23 +134,15 @@ export async function createRegisterPayment(
   await doc.set('party', fields.party);
   // Set type AFTER party so role-based formulas cannot win.
   await doc.set('paymentType', paymentType);
-  await doc.set('printLater', queue);
   // Set accounts after type so account formulas see the correct Pay/Receive.
   await doc.set('account', account);
   await doc.set('paymentAccount', paymentAccount);
-  // Account formulas depend on paymentType; re-assert in case they retriggered.
-  if (doc.paymentType !== paymentType) {
-    doc.paymentType = paymentType;
-  }
 
   // Handwritten path (Print later unticked): assign next free check number
-  // immediately so X1 treats it as already printed.
+  // immediately so X1 treats it as already printed. Never assign when the
+  // user asked to queue — even if method/type checks failed.
   let assignedHandNumber: string | null = null;
-  if (
-    !queue &&
-    paymentType === 'Pay' &&
-    (await isCheckMethod(fyo, paymentMethod))
-  ) {
+  if (!wantQueue && paymentType === 'Pay' && isCheck) {
     try {
       const { assignBatchNumbers } = await import(
         'src/utils/checkPrint/numbering'
@@ -172,12 +163,25 @@ export async function createRegisterPayment(
     }
   }
 
-  // Final guard: sync _preSync runs formulas; keep register Pay/Receive.
-  if (doc.paymentType !== paymentType) {
-    doc.paymentType = paymentType;
+  // Final guards: sync _preSync runs formulas; keep register values.
+  // Direct assign so _canSet / formula side-effects cannot drop printLater
+  // or replace the selected bank with Bank[0] from the account formula.
+  doc.paymentType = paymentType;
+  doc.account = account;
+  doc.paymentAccount = paymentAccount;
+  doc.printLater = queue;
+  if (queue) {
+    doc.referenceId = '';
   }
   await doc.sync();
   await doc.submit();
+
+  // Queue path: re-assert after submit in case sync/submit round-tripped
+  // printLater back to the schema default (false).
+  if (queue && !doc.printLater) {
+    await doc.set('printLater', true);
+    await doc.sync();
+  }
 
   if (assignedHandNumber) {
     try {

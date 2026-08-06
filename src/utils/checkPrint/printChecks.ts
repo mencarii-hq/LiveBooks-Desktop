@@ -166,3 +166,67 @@ export async function printCalibrationSample(
     fileName: `check-calibration-${format}`,
   });
 }
+
+/**
+ * Print or reprint a single Payment as a check in the given format.
+ * Reprint (X1) keeps the existing check number; first print runs the
+ * assign → print → confirm flow.
+ */
+export async function printPaymentAsCheck(
+  fyo: Fyo,
+  payment: {
+    name?: string | null;
+    account?: string;
+    amount?: { float?: number } | null;
+    referenceId?: string;
+    printLater?: boolean;
+    paymentMethod?: string;
+  },
+  format: CheckFormat
+): Promise<void> {
+  const { isCheckMethod } = await import('src/utils/memorizedTransactions');
+  const method = (payment.paymentMethod as string) || '';
+  if (!(await isCheckMethod(fyo, method))) {
+    showToast({
+      type: 'warning',
+      message: t`Payment method must be Check to print a check.`,
+    });
+    return;
+  }
+
+  const settings = await loadCheckSettings(fyo);
+  const profile = settings.profiles[format] ?? settings.profiles.voucher;
+  const paymentName = String(payment.name || '');
+  if (!paymentName) {
+    return;
+  }
+
+  // Already printed (X1): reprint keeping the same number.
+  const existingRef = (payment.referenceId as string)?.trim();
+  if (existingRef && !payment.printLater) {
+    const checks = await buildCheckDataForPayments(fyo, [paymentName], {
+      [paymentName]: existingRef,
+    });
+    await printCheckBatch(checks, format, profile);
+    return;
+  }
+
+  const amount =
+    payment.amount && typeof payment.amount === 'object'
+      ? Number(payment.amount.float) || 0
+      : 0;
+  const { runCheckPrintFlow } = await import(
+    'src/utils/checkPrint/runCheckPrintFlow'
+  );
+  await runCheckPrintFlow(
+    fyo,
+    [
+      {
+        paymentName,
+        bankAccount: String(payment.account || ''),
+        amount,
+      },
+    ],
+    { format }
+  );
+}
