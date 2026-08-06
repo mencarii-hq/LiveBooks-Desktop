@@ -669,10 +669,28 @@ export default defineComponent({
         this.groups[0];
     },
     isSidebarRouteMatch(currentPath: string, item: SidebarItem) {
-      const { params } = this.$route;
+      const { params, query } = this.$route;
       const route = item.route;
+      const fromBankRegister = query.from === 'bank-register';
 
       if (currentPath === route || currentPath.startsWith(route + '/')) {
+        return true;
+      }
+
+      // Check Register → opened Payment: keep Banking / Check Register active
+      if (
+        fromBankRegister &&
+        currentPath.startsWith('/edit/Payment') &&
+        (route === '/bank-register' || route.startsWith('/bank-register'))
+      ) {
+        return true;
+      }
+
+      // Checks to Print is part of the Check Register flow
+      if (
+        route === '/bank-register' &&
+        currentPath.startsWith('/checks-to-print')
+      ) {
         return true;
       }
 
@@ -693,6 +711,17 @@ export default defineComponent({
       }
 
       if (item.schemaName && params.schemaName === item.schemaName) {
+        // Payment has two sidebar entries (Receivables vs Payables). Do not
+        // highlight both / the wrong one when editing a single Payment.
+        if (
+          item.schemaName === 'Payment' &&
+          currentPath.startsWith('/edit/Payment')
+        ) {
+          if (fromBankRegister) {
+            return false;
+          }
+          return this.paymentEditMatchesSidebarItem(item);
+        }
         return true;
       }
 
@@ -708,10 +737,61 @@ export default defineComponent({
         item.schemaName &&
         currentPath.includes(`${item.schemaName}/${params.name}`)
       ) {
+        if (
+          item.schemaName === 'Payment' &&
+          currentPath.startsWith('/edit/Payment')
+        ) {
+          if (fromBankRegister) {
+            return false;
+          }
+          return this.paymentEditMatchesSidebarItem(item);
+        }
         return true;
       }
 
       return false;
+    },
+    paymentEditMatchesSidebarItem(item: SidebarItem): boolean {
+      const name = this.$route.params.name;
+      if (typeof name !== 'string' || !name) {
+        return false;
+      }
+      const wantPay = item.filters?.paymentType === 'Pay';
+      const wantReceive = item.filters?.paymentType === 'Receive';
+      if (!wantPay && !wantReceive) {
+        return false;
+      }
+      const cached = this.fyo.doc.docs.get('Payment')?.[name] as
+        | { paymentType?: string }
+        | undefined;
+      const paymentType = cached?.paymentType;
+      if (paymentType === 'Pay') {
+        return wantPay;
+      }
+      if (paymentType === 'Receive') {
+        return wantReceive;
+      }
+      // Doc not in cache yet — do not guess Payables; load then refresh.
+      void this.resolvePaymentSidebarHighlight(name);
+      return false;
+    },
+    async resolvePaymentSidebarHighlight(name: string) {
+      if (this.resolvingPaymentHighlight === name) {
+        return;
+      }
+      this.resolvingPaymentHighlight = name;
+      try {
+        await this.fyo.doc.getDoc('Payment', name);
+        if (this.$route.params.name === name) {
+          this.setActiveGroup();
+        }
+      } catch {
+        /* leave unhighlighted */
+      } finally {
+        if (this.resolvingPaymentHighlight === name) {
+          this.resolvingPaymentHighlight = '';
+        }
+      }
     },
     isItemActive(item: SidebarItem) {
       return this.isSidebarRouteMatch(this.$route.path, item);

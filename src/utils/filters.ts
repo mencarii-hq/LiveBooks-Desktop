@@ -1,14 +1,14 @@
-import { ModelNameEnum } from 'models/types';
-
 export const routeFilters = {
   SalesItems: { for: ['in', ['Sales', 'Both']] },
   PurchaseItems: { for: ['in', ['Purchases', 'Both']] },
   Items: { for: 'Both' },
+  // Match createFilters: register + invoice payments by Pay/Receive.
+  // referenceType-only hid Check Register payments (empty for[]).
   PurchasePayments: {
-    referenceType: ModelNameEnum.PurchaseInvoice,
+    paymentType: 'Pay',
   },
   SalesPayments: {
-    referenceType: ModelNameEnum.SalesInvoice,
+    paymentType: 'Receive',
   },
   Suppliers: { role: ['in', ['Supplier', 'Both']] },
   Customers: { role: ['in', ['Customer', 'Both']] },
