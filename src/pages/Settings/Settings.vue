@@ -132,6 +132,14 @@
         </div>
       </div>
 
+      <!-- Check Printing tab (custom calibration UI, not schema-driven) -->
+      <div
+        v-if="activeTab === checkPrintingTab"
+        class="overflow-auto custom-scroll custom-scroll-thumb1"
+      >
+        <CheckPrintSettings />
+      </div>
+
       <!-- Tab Bar -->
       <div
         v-if="settingsTabKeys.length > 1"
@@ -196,8 +204,10 @@ import {
 } from 'src/utils/ui';
 import { computed, defineComponent, inject } from 'vue';
 import CommonFormSection from '../CommonForm/CommonFormSection.vue';
+import CheckPrintSettings from './CheckPrintSettings.vue';
 
 const COMPONENT_NAME = 'Settings';
+const CHECK_PRINTING_TAB = 'CheckPrinting';
 
 export default defineComponent({
   components: {
@@ -205,6 +215,7 @@ export default defineComponent({
     Button,
     FormHeader,
     CommonFormSection,
+    CheckPrintSettings,
   },
   provide() {
     return { doc: computed(() => this.doc) };
@@ -246,6 +257,9 @@ export default defineComponent({
 
       return doc;
     },
+    checkPrintingTab(): string {
+      return CHECK_PRINTING_TAB;
+    },
     tabLabels(): Record<string, string> {
       return {
         [ModelNameEnum.AccountingSettings]: this.t`General`,
@@ -254,6 +268,7 @@ export default defineComponent({
         [ModelNameEnum.Defaults]: this.t`Defaults`,
         [ModelNameEnum.POSSettings]: this.t`POS Settings`,
         [ModelNameEnum.SystemSettings]: this.t`System`,
+        [CHECK_PRINTING_TAB]: this.t`Check Printing`,
       };
     },
     schemas(): Schema[] {
@@ -283,10 +298,17 @@ export default defineComponent({
         .map((s) => this.fyo.schemaMap[s]!);
     },
     settingsTabKeys(): string[] {
-      if (!this.groupedFields) {
-        return [ModelNameEnum.AccountingSettings];
-      }
-      return [...this.groupedFields.keys()];
+      const base = this.groupedFields
+        ? [...this.groupedFields.keys()]
+        : [ModelNameEnum.AccountingSettings as string];
+      const keys = [...base];
+      const printIdx = keys.indexOf(ModelNameEnum.PrintSettings);
+      const insertAt =
+        printIdx >= 0
+          ? printIdx + 1
+          : Math.max(0, keys.indexOf(ModelNameEnum.SystemSettings));
+      keys.splice(insertAt, 0, CHECK_PRINTING_TAB);
+      return keys;
     },
     appVersion(): string {
       return this.fyo.store.appVersion || '0.0.0';
@@ -316,6 +338,11 @@ export default defineComponent({
     },
     activeGroup(): Map<string, Field[]> {
       if (!this.groupedFields) {
+        return new Map();
+      }
+
+      // Check Printing is a custom tab (not schema-driven).
+      if (this.activeTab === CHECK_PRINTING_TAB) {
         return new Map();
       }
 

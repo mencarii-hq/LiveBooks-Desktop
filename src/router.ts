@@ -10,6 +10,7 @@ import BankReconcileHub from 'src/pages/BankReconcileHub.vue';
 import BankRegister from 'src/pages/BankRegister.vue';
 import BankRegisterWrite from 'src/pages/BankRegisterWrite.vue';
 import BankStatementImport from 'src/pages/BankStatementImport.vue';
+import ChecksToPrint from 'src/pages/ChecksToPrint.vue';
 import ImportListsHub from 'src/pages/ImportListsHub.vue';
 import ImportWizard from 'src/pages/ImportWizard.vue';
 import ListView from 'src/pages/ListView/ListView.vue';
@@ -134,13 +135,18 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/bank-register',
-    name: 'Cheque Register',
+    name: 'Check Register',
     component: BankRegister,
   },
   {
     path: '/bank-register/write',
     name: 'Write Entry',
     component: BankRegisterWrite,
+  },
+  {
+    path: '/checks-to-print',
+    name: 'Checks to Print',
+    component: ChecksToPrint,
   },
   {
     path: '/reconcile',

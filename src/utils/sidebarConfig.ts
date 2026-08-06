@@ -182,7 +182,7 @@ function getCompleteSidebar(): SidebarConfig {
           route: '/bank-feeds',
         },
         {
-          label: t`Cheque Register`,
+          label: t`Check Register`,
           name: 'bank-register',
           route: '/bank-register',
         },

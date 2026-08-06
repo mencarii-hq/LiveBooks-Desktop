@@ -111,6 +111,8 @@ export interface DialogOptions {
   detail?: string | string[];
   /** Optional warning line (e.g. balance note), shown in red below `detail`. */
   detailEmphasis?: string;
+  /** If set, user must type this exact phrase to enable the primary button. */
+  confirmText?: string;
   buttons?: DialogButton[];
 }
 
