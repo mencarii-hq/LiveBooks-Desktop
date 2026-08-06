@@ -2055,7 +2055,7 @@ const languageMap: LanguageMap = {
   'Ref Type': {
     translation: '關聯類型',
   },
-  'Ref. / Cheque No.': {
+  'Ref. / Check No.': {
     translation: '關聯/支票號',
   },
   'Ref. Date': {

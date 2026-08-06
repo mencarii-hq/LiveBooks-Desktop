@@ -784,7 +784,7 @@ const languageMap: LanguageMap = {
   Receive: {
     translation: 'Rebre',
   },
-  'Ref. / Cheque No.': {
+  'Ref. / Check No.': {
     translation: 'Ref. / Xec número.',
   },
   'Ref. Date': {

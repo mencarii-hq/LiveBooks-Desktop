@@ -2824,7 +2824,7 @@ const languageMap: LanguageMap = {
   'Ref Type': {
     translation: 'نوع المصدر',
   },
-  'Ref. / Cheque No.': {
+  'Ref. / Check No.': {
     translation: 'المرجع. / رقم الشيك',
   },
   'Ref. Date': {

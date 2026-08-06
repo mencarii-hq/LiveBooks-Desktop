@@ -1112,7 +1112,7 @@ const languageMap: LanguageMap = {
   'Ref Type': {
     translation: '참조 타입',
   },
-  'Ref. / Cheque No.': {
+  'Ref. / Check No.': {
     translation: '참조 및 수표 번호',
   },
   'Ref. Date': {

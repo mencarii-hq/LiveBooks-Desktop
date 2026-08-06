@@ -1471,7 +1471,7 @@ const languageMap: LanguageMap = {
   'Ref Type': {
     translation: 'Type de Réf',
   },
-  'Ref. / Cheque No.': {
+  'Ref. / Check No.': {
     translation: 'Réf. / N° de chèque',
   },
   'Ref. Date': {

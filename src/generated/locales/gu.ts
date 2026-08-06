@@ -1377,7 +1377,7 @@ const languageMap: LanguageMap = {
   'Ref Type': {
     translation: 'સંદર્ભ પ્રકાર',
   },
-  'Ref. / Cheque No.': {
+  'Ref. / Check No.': {
     translation: 'સંદર્ભ. / ચેક નંબર.',
   },
   'Ref. Date': {

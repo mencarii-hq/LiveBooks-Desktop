@@ -2063,7 +2063,7 @@ const languageMap: LanguageMap = {
   'Ref Type': {
     translation: '关联类型',
   },
-  'Ref. / Cheque No.': {
+  'Ref. / Check No.': {
     translation: '关联/检查号码',
   },
   'Ref. Date': {
