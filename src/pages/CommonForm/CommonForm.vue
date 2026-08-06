@@ -51,13 +51,15 @@
       >
         <feather-icon name="printer" class="w-4 h-4"></feather-icon>
       </Button>
-      <Button
+      <DropdownWithActions
         v-if="printCheckAction"
-        :title="printCheckTitle"
-        @click="runPrintCheck"
+        :actions="printCheckDropdownActions"
+        :force-dropdown="true"
+        :icon="false"
+        type="secondary"
       >
         {{ printCheckLabel }}
-      </Button>
+      </DropdownWithActions>
       <DropdownWithActions
         v-for="group of groupedActions"
         :key="group.group || 'more'"
@@ -438,13 +440,45 @@ export default defineComponent({
         ? this.t`Reprint Check`
         : this.t`Print Check`;
     },
-    printCheckTitle(): string {
-      if (this.printCheckAlreadyNumbered) {
-        return this
-          .t`Print again using the same check number. To void that number and get a new one, use Void check # (requeue).`;
+    printCheckDropdownActions(): Action[] {
+      if (!this.printCheckAction) {
+        return [];
       }
-      return this
-        .t`Print this payment as a check (assigns a number if needed).`;
+      const printGroup = this.t`Print`;
+      const formats: {
+        value: 'voucher' | 'threePerPage' | 'ledgerStub';
+        label: string;
+      }[] = [
+        {
+          value: 'voucher',
+          label: this.t`Print as Voucher (1 per page)`,
+        },
+        {
+          value: 'threePerPage',
+          label: this.t`Print as 3 per page`,
+        },
+        {
+          value: 'ledgerStub',
+          label: this.t`Print as Ledger / stub`,
+        },
+      ];
+      return [
+        ...formats.map(({ value, label }) => ({
+          label,
+          group: printGroup,
+          action: async () => {
+            await this.printCheckWithFormat(value);
+          },
+        })),
+        {
+          label: this.t`Check Printing settings`,
+          group: this.t`Settings`,
+          action: async () => {
+            const { openSettings } = await import('src/utils/ui');
+            await openSettings('CheckPrinting');
+          },
+        },
+      ];
     },
     groupedActions(): ActionGroup[] {
       if (!this.hasDoc) {
@@ -526,12 +560,16 @@ export default defineComponent({
   },
   methods: {
     routeTo,
-    async runPrintCheck() {
-      const action = this.printCheckAction;
-      if (!action?.action) {
+    async printCheckWithFormat(
+      format: 'voucher' | 'threePerPage' | 'ledgerStub'
+    ) {
+      if (!this.hasDoc || this.doc.schemaName !== 'Payment') {
         return;
       }
-      await action.action(this.doc, this.$router);
+      const { printPaymentAsCheck } = await import(
+        'src/utils/checkPrint/printChecks'
+      );
+      await printPaymentAsCheck(this.fyo, this.doc as never, format);
     },
     async toggleWidth() {
       const value = !this.useFullWidth;

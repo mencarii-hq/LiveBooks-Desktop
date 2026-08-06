@@ -131,13 +131,13 @@
                 {{ t`Dr. ${fyo.format(e.debit, 'Currency')}` }}
               </p>
 
-              <!-- Party or EntryType or Account -->
+              <!-- Party / EntryType / Account (skip if already used as primary) -->
               <p
-                v-if="e.party || e.entryType || e.account"
+                v-if="entrySecondaryLabel(e, sn)"
                 class="pill"
                 :class="colorClass('gray')"
               >
-                {{ e.party || e.entryType || e.account }}
+                {{ entrySecondaryLabel(e, sn) }}
               </p>
 
               <p v-if="e.item" class="pill" :class="colorClass('gray')">
@@ -209,9 +209,19 @@ import { getBgTextColorClass } from 'src/utils/colors';
 import { getLinkedEntries } from 'src/utils/doc';
 import { shortcutsKey } from 'src/utils/injectionKeys';
 import { getFormRoute, routeTo } from 'src/utils/ui';
+import { accountDisplayName } from 'utils/accountDisplay';
+import { isUuidDocId } from 'utils/ids';
 import { PropType, defineComponent, inject } from 'vue';
 
 const COMPONENT_NAME = 'LinkedEntries';
+
+/** Link fields on linked rows that may store a UUID primary key. */
+const linkFieldTargets: Record<string, ModelNameEnum> = {
+  account: ModelNameEnum.Account,
+  party: ModelNameEnum.Party,
+  item: ModelNameEnum.Item,
+  location: ModelNameEnum.Location,
+};
 
 export default defineComponent({
   components: { Button },
@@ -256,10 +266,6 @@ export default defineComponent({
     colorClass: getBgTextColorClass,
     entryPrimaryLabel(e: Record<string, unknown>, schemaName: string): string {
       const name = String(e.name ?? '');
-      const isUuid =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-          name
-        );
 
       if (schemaName === ModelNameEnum.AccountingLedgerEntry) {
         return String(e.account || name);
@@ -270,14 +276,79 @@ export default defineComponent({
       if (schemaName === ModelNameEnum.JournalEntry) {
         return String(e.entryType || name);
       }
-      if (isUuid) {
+      if (isUuidDocId(name)) {
         return String(e.party || e.account || e.entryType || e.item || name);
       }
       return name;
     },
+    entrySecondaryLabel(
+      e: Record<string, unknown>,
+      schemaName: string
+    ): string {
+      const primary = this.entryPrimaryLabel(e, schemaName);
+      const candidates = [e.party, e.entryType, e.account].filter(
+        (v) => typeof v === 'string' && v.trim()
+      ) as string[];
+      return candidates.find((c) => c !== primary) ?? '';
+    },
     async routeTo(schemaName: string, name: string) {
       const route = getFormRoute(schemaName, name);
       await routeTo(route);
+    },
+    /**
+     * Replace Link UUID ids with human labels (e.g. Account.name → accountName).
+     * Mutates `details` in place; routing still uses each row's own `name`.
+     */
+    async resolveLinkLabels(details: Record<string, unknown>[]) {
+      for (const [field, target] of Object.entries(linkFieldTargets)) {
+        const ids = [
+          ...new Set(
+            details
+              .map((d) => d[field])
+              .filter((v): v is string => typeof v === 'string' && !!v)
+          ),
+        ];
+        if (!ids.length) {
+          continue;
+        }
+
+        const schema = this.fyo.schemaMap[target];
+        const displayField =
+          schema?.linkDisplayField || schema?.titleField || 'name';
+
+        if (displayField === 'name' && target !== ModelNameEnum.Account) {
+          continue;
+        }
+
+        const rows = await this.fyo.db.getAll(target, {
+          fields: ['name', displayField],
+          filters: { name: ['in', ids] },
+        });
+
+        const labelById = new Map<string, string>();
+        for (const row of rows) {
+          const id = String(row.name ?? '');
+          if (target === ModelNameEnum.Account) {
+            labelById.set(
+              id,
+              accountDisplayName({
+                name: id,
+                accountName: row.accountName as string | null | undefined,
+              })
+            );
+          } else {
+            const label = String(row[displayField] ?? '').trim();
+            labelById.set(id, label || id);
+          }
+        }
+
+        for (const detail of details) {
+          const id = detail[field];
+          if (typeof id === 'string' && labelById.has(id)) {
+            detail[field] = labelById.get(id);
+          }
+        }
+      }
     },
     async setLinkedEntries() {
       const linkedEntries = await getLinkedEntries(this.doc);
@@ -293,6 +364,8 @@ export default defineComponent({
           fields,
           filters: { name: ['in', entryNames] },
         });
+
+        await this.resolveLinkLabels(details);
 
         this.entries[key] = {
           collapsed,
@@ -354,6 +427,7 @@ const linkEntryDisplayFields: Record<string, string[]> = {
     'name',
     'date',
     'account',
+    'party',
     'credit',
     'debit',
   ],
