@@ -10,26 +10,16 @@
     </p>
 
     <!-- Format picker -->
-    <div class="flex items-center gap-3 mb-4">
-      <label class="text-sm text-gray-700 dark:text-gray-300 w-32">
-        {{ t`Check format` }}
-      </label>
-      <select
-        v-model="format"
-        class="
-          text-sm
-          border
-          rounded
-          px-2
-          py-1.5
-          bg-gray-25
-          dark:bg-gray-850 dark:text-gray-25
-        "
-      >
-        <option v-for="f in formats" :key="f.value" :value="f.value">
-          {{ f.label }}
-        </option>
-      </select>
+    <div class="flex items-center gap-3 mb-4 max-w-md">
+      <FormControl
+        :border="true"
+        size="small"
+        :show-label="true"
+        :df="formatField"
+        :value="format"
+        class="flex-1"
+        @change="onFormatChange"
+      />
     </div>
 
     <template v-if="profile">
@@ -136,7 +126,9 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import { Field } from 'schemas/types';
 import Button from 'src/components/Button.vue';
+import FormControl from 'src/components/Controls/FormControl.vue';
 import { fyo } from 'src/initFyo';
 import { showToast } from 'src/utils/interactive';
 import {
@@ -145,7 +137,10 @@ import {
   printCalibrationSample,
 } from 'src/utils/checkPrint/printChecks';
 import { getDefaultProfiles } from 'src/utils/checkPrint/offsets';
-import { CHECK_FIELD_NAMES } from 'src/utils/checkPrint/types';
+import {
+  CHECK_FIELD_NAMES,
+  checkFormatLabel,
+} from 'src/utils/checkPrint/types';
 import type {
   CheckFieldName,
   CheckFormat,
@@ -179,23 +174,30 @@ const NudgeControl = defineComponent({
 
 export default defineComponent({
   name: 'CheckPrintSettings',
-  components: { Button, NudgeControl },
+  components: { Button, FormControl, NudgeControl },
   data() {
     return {
       format: 'voucher' as CheckFormat,
       profiles: getDefaultProfiles(),
       saving: false,
       fieldNames: CHECK_FIELD_NAMES,
-      formats: [
-        { value: 'voucher', label: this.t`Voucher (1 per page)` },
-        { value: 'threePerPage', label: this.t`3 per page` },
-        { value: 'ledgerStub', label: this.t`Ledger / stub` },
-      ],
     };
   },
   computed: {
     profile(): CheckProfile | null {
       return this.profiles[this.format] ?? null;
+    },
+    formatField(): Field {
+      const formats: CheckFormat[] = ['voucher', 'threePerPage', 'ledgerStub'];
+      return {
+        fieldtype: 'AutoComplete',
+        fieldname: 'format',
+        label: this.t`Check format`,
+        options: formats.map((value) => ({
+          label: checkFormatLabel(value, this.t),
+          value,
+        })),
+      } as Field;
     },
   },
   async mounted() {
@@ -204,6 +206,16 @@ export default defineComponent({
     this.profiles = settings.profiles;
   },
   methods: {
+    onFormatChange(value: string | null) {
+      const next = (value || 'voucher') as CheckFormat;
+      if (
+        next === 'voucher' ||
+        next === 'threePerPage' ||
+        next === 'ledgerStub'
+      ) {
+        this.format = next;
+      }
+    },
     fieldOffset(fieldName: CheckFieldName): FieldOffset {
       const p = this.profile;
       if (!p) {
