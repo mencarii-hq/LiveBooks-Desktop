@@ -1,5 +1,5 @@
 export type PaymentType = 'Receive' | 'Pay';
-export type PaymentMethod = 'Cash' | 'Cheque' | 'Transfer';
+export type PaymentMethod = 'Cash' | 'Check' | 'Transfer';
 
 export enum PaymentTypeEnum{
     Receive = 'Receive', 

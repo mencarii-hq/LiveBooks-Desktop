@@ -9,6 +9,7 @@ import fixLedgerDateTime from './v0_21_0/fixLedgerDateTime';
 import fixItemHSNField from './fixItemHSNField';
 import createPaymentMethods from './createPaymentMethods';
 import uuidIdentityMigration from './uuidIdentityMigration';
+import migrateChequeToCheck from './migrateChequeToCheck';
 
 export default [
   { name: 'testPatch', version: '0.5.0-beta.0', patch: testPatch },
@@ -54,5 +55,10 @@ export default [
     version: '1.0.0',
     patch: uuidIdentityMigration,
     priority: 200,
+  },
+  {
+    name: 'migrateChequeToCheck',
+    version: '1.0.3',
+    patch: migrateChequeToCheck,
   },
 ] as Patch[];

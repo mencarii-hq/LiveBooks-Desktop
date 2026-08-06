@@ -7,7 +7,7 @@ function scopedKey(): string {
   return path ? `${LEGACY_KEY}:${path}` : LEGACY_KEY;
 }
 
-/** Last bank selected in Cheque Register — kept until a different account is chosen. */
+/** Last bank selected in Check Register — kept until a different account is chosen. */
 export function getLastRegisterBankAccount(validNames: string[]): string {
   const names = new Set(validNames);
   try {

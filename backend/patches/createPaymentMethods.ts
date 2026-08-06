@@ -48,6 +48,12 @@ async function execute(dm: DatabaseManager) {
       account: accountsMap[AccountTypeEnum.Bank]?.[0],
       ...defaults,
     },
+    {
+      name: 'Check',
+      type: 'Check',
+      account: accountsMap[AccountTypeEnum.Bank]?.[0],
+      ...defaults,
+    },
   ];
 
   for (const paymentMethod of paymentMethods) {

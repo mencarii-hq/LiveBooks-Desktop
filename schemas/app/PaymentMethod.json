@@ -25,6 +25,10 @@
         {
           "value": "Transfer",
           "label": "Transfer"
+        },
+        {
+          "value": "Check",
+          "label": "Check"
         }
       ]
     },
