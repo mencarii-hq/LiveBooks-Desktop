@@ -193,19 +193,26 @@ export default {
     value: {
       immediate: true,
       handler(newValue) {
-        this.setLinkValue(this.getLinkValue(newValue));
+        this.setLinkValue(this.resolveDisplayLabel(newValue));
+      },
+    },
+    options: {
+      handler() {
+        if (!this.value) {
+          return;
+        }
+        // Options often load after value is set (label !== value).
+        this.setLinkValue(this.resolveDisplayLabel(this.value));
       },
     },
   },
   mounted() {
-    // Prefer the committed value. Resolving via getLinkValue before options
-    // load can yield '' and wipe a valid Link display (label !== value).
     if (this.value) {
-      this.setLinkValue(this.value);
+      this.setLinkValue(this.resolveDisplayLabel(this.value));
       return;
     }
     const value = this.linkValue || this.value;
-    this.setLinkValue(this.getLinkValue(value));
+    this.setLinkValue(this.resolveDisplayLabel(value));
   },
   unmounted() {
     this.showQuickView = false;
@@ -255,6 +262,26 @@ export default {
       }
 
       return option?.label ?? oldValue;
+    },
+    /** Prefer option label over raw value (UUID) when label !== value. */
+    resolveDisplayLabel(value) {
+      if (!value) {
+        return this.getLinkValue(value);
+      }
+      let option = this.options.find((o) => o.value === value);
+      if (!option) {
+        option = this.options.find((o) => o.label === value);
+      }
+      if (option?.label) {
+        return option.label;
+      }
+      // Keep prior human label if we already resolved; never flash a UUID when
+      // options are momentarily empty.
+      const prior = this.linkValue;
+      if (prior && prior !== value) {
+        return prior;
+      }
+      return value;
     },
     async updateSuggestions(keyword) {
       if (typeof keyword === 'string') {

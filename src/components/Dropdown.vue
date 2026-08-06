@@ -86,11 +86,12 @@
                   text-gray-900
                   dark:text-gray-100
                 "
-                :class="
+                :class="[
                   index === highlightedIndex
                     ? 'bg-gray-100 dark:bg-gray-700'
-                    : ''
-                "
+                    : '',
+                  d.group ? 'ps-5' : '',
+                ]"
                 @mouseenter="highlightedIndex = index"
                 @mousedown.prevent="selectItem(d)"
               >
