@@ -1,0 +1,3 @@
+# Generated locale chunks: always LF so Windows builds don't dirty every file.
+src/generated/locales/** text eol=lf
+src/generated/locales/** linguist-generated=true

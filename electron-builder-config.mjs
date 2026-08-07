@@ -64,6 +64,9 @@ const liveBooksConfig = {
   ],
   files: '**',
   extends: null,
+  // Ensures LiveBooks icon.ico is embedded on Windows even when unsigned
+  // (sign/rcedit path is skipped or incomplete without Azure / CSC).
+  afterPack: './scripts/afterPackWinIcon.mjs',
   publish: {
     provider: 'github',
     owner: 'mencarii-hq',
@@ -98,20 +101,27 @@ const liveBooksConfig = {
     publish: ['github'],
   },
   win: {
-    // Personal Azure Artifact Signing identity (IV). Must match certificate CN.
-    // Business/OV subject can replace this once that validation completes.
-    azureSignOptions: {
-      publisherName: 'Yanchung Cheng',
-      endpoint: 'https://eus.codesigning.azure.net/',
-      codeSigningAccountName: 'Mencarii',
-      certificateProfileName: 'LiveBooksDesktop',
-      // electron-builder preflight requires AZURE_CLIENT_SECRET|CERT|USERNAME, but
-      // GitHub OIDC uses azure/login (Azure CLI). Skip EnvironmentCredential so
-      // Invoke-TrustedSigning uses the az session. Pair with a dummy
-      // AZURE_CLIENT_SECRET in publish-windows.yml to pass the preflight check.
-      // See: https://github.com/electron-userland/electron-builder/issues/9623
-      ExcludeEnvironmentCredential: true,
-    },
+    // Azure Trusted Signing only when Entra env is present (CI publish-windows).
+    // Local unsigned: omit AZURE_TENANT_ID + CSC_IDENTITY_AUTO_DISCOVERY=false.
+    // Keep default signAndEditExecutable so rcedit still applies build/icon.ico.
+    ...(process.env.AZURE_TENANT_ID
+      ? {
+          azureSignOptions: {
+            // Personal Azure Artifact Signing identity (IV). Must match certificate CN.
+            // Business/OV subject can replace this once that validation completes.
+            publisherName: 'Yanchung Cheng',
+            endpoint: 'https://eus.codesigning.azure.net/',
+            codeSigningAccountName: 'Mencarii',
+            certificateProfileName: 'LiveBooksDesktop',
+            // electron-builder preflight requires AZURE_CLIENT_SECRET|CERT|USERNAME, but
+            // GitHub OIDC uses azure/login (Azure CLI). Skip EnvironmentCredential so
+            // Invoke-TrustedSigning uses the az session. Pair with a dummy
+            // AZURE_CLIENT_SECRET in publish-windows.yml to pass the preflight check.
+            // See: https://github.com/electron-userland/electron-builder/issues/9623
+            ExcludeEnvironmentCredential: true,
+          },
+        }
+      : {}),
     artifactName: '${productName}-v${version}-windows-${arch}.${ext}',
     // MVP: omit signExts so only exe/installer are signed (eb 26 dropped signDlls).
     // Later: signExts: ['.dll'] to harden (more Azure signatures per release).
