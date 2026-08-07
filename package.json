@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "node build/scripts/dev.mjs",
     "build": "node build/scripts/build.mjs",
+    "linux:run": "scripts/run-linux-appimage.sh",
     "release": "scripts/publish-mac-arm.sh",
     "postinstall": "electron-rebuild",
     "postuninstall": "electron-rebuild",
