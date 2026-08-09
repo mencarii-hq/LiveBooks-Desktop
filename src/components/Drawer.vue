@@ -1,16 +1,12 @@
 <template>
   <Transition name="lb-side-drawer">
-    <div
-      v-if="open"
-      class="lb-side-drawer-shell h-full shrink-0 overflow-hidden"
-      role="dialog"
-      aria-modal="true"
-    >
+    <SideDrawerShell v-if="open" class="lb-side-drawer-shell">
       <div
         class="
           lb-side-drawer-panel
-          w-quick-edit
           h-full
+          w-full
+          min-w-0
           flex flex-col
           bg-white
           dark:bg-gray-850
@@ -18,6 +14,8 @@
           dark:border-gray-800
           overflow-hidden
         "
+        role="dialog"
+        aria-modal="true"
       >
         <div
           class="
@@ -67,19 +65,20 @@
           </div>
         </div>
       </div>
-    </div>
+    </SideDrawerShell>
   </Transition>
 </template>
 
 <script lang="ts">
 import { t } from 'fyo';
 import Button from 'src/components/Button.vue';
+import SideDrawerShell from 'src/components/SideDrawerShell.vue';
 import { shortcutsKey } from 'src/utils/injectionKeys';
 import { defineComponent, inject } from 'vue';
 
 export default defineComponent({
   name: 'Drawer',
-  components: { Button },
+  components: { Button, SideDrawerShell },
   props: {
     open: { type: Boolean, default: false },
     title: { type: String, default: '' },
@@ -107,16 +106,13 @@ export default defineComponent({
 </script>
 
 <style scoped>
-.lb-side-drawer-shell {
-  width: var(--w-quick-edit);
-}
 .lb-side-drawer-enter-active,
 .lb-side-drawer-leave-active {
   transition: width 150ms ease-out;
 }
 .lb-side-drawer-enter-from,
 .lb-side-drawer-leave-to {
-  width: 0;
+  width: 0 !important;
 }
 .lb-side-drawer-enter-to,
 .lb-side-drawer-leave-from {

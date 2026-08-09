@@ -459,7 +459,7 @@
                     rounded
                     bg-blue-100
                     text-blue-900
-                    dark:bg-blue-900/40 dark:text-blue-100
+                    dark:bg-blue-900 dark:text-blue-100
                     text-[10px]
                     font-medium
                     uppercase

@@ -1,7 +1,9 @@
 <template>
   <div
     class="
-      w-quick-edit
+      w-full
+      h-full
+      min-w-0
       bg-white
       dark:bg-gray-850
       border-l

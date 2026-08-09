@@ -5,7 +5,9 @@
       dark:border-gray-800
       h-full
       overflow-auto
-      w-quick-edit
+      w-full
+      h-full
+      min-w-0
       bg-white
       dark:bg-gray-890
       custom-scroll custom-scroll-thumb2

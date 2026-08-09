@@ -164,22 +164,21 @@
     </template>
     <template #quickedit>
       <Transition name="quickedit">
-        <LinkedEntries
-          v-if="showLinks && canShowLinks"
-          :doc="doc"
-          @close="showLinks = false"
-        />
+        <SideDrawerShell v-if="showLinks && canShowLinks">
+          <LinkedEntries :doc="doc" @close="showLinks = false" />
+        </SideDrawerShell>
       </Transition>
       <Transition name="quickedit">
-        <RowEditForm
-          v-if="row && !showLinks"
-          :doc="doc"
-          :fieldname="row.fieldname"
-          :index="row.index"
-          @previous="(i:number) => row!.index = i"
-          @next="(i:number) => row!.index = i"
-          @close="() => (row = null)"
-        />
+        <SideDrawerShell v-if="row && !showLinks">
+          <RowEditForm
+            :doc="doc"
+            :fieldname="row.fieldname"
+            :index="row.index"
+            @previous="(i:number) => row!.index = i"
+            @next="(i:number) => row!.index = i"
+            @close="() => (row = null)"
+          />
+        </SideDrawerShell>
       </Transition>
     </template>
   </FormContainer>
@@ -198,6 +197,7 @@ import Barcode from 'src/components/Controls/Barcode.vue';
 import ExchangeRate from 'src/components/Controls/ExchangeRate.vue';
 import DropdownWithActions from 'src/components/DropdownWithActions.vue';
 import FormContainer from 'src/components/FormContainer.vue';
+import SideDrawerShell from 'src/components/SideDrawerShell.vue';
 import FormHeader from 'src/components/FormHeader.vue';
 import StatusPill from 'src/components/StatusPill.vue';
 import SmartFillBox from 'src/components/SmartFillBox.vue';
@@ -235,6 +235,7 @@ export default defineComponent({
     ExchangeRate,
     LinkedEntries,
     RowEditForm,
+    SideDrawerShell,
     StatusPill,
     SmartFillBox,
   },

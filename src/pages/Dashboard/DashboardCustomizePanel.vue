@@ -44,7 +44,7 @@
               "
               :class="
                 activeProfile === profile
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
                   : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:text-gray-300 dark:hover:border-gray-500'
               "
               @click="applyProfile(profile)"
@@ -102,7 +102,7 @@
               rounded-lg
               border-2 border-dashed border-blue-400
               bg-blue-50
-              dark:bg-blue-950
+              dark:bg-blue-900
               text-blue-500
               cursor-copy
             "
@@ -136,7 +136,7 @@
                 "
                 :class="
                   dropTargetIdx === 0
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950 text-blue-500'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900 text-blue-500'
                     : 'border-gray-200 dark:border-gray-700 text-gray-400'
                 "
               >
@@ -429,7 +429,7 @@
                   "
                   :class="
                     dropTargetIdx === row.endIdx
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-950 text-blue-500 cursor-copy'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900 text-blue-500 cursor-copy'
                       : isDragging
                       ? 'border-blue-300 dark:border-blue-800 text-blue-400 dark:text-blue-600 cursor-copy'
                       : 'border-gray-200 dark:border-gray-700 text-gray-400'
@@ -467,7 +467,7 @@
                   "
                   :class="
                     dropTargetIdx === row.endIdx
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-950 text-blue-500'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900 text-blue-500'
                       : 'border-gray-200 dark:border-gray-700 text-gray-400'
                   "
                 >

@@ -144,7 +144,7 @@ export default defineComponent({
           barClass: 'bg-blue-400 dark:bg-blue-500',
           labelClass: 'text-blue-600 dark:text-blue-400',
           cardBgClass:
-            'bg-blue-50 border-blue-100 dark:bg-blue-950/40 dark:border-blue-900/50',
+            'bg-blue-50 border-blue-100 dark:bg-blue-900 dark:border-blue-800',
         },
         {
           label: '31–60 days',

@@ -7,7 +7,7 @@
         border border-blue-200
         dark:border-blue-800
         bg-blue-50
-        dark:bg-blue-950/30
+        dark:bg-blue-900
         px-4
         py-2
         text-sm text-blue-900

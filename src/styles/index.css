@@ -138,6 +138,37 @@ input[type='number']::-webkit-inner-spin-button {
   flex-shrink: 0;
 }
 
+/* Shared column resize grip (sidebar + side drawers) */
+.sidebar-resize-grip {
+  position: relative;
+  width: 2px;
+  flex-shrink: 0;
+  background-color: #e8e8e6 !important;
+  transition: width 120ms ease;
+  cursor: col-resize;
+}
+
+.sidebar-resize-grip::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline: -3px;
+  width: 8px;
+  cursor: col-resize;
+}
+
+.sidebar-resize-grip:hover,
+.sidebar-resize-grip.is-resizing {
+  width: 4px;
+  background-color: #e8e8e6 !important;
+  cursor: col-resize;
+}
+
+html.desk-sidebar-resizing,
+html.desk-sidebar-resizing * {
+  cursor: col-resize !important;
+}
+
 .h-form {
   height: 800px;
 }
@@ -242,7 +273,7 @@ input[type='number']::-webkit-inner-spin-button {
 .quickedit-enter-from,
 .quickedit-leave-to {
   transform: translateX(var(--w-quick-edit));
-  width: 0px;
+  width: 0 !important;
   opacity: 0;
 }
 

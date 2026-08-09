@@ -229,7 +229,7 @@
                         py-0.5
                         rounded
                         bg-blue-100
-                        dark:bg-blue-900/40
+                        dark:bg-blue-900
                         text-blue-700
                         dark:text-blue-100
                         align-middle
@@ -288,7 +288,7 @@
                     last:border-0
                   "
                   :class="{
-                    'bg-blue-50 dark:bg-blue-900/30':
+                    'bg-blue-50 dark:bg-blue-900':
                       row.ledgerName && selectedAccount === row.ledgerName,
                     'opacity-60': row.archived,
                   }"

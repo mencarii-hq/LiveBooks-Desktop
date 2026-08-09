@@ -4,8 +4,9 @@
       border-s
       dark:border-gray-800
       h-full
+      w-full
+      min-w-0
       overflow-auto
-      w-quick-edit
       bg-white
       dark:bg-gray-850
     "

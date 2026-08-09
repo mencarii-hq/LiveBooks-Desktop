@@ -11,6 +11,11 @@ import {
 import PlaidBankSyncMfaBanner from 'src/components/PlaidBankSyncMfaBanner.vue';
 import PlaidSyncStatusBanner from 'src/components/PlaidSyncStatusBanner.vue';
 import Sidebar from '../components/Sidebar.vue';
+import SideDrawerShell from '../components/SideDrawerShell.vue';
+import {
+  syncSideDrawerCssVar,
+  loadSideDrawerWidthPx,
+} from 'src/utils/sideDrawerWidth';
 
 const emit = defineEmits(['change-db-file']);
 
@@ -166,6 +171,7 @@ function onResizePointerDown(e: PointerEvent) {
 
 function onWindowResize() {
   syncSidebarCssVar();
+  syncSideDrawerCssVar(loadSideDrawerWidthPx());
 }
 
 let applyRecoveryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -175,7 +181,10 @@ function onPlaidMfaVerified() {
 }
 
 onMounted(() => {
-  void nextTick(() => syncSidebarCssVar());
+  void nextTick(() => {
+    syncSidebarCssVar();
+    syncSideDrawerCssVar(loadSideDrawerWidthPx());
+  });
   window.addEventListener('resize', onWindowResize);
 
   applyRecoveryTimer = setTimeout(() => {
@@ -260,10 +269,12 @@ watch([showSidebar, sidebarWidthPx], () => {
         dark:bg-gray-875
       "
     >
-      <div class="shrink-0 px-4 pt-2">
-        <PlaidBankSyncMfaBanner @verified="onPlaidMfaVerified" />
-        <PlaidSyncStatusBanner />
-      </div>
+      <!-- Banners are v-if'd; keep padding on the banners so an empty wrapper doesn't add a top gap. -->
+      <PlaidBankSyncMfaBanner
+        class="shrink-0 mx-4 mt-2"
+        @verified="onPlaidMfaVerified"
+      />
+      <PlaidSyncStatusBanner class="shrink-0 mx-4 mt-2" />
       <div class="flex flex-1 min-h-0 overflow-hidden">
         <router-view v-slot="{ Component }">
           <keep-alive>
@@ -278,13 +289,14 @@ watch([showSidebar, sidebarWidthPx], () => {
 
         <router-view v-slot="{ Component, route }" name="edit">
           <Transition name="quickedit">
-            <div v-if="route?.query?.edit" class="h-full shrink-0">
+            <SideDrawerShell v-if="route?.query?.edit">
               <component
                 :is="Component"
                 :key="route.query.schemaName + route.query.name"
+                class="h-full w-full min-w-0"
                 :dark-mode="darkMode"
               />
-            </div>
+            </SideDrawerShell>
           </Transition>
         </router-view>
       </div>
@@ -330,37 +342,5 @@ watch([showSidebar, sidebarWidthPx], () => {
 .sidebar-enter-active,
 .sidebar-leave-active {
   transition: opacity 150ms ease-out, width 150ms ease-out;
-}
-
-.sidebar-resize-grip {
-  position: relative;
-  width: 2px;
-  flex-shrink: 0;
-  background-color: #e8e8e6 !important;
-  transition: width 120ms ease;
-  cursor: col-resize;
-}
-
-.sidebar-resize-grip::before {
-  content: '';
-  position: absolute;
-  inset-block: 0;
-  inset-inline: -3px;
-  width: 8px;
-  cursor: col-resize;
-}
-
-.sidebar-resize-grip:hover,
-.sidebar-resize-grip.is-resizing {
-  width: 4px;
-  background-color: #e8e8e6 !important;
-  cursor: col-resize;
-}
-</style>
-
-<style>
-html.desk-sidebar-resizing,
-html.desk-sidebar-resizing * {
-  cursor: col-resize !important;
 }
 </style>
