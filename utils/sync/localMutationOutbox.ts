@@ -21,6 +21,8 @@ export const MUTATION_LOG_SKIP_SCHEMAS = new Set([
   'ERPNextSyncQueue',
   'FetchFromERPNextQueue',
   'Misc',
+  // Per-device UI preference; dashboard layout should not sync across devices.
+  'DashboardSettings',
 ]);
 
 export function shouldLogMutation(schemaName: string): boolean {

@@ -23,6 +23,7 @@ export enum ModelNameEnum {
   Color = 'Color',
   Currency = 'Currency',
   GetStarted = 'GetStarted',
+  DashboardSettings = 'DashboardSettings',
   Defaults = 'Defaults',
   Item = 'Item',
   ItemGroup = 'ItemGroup',
