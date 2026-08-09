@@ -160,6 +160,14 @@
       "section": "References"
     },
     {
+      "fieldname": "splits",
+      "label": "Splits",
+      "fieldtype": "Table",
+      "target": "PaymentSplit",
+      "required": false,
+      "hidden": true
+    },
+    {
       "fieldname": "attachment",
       "placeholder": "Add attachment",
       "label": "Attachment",

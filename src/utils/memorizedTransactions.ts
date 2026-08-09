@@ -60,6 +60,13 @@ function dueSignature(due: MemorizedTransaction[]): string {
     .join('|');
 }
 
+/** #8: one category line of a split register entry. */
+export type RegisterSplitLine = {
+  account: string;
+  amount: number;
+  description?: string;
+};
+
 export type RegisterPaymentFields = {
   date: string | Date;
   party: string;
@@ -77,7 +84,38 @@ export type RegisterPaymentFields = {
    * account; the print sequence auto-advances past manually used numbers.
    */
   checkNumber?: string;
+  /**
+   * #8: split the category side into multiple lines (2+ signed rows whose
+   * sum equals `amount`; negative rows are withholdings that reduce the
+   * check). When set, `categoryAccount` may be empty — the first positive
+   * split's account stands in for it on account/paymentAccount.
+   */
+  splits?: RegisterSplitLine[];
 };
+
+/**
+ * Usable split rows: 2+ lines each with an account and a nonzero amount.
+ * Amounts are signed — negative lines reduce the check (withholdings).
+ */
+function normalizeSplits(
+  splits: RegisterSplitLine[] | undefined
+): RegisterSplitLine[] {
+  const rows = (splits ?? []).filter((s) => s.account && s.amount !== 0);
+  return rows.length >= 2 ? rows : [];
+}
+
+/** The account standing in for the single category field: first positive line. */
+function splitCategoryAccount(splits: RegisterSplitLine[]): string {
+  return (splits.find((s) => s.amount > 0) ?? splits[0]).account;
+}
+
+function moneyToNumber(value: unknown): number {
+  const money = value as { float?: number } | null | undefined;
+  if (typeof money?.float === 'number') {
+    return money.float;
+  }
+  return Number(String(value ?? 0)) || 0;
+}
 
 /** True when the resolved payment method is a Check-type method. */
 export async function isCheckMethod(
@@ -153,12 +191,19 @@ export async function createRegisterPayment(
 
   const paymentType = normalizeRegisterPaymentType(fields.paymentType);
 
+  // #8: with splits, the first positive split's account stands in for the
+  // single category field so account/paymentAccount stay valid for old code
+  // paths.
+  const splits = normalizeSplits(fields.splits);
+  const categoryAccount = splits.length
+    ? splitCategoryAccount(splits)
+    : fields.categoryAccount;
+
   // Pay: credit bank (account), debit category (paymentAccount)
   // Receive: debit bank (paymentAccount), credit category (account)
-  const account =
-    paymentType === 'Pay' ? fields.bankAccount : fields.categoryAccount;
+  const account = paymentType === 'Pay' ? fields.bankAccount : categoryAccount;
   const paymentAccount =
-    paymentType === 'Pay' ? fields.categoryAccount : fields.bankAccount;
+    paymentType === 'Pay' ? categoryAccount : fields.bankAccount;
 
   const wantQueue = !!fields.printLater;
   const isCheck = await isCheckMethod(fyo, paymentMethod);
@@ -205,6 +250,16 @@ export async function createRegisterPayment(
   // Set accounts after type so account formulas see the correct Pay/Receive.
   await doc.set('account', account);
   await doc.set('paymentAccount', paymentAccount);
+
+  // #8: the split rows replace the single category leg at posting time
+  // (Payment.getPosting); the bank leg stays a single full-amount leg.
+  for (const split of splits) {
+    await doc.append('splits', {
+      account: split.account,
+      amount: fyo.pesa(split.amount),
+      description: split.description || '',
+    });
+  }
 
   // Do not auto-assign a check number on Save. Numbering happens on print
   // (or when the user types referenceId). Unticked Print later = unprinted
@@ -285,8 +340,8 @@ export async function memorizePayment(
     title: payment.party,
     party: payment.party,
     paymentType,
-    fromAccount: payment.account,
-    toAccount: payment.paymentAccount,
+    fromAccount: payment.account as string,
+    toAccount: payment.paymentAccount as string,
     amount,
     memo: payment.memo || payment.referenceId || '',
     frequency: 'Monthly',
@@ -295,6 +350,15 @@ export async function memorizePayment(
       (await resolveDefaultPaymentMethod(fyo)),
     nextDueDate: DateTime.now().plus({ months: 1 }).toISODate(),
   });
+
+  // #8: carry split lines into the template so recurring runs re-split.
+  for (const split of payment.splits ?? []) {
+    await doc.append('splits', {
+      account: split.account,
+      amount: split.amount,
+      description: split.description || '',
+    });
+  }
 
   await doc.sync();
   showToast({
@@ -320,10 +384,17 @@ export async function memorizeRegisterFields(
 
   await ensurePartyExists(fyo, fields.party);
 
+  // #8: with splits, the first positive split's account stands in for the
+  // single category account (same convention as createRegisterPayment).
+  const splits = normalizeSplits(fields.splits);
+  const categoryAccount = splits.length
+    ? splitCategoryAccount(splits)
+    : fields.categoryAccount;
+
   const account =
-    fields.paymentType === 'Pay' ? fields.bankAccount : fields.categoryAccount;
+    fields.paymentType === 'Pay' ? fields.bankAccount : categoryAccount;
   const paymentAccount =
-    fields.paymentType === 'Pay' ? fields.categoryAccount : fields.bankAccount;
+    fields.paymentType === 'Pay' ? categoryAccount : fields.bankAccount;
 
   const doc = fyo.doc.getNewDoc(ModelNameEnum.MemorizedTransaction, {
     title: fields.party,
@@ -338,6 +409,14 @@ export async function memorizeRegisterFields(
       fields.paymentMethod || (await resolveDefaultPaymentMethod(fyo)),
     nextDueDate: DateTime.now().plus({ months: 1 }).toISODate(),
   });
+
+  for (const split of splits) {
+    await doc.append('splits', {
+      account: split.account,
+      amount: fyo.pesa(split.amount),
+      description: split.description || '',
+    });
+  }
 
   await doc.sync();
   const openEditor = options?.openEditor !== false;
@@ -370,6 +449,13 @@ export async function createPaymentFromMemorized(
   const bankAccount = paymentType === 'Pay' ? fromAccount : toAccount;
   const categoryAccount = paymentType === 'Pay' ? toAccount : fromAccount;
 
+  // #8: templates memorized with splits re-split each occurrence.
+  const splits = ((mt as MemorizedTransaction).splits ?? []).map((row) => ({
+    account: (row.account as string) || '',
+    amount: moneyToNumber(row.amount),
+    description: (row.description as string) || '',
+  }));
+
   // Prefer explicit date; else due date at "now" clock time; else now.
   let date: string | Date =
     options?.date ||
@@ -397,6 +483,7 @@ export async function createPaymentFromMemorized(
     paymentType,
     memo: (mt.memo as string) || '',
     paymentMethod: (mt.paymentMethod as string) || undefined,
+    splits: splits.length ? splits : undefined,
   });
 }
 

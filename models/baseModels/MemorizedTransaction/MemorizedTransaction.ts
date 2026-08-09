@@ -10,6 +10,7 @@ import {
 import { ValidationError } from 'fyo/utils/errors';
 import { DateTime } from 'luxon';
 import { Money } from 'pesa';
+import { PaymentSplit } from '../PaymentSplit/PaymentSplit';
 
 export type MemorizedFrequency =
   | 'Daily'
@@ -37,6 +38,7 @@ export class MemorizedTransaction extends Doc {
   nextDueDate?: string | Date;
   remindDaysBefore?: number;
   paymentMethod?: string;
+  splits?: PaymentSplit[];
 
   static defaults: DefaultMap = {
     // Soonest schedule is tomorrow (date-only; no same-day run).

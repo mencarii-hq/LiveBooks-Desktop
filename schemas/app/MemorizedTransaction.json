@@ -113,6 +113,14 @@
       "readOnly": true,
       "hidden": true,
       "section": "Default"
+    },
+    {
+      "fieldname": "splits",
+      "label": "Splits",
+      "fieldtype": "Table",
+      "target": "PaymentSplit",
+      "required": false,
+      "hidden": true
     }
   ],
   "quickEditFields": [

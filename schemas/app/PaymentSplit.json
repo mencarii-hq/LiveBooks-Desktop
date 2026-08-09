@@ -1,0 +1,30 @@
+{
+  "name": "PaymentSplit",
+  "label": "Payment Split",
+  "isSingle": false,
+  "isChild": true,
+  "fields": [
+    {
+      "fieldname": "account",
+      "label": "Category",
+      "placeholder": "Category",
+      "fieldtype": "Link",
+      "target": "Account",
+      "required": true
+    },
+    {
+      "fieldname": "amount",
+      "label": "Amount",
+      "fieldtype": "Currency",
+      "required": true
+    },
+    {
+      "fieldname": "description",
+      "label": "Memo",
+      "placeholder": "Memo",
+      "fieldtype": "Data"
+    }
+  ],
+  "tableFields": ["account", "amount", "description"],
+  "keywordFields": ["account"]
+}

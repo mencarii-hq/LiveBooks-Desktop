@@ -26,6 +26,7 @@ import { AccountTypeEnum } from '../Account/types';
 import { Invoice } from '../Invoice/Invoice';
 import { Party } from '../Party/Party';
 import { PaymentFor } from '../PaymentFor/PaymentFor';
+import { PaymentSplit } from '../PaymentSplit/PaymentSplit';
 import { PaymentType, PaymentTypeEnum } from './types';
 import { PartyRoleEnum } from '../Party/types';
 import { TaxSummary } from '../TaxSummary/TaxSummary';
@@ -51,6 +52,7 @@ export class Payment extends Transactional {
   memo?: string;
   referenceType?: ModelNameEnum.SalesInvoice | ModelNameEnum.PurchaseInvoice;
   for?: PaymentFor[];
+  splits?: PaymentSplit[];
   _accountsMap?: AccountTypeMap;
   initialAmount?: Money;
 
@@ -124,6 +126,7 @@ export class Payment extends Transactional {
 
     await this.validateFor();
     this.validateAccounts();
+    this.validateSplits();
     this.validateTotalReferenceAmount();
     await this.validateReferences();
     await this.validateReferencesAreSet();
@@ -170,6 +173,58 @@ export class Payment extends Transactional {
         this.account as string
       }`
     );
+  }
+
+  validateSplits() {
+    const splits = this.splits ?? [];
+    if (splits.length === 0) {
+      return;
+    }
+
+    if (splits.length < 2) {
+      throw new ValidationError(
+        t`A split payment needs at least two split lines.`
+      );
+    }
+
+    // Amounts are signed: positive lines are the category side (e.g. gross
+    // payroll expense), negative lines reduce the check (withholdings). The
+    // signed sum must equal the (net) payment amount.
+    let total = this.fyo.pesa(0);
+    let grossTotal = this.fyo.pesa(0);
+    for (const split of splits) {
+      if (!split.account) {
+        throw new ValidationError(t`Each split line needs a category account.`);
+      }
+
+      if (!split.amount || split.amount.isZero()) {
+        throw new ValidationError(t`Each split line needs a nonzero amount.`);
+      }
+
+      total = total.add(split.amount);
+      if (!split.amount.isNegative()) {
+        grossTotal = grossTotal.add(split.amount);
+      }
+    }
+
+    if (grossTotal.lte(0)) {
+      throw new ValidationError(
+        t`Split lines need at least one positive amount.`
+      );
+    }
+
+    const amount = this.amount as Money;
+    if (!total.eq(amount)) {
+      throw new ValidationError(
+        t`Split total ${this.fyo.format(
+          total,
+          'Currency'
+        )} must equal the payment amount ${this.fyo.format(
+          amount,
+          'Currency'
+        )}.`
+      );
+    }
   }
 
   validateTotalReferenceAmount() {
@@ -373,8 +428,39 @@ export class Payment extends Transactional {
     // account side is credited (see the From/To doc comment above):
     // - Receive: debit Cash/Bank (paymentAccount), credit Debtors (account)
     // - Pay:     debit Creditors (paymentAccount), credit Cash/Bank (account)
-    await posting.debit(paymentAccount, paymentAccountAmount);
-    await posting.credit(account, accountAmount);
+    //
+    // Split register entries break the category side into one leg per split
+    // row (validateSplits guarantees the signed rows sum to `amount`), while
+    // the bank side stays a single leg at the full (net) amount. Positive
+    // lines post on the category side; negative lines (payroll withholdings)
+    // post on the opposite side at absolute value — LedgerPosting does not
+    // accept negative amounts. When there are no splits, posting is
+    // identical to the single-leg behavior.
+    const splits = this.splits ?? [];
+    if (splits.length && this.paymentType === 'Pay') {
+      for (const split of splits) {
+        const splitAmount = split.amount!;
+        if (splitAmount.isNegative()) {
+          await posting.credit(split.account!, splitAmount.abs());
+        } else {
+          await posting.debit(split.account!, splitAmount);
+        }
+      }
+      await posting.credit(account, accountAmount);
+    } else if (splits.length && this.paymentType === 'Receive') {
+      await posting.debit(paymentAccount, paymentAccountAmount);
+      for (const split of splits) {
+        const splitAmount = split.amount!;
+        if (splitAmount.isNegative()) {
+          await posting.debit(split.account!, splitAmount.abs());
+        } else {
+          await posting.credit(split.account!, splitAmount);
+        }
+      }
+    } else {
+      await posting.debit(paymentAccount, paymentAccountAmount);
+      await posting.credit(account, accountAmount);
+    }
 
     if (this.taxes) {
       if (this.paymentType === 'Receive') {

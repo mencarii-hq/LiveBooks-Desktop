@@ -21,6 +21,7 @@ import { CouponCode } from './baseModels/CouponCode/CouponCode';
 import { Payment } from './baseModels/Payment/Payment';
 import { PaymentMethod } from './baseModels/PaymentMethod/PaymentMethod';
 import { PaymentFor } from './baseModels/PaymentFor/PaymentFor';
+import { PaymentSplit } from './baseModels/PaymentSplit/PaymentSplit';
 import { CheckPrintSettings } from './baseModels/CheckPrintSettings/CheckPrintSettings';
 import { MemorizedTransaction } from './baseModels/MemorizedTransaction/MemorizedTransaction';
 import { PriceList } from './baseModels/PriceList/PriceList';
@@ -95,6 +96,7 @@ export const models = {
   Payment,
   PaymentMethod,
   PaymentFor,
+  PaymentSplit,
   CheckPrintSettings,
   MemorizedTransaction,
   PrintSettings,
