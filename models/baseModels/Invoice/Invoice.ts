@@ -300,8 +300,8 @@ export abstract class Invoice extends Transactional {
     this._updateModifiedMetaValues();
     await this.fyo.db.update(this.schemaName, {
       name: this.name as string,
-      modified: this.modified,
-      modifiedBy: this.modifiedBy,
+      modified: this.modified as Date,
+      modifiedBy: this.modifiedBy as string,
       outstandingAmount: lpAddedBaseGrandTotal! || this.baseGrandTotal!,
     });
 

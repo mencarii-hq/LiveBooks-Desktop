@@ -6,5 +6,5 @@
 
 export TS_NODE_COMPILER_OPTIONS='{"module":"commonjs"}'
 export ELECTRON_RUN_AS_NODE=true
-alias electron_node="./node_modules/.bin/electron --require ts-node/register --require tsconfig-paths/register"
+alias electron_node="./node_modules/.bin/electron --require ts-node/register --require tsconfig-paths/register --require ./scripts/testRequireHooks.js"
 electron_node $@

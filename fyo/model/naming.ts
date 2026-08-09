@@ -30,7 +30,11 @@ export function isNameAutoSet(schemaName: string, fyo: Fyo): boolean {
 }
 
 async function uuidIdentityActive(fyo: Fyo): Promise<boolean> {
-  const knex = fyo.db.knex as import('knex').Knex | undefined;
+  // DatabaseHandler does not expose knex (only DatabaseCore does, e.g. in
+  // tests where fyo runs against the backend directly); resolve it
+  // structurally so both environments compile.
+  // eslint-disable-next-line no-restricted-syntax -- read-only uuid identity probe
+  const knex = (fyo.db as unknown as { knex?: import('knex').Knex }).knex;
   return await isUuidIdentityComplete(knex);
 }
 

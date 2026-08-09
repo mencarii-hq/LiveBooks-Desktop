@@ -5,7 +5,9 @@ export class Config {
   config: Map<string, unknown> | IPC['store'];
   constructor(isElectron: boolean) {
     this.config = new Map();
-    if (isElectron) {
+    // `ipc` is injected by the preload script; absent when running under
+    // plain node (tests), where the in-memory Map is used instead.
+    if (isElectron && typeof ipc !== 'undefined') {
       this.config = ipc.store;
     }
   }

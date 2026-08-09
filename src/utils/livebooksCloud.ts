@@ -14,6 +14,11 @@ export async function getLivebooksCloudSessionSummary(): Promise<{
   signedIn: boolean;
   secureStorageDegraded: boolean;
 }> {
+  // `ipc` is injected by the preload script; absent when running under
+  // plain node (tests), where no cloud session can exist.
+  if (typeof ipc === 'undefined') {
+    return { signedIn: false, secureStorageDegraded: false };
+  }
   return await ipc.getLivebooksCloudSession();
 }
 

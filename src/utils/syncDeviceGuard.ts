@@ -55,7 +55,7 @@ export async function runSyncDeviceGuard(
     orderBy: 'clientSeq',
     order: 'desc',
     limit: 1,
-  })) as { deviceId?: string }[];
+  })) as { deviceId: string }[];
 
   const legacyInstanceId = (await fyo.getValue(
     ModelNameEnum.SystemSettings,

@@ -33,11 +33,13 @@ export default class SystemSettings extends Doc {
     },
   };
 
-  beforeSync() {
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async beforeSync() {
     this._countryCodeBeforeSync = this.countryCode;
   }
 
-  afterSync() {
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async afterSync() {
     const before = (this._countryCodeBeforeSync ?? '').trim().toLowerCase();
     const after = (this.countryCode ?? '').trim().toLowerCase();
     if (before !== after) {
