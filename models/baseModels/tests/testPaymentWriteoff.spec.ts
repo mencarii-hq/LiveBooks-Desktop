@@ -122,9 +122,17 @@ test('#1540 Receive: write-off posts Cash=amountPaid, WriteOff Dr, Debtors clear
   const debtors = net(ales, 'Debtors');
   const wo = net(ales, writeOffAccount);
 
-  t.equal(cash.debit, 155, 'Cash is debited amountPaid (155), not the full amount');
+  t.equal(
+    cash.debit,
+    155,
+    'Cash is debited amountPaid (155), not the full amount'
+  );
   t.equal(cash.credit, 0, 'Cash is not credited');
-  t.equal(debtors.credit - debtors.debit, 157.5, 'Debtors clears the full amount (157.5)');
+  t.equal(
+    debtors.credit - debtors.debit,
+    157.5,
+    'Debtors clears the full amount (157.5)'
+  );
   t.equal(wo.debit, 2.5, 'Write Off is debited the write-off amount (2.5)');
   t.equal(wo.credit, 0, 'Write Off is not credited on a Receive');
 });
@@ -157,25 +165,26 @@ test('#1540 Purchase payment with write-off: cash moves amountPaid, party clears
   // The party account (Creditors) must clear the full invoice amount (157.5),
   // cash moves only amountPaid (155), and the write-off account absorbs the 2.5.
   t.equal(
-    Math.abs(creditors.debit - creditors.credit),
+    creditors.debit - creditors.credit,
     157.5,
-    'Creditors clears the full amount (157.5), not the reduced amountPaid'
+    'Creditors is net debited the full amount (157.5), not the reduced amountPaid'
   );
   t.equal(
-    Math.abs(cash.debit - cash.credit),
+    cash.credit - cash.debit,
     155,
-    'Cash moves only amountPaid (155), not the full amount'
+    'Cash is net credited only amountPaid (155), not the full amount'
   );
-  t.equal(
-    wo.debit + wo.credit,
-    2.5,
-    'Write Off account absorbs the write-off amount (2.5)'
-  );
+  t.equal(wo.credit, 2.5, 'Write Off is credited the write-off amount (2.5)');
+  t.equal(wo.debit, 0, 'Write Off is not debited on a Pay');
 
   // Double-entry integrity: total debits equal total credits.
   const totalDebit = ales.reduce((s, a) => s + a.debit, 0);
   const totalCredit = ales.reduce((s, a) => s + a.credit, 0);
-  t.equal(totalDebit, totalCredit, 'ledger balances (total debit == total credit)');
+  t.equal(
+    totalDebit,
+    totalCredit,
+    'ledger balances (total debit == total credit)'
+  );
   t.equal(totalDebit, 157.5, 'total posted is the full invoice amount');
 });
 

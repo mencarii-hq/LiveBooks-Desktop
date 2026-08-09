@@ -369,13 +369,12 @@ export class Payment extends Transactional {
       paymentAccount === partyAccount ? amount : amountPaid;
     const accountAmount = account === partyAccount ? amount : amountPaid;
 
-    if (this.paymentType === 'Pay') {
-      await posting.debit(account, accountAmount);
-      await posting.credit(paymentAccount, paymentAccountAmount);
-    } else {
-      await posting.debit(paymentAccount, paymentAccountAmount);
-      await posting.credit(account, accountAmount);
-    }
+    // For both payment types the paymentAccount side is debited and the
+    // account side is credited (see the From/To doc comment above):
+    // - Receive: debit Cash/Bank (paymentAccount), credit Debtors (account)
+    // - Pay:     debit Creditors (paymentAccount), credit Cash/Bank (account)
+    await posting.debit(paymentAccount, paymentAccountAmount);
+    await posting.credit(account, accountAmount);
 
     if (this.taxes) {
       if (this.paymentType === 'Receive') {
