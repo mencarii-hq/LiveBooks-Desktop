@@ -2,10 +2,10 @@
   <div class="flex flex-col overflow-y-hidden h-full">
     <PageHeader :title="t`Write Entry`">
       <Button :disabled="saving" @click="memorizeCurrent">
-        {{ t`Recurring` }}
+        {{ t`Save as recurring…` }}
       </Button>
       <Button type="primary" :disabled="saving" @click="submitEntry">
-        {{ saving ? t`Saving…` : t`Save` }}
+        {{ saving ? t`Saving…` : t`Save entry` }}
       </Button>
     </PageHeader>
 
@@ -39,7 +39,7 @@
             :show-label="true"
             :df="dateField"
             :value="form.date"
-            @change="(v) => (form.date = String(v || ''))"
+            @change="setFormDate"
           />
           <FormControl
             :border="true"
@@ -82,6 +82,15 @@
             @change="(v) => (form.paymentMethod = String(v || ''))"
           />
           <FormControl
+            v-if="canQueue && !form.printLater"
+            :border="true"
+            size="small"
+            :show-label="true"
+            :df="checkNumberField"
+            :value="form.checkNumber"
+            @change="(v) => (form.checkNumber = String(v || ''))"
+          />
+          <FormControl
             class="sm:col-span-2"
             :border="true"
             size="small"
@@ -105,7 +114,31 @@
             <input v-model="form.printLater" type="checkbox" class="h-4 w-4" />
             {{ t`Print later (add to Checks to Print queue)` }}
           </label>
+
+          <label
+            class="
+              sm:col-span-2
+              flex
+              items-center
+              gap-2
+              text-sm text-gray-700
+              dark:text-gray-300
+            "
+          >
+            <input
+              v-model="form.alsoRecurring"
+              type="checkbox"
+              class="h-4 w-4"
+            />
+            {{ t`Also save as a recurring template` }}
+          </label>
         </div>
+
+        <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+          {{
+            t`Save entry posts to the Check Register. Save as recurring stores a schedule only (no payment) — run it later from Recurring Transactions.`
+          }}
+        </p>
 
         <p v-if="formError" class="mt-3 text-sm text-red-600">
           {{ formError }}
@@ -125,6 +158,7 @@ import FormControl from 'src/components/Controls/FormControl.vue';
 import PageHeader from 'src/components/PageHeader.vue';
 import { fyo } from 'src/initFyo';
 import { handleErrorWithDialog } from 'src/errorHandling';
+import { showDialog, showToast } from 'src/utils/interactive';
 import {
   createRegisterPayment,
   memorizeRegisterFields,
@@ -145,8 +179,6 @@ export default defineComponent({
     return {
       bankAccount: '',
       bankAccounts: [] as AccountOpt[],
-      categoryAccounts: [] as AccountOpt[],
-      parties: [] as string[],
       paymentMethods: [] as { name: string; type?: string }[],
       saving: false,
       formError: '',
@@ -161,6 +193,8 @@ export default defineComponent({
         memo: '',
         paymentMethod: '',
         printLater: false,
+        alsoRecurring: false,
+        checkNumber: '',
       },
     };
   },
@@ -189,6 +223,7 @@ export default defineComponent({
         fieldname: 'bankAccount',
         label: this.t`Bank account`,
         placeholder: this.t`Bank account`,
+        required: true,
         filters: {
           isGroup: false,
           accountType: ['in', [AccountTypeEnum.Bank, AccountTypeEnum.Cash]],
@@ -200,29 +235,39 @@ export default defineComponent({
         fieldtype: 'Date',
         fieldname: 'date',
         label: this.t`Date`,
+        required: true,
       } as Field;
     },
     partyField(): Field {
       return {
-        fieldtype: 'AutoComplete',
+        fieldtype: 'Link',
+        target: 'Party',
         fieldname: 'party',
         label: this.t`Payee`,
         placeholder: this.t`Payee`,
         required: true,
-        options: this.parties.map((p) => ({ label: p, value: p })),
       } as Field;
     },
     categoryField(): Field {
       return {
-        fieldtype: 'AutoComplete',
+        fieldtype: 'Link',
+        target: 'Account',
         fieldname: 'categoryAccount',
         label: this.t`Category`,
         placeholder: this.t`Select category`,
         required: true,
-        options: this.categoryAccounts.map((a) => ({
-          label: a.accountName || a.name,
-          value: a.name,
-        })),
+        filters: {
+          isGroup: false,
+          accountType: [
+            'not in',
+            [
+              AccountTypeEnum.Bank,
+              AccountTypeEnum.Cash,
+              AccountTypeEnum.Receivable,
+              AccountTypeEnum.Payable,
+            ],
+          ],
+        },
       } as Field;
     },
     amountField(): Field {
@@ -241,6 +286,7 @@ export default defineComponent({
         fieldtype: 'Select',
         fieldname: 'paymentType',
         label: this.t`Entry type`,
+        required: true,
         options: [
           { label: this.t`Payment`, value: 'Pay' },
           { label: this.t`Deposit`, value: 'Receive' },
@@ -267,6 +313,16 @@ export default defineComponent({
         label: this.t`Memo`,
       } as Field;
     },
+    // #3: number of an already-written check (hidden when queuing — print
+    // assigns queued numbers).
+    checkNumberField(): Field {
+      return {
+        fieldtype: 'Data',
+        fieldname: 'checkNumber',
+        label: this.t`Check no.`,
+        placeholder: this.t`Blank = unprinted`,
+      } as Field;
+    },
   },
   watch: {
     bankAccount(value: string) {
@@ -274,11 +330,22 @@ export default defineComponent({
         setLastRegisterBankAccount(value);
       }
     },
+    // Drop a typed check number when the field is hidden (print-later or
+    // non-Check/Pay) so it cannot resurface on a later Save.
+    canQueue(value: boolean) {
+      if (!value) {
+        this.form.checkNumber = '';
+      }
+    },
+    'form.printLater'(value: boolean) {
+      if (value) {
+        this.form.checkNumber = '';
+      }
+    },
   },
   async mounted() {
     try {
       await this.loadAccounts();
-      await this.loadParties();
       await this.loadPaymentMethods();
       this.applySavedBank();
     } catch (error) {
@@ -321,28 +388,6 @@ export default defineComponent({
         order: 'asc',
       })) as AccountOpt[];
       this.bankAccounts = banks;
-
-      const cats = (await fyo.db.getAll(ModelNameEnum.Account, {
-        filters: { isGroup: false },
-        fields: ['name', 'accountName', 'accountType'],
-        orderBy: 'accountName',
-        order: 'asc',
-      })) as (AccountOpt & { accountType?: string })[];
-      this.categoryAccounts = cats.filter(
-        (a) =>
-          a.accountType !== AccountTypeEnum.Bank &&
-          a.accountType !== AccountTypeEnum.Cash &&
-          a.accountType !== AccountTypeEnum.Receivable &&
-          a.accountType !== AccountTypeEnum.Payable
-      );
-    },
-    async loadParties() {
-      const rows = (await fyo.db.getAll(ModelNameEnum.Party, {
-        fields: ['name'],
-        orderBy: 'name',
-        order: 'asc',
-      })) as { name: string }[];
-      this.parties = rows.map((r) => r.name);
     },
     async loadPaymentMethods() {
       try {
@@ -358,6 +403,16 @@ export default defineComponent({
       } catch {
         this.paymentMethods = [];
       }
+    },
+    setFormDate(value: unknown) {
+      // The Date control emits a JS Date; String(date) is not ISO and fails
+      // Datetime conversion downstream (createRegisterPayment and
+      // memorizeRegisterFields both consume form.date).
+      if (value instanceof Date) {
+        this.form.date = DateTime.fromJSDate(value).toISODate() ?? '';
+        return;
+      }
+      this.form.date = value ? String(value) : '';
     },
     async submitEntry() {
       this.formError = '';
@@ -383,7 +438,7 @@ export default defineComponent({
       }
       this.saving = true;
       try {
-        await createRegisterPayment(fyo, {
+        const fields = {
           date: this.form.date,
           party: this.form.party.trim(),
           categoryAccount: this.form.categoryAccount,
@@ -393,9 +448,27 @@ export default defineComponent({
           memo: this.form.memo,
           paymentMethod: this.form.paymentMethod,
           printLater: !!(this.canQueue && this.form.printLater),
-        });
+          checkNumber: this.form.checkNumber.trim(),
+        };
+        await createRegisterPayment(fyo, fields);
+        if (this.form.alsoRecurring) {
+          await memorizeRegisterFields(fyo, fields, { openEditor: false });
+          showToast({
+            type: 'success',
+            message: this
+              .t`Entry saved to Check Register; recurring template created`,
+          });
+        } else {
+          showToast({
+            type: 'success',
+            message: this.t`Entry saved to Check Register`,
+          });
+        }
         setLastRegisterBankAccount(this.bankAccount);
-        await this.resetFormAfterSave();
+        // keep-alive caches this page — clear entry fields before leaving so
+        // the next Write Entry visit is blank (bank / method defaults stay).
+        this.resetFormAfterSave();
+        await this.$router.push({ name: 'Check Register' });
       } catch (error) {
         await handleErrorWithDialog(error);
         this.formError = error instanceof Error ? error.message : String(error);
@@ -403,19 +476,19 @@ export default defineComponent({
         this.saving = false;
       }
     },
-    async resetFormAfterSave() {
-      const paymentMethod =
-        this.form.paymentMethod || (await resolveDefaultPaymentMethod(fyo));
-      const paymentType = this.form.paymentType;
+    resetFormAfterSave() {
+      const paymentMethod = this.form.paymentMethod;
       this.form = {
         date: DateTime.now().toISODate() || '',
         party: '',
         categoryAccount: '',
         amount: 0,
-        paymentType,
+        paymentType: 'Pay',
         memo: '',
         paymentMethod,
         printLater: false,
+        alsoRecurring: false,
+        checkNumber: '',
       };
       this.formError = '';
       this.formKey += 1;
@@ -424,6 +497,23 @@ export default defineComponent({
       this.formError = '';
       if (!this.bankAccount) {
         this.formError = this.t`Select a bank account.`;
+        return;
+      }
+      const proceed = (await showDialog({
+        title: this.t`Save as recurring template?`,
+        detail: this
+          .t`This stores a reusable schedule under Recurring Transactions. It does not post a payment to the Check Register. To post now and also schedule, use Save entry with “Also save as a recurring template” checked.`,
+        type: 'info',
+        buttons: [
+          { label: this.t`Cancel`, action: () => false, isEscape: true },
+          {
+            label: this.t`Save template only`,
+            action: () => true,
+            isPrimary: true,
+          },
+        ],
+      })) as boolean;
+      if (!proceed) {
         return;
       }
       try {

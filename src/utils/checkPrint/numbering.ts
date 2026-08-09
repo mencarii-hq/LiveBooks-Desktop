@@ -44,25 +44,45 @@ export function isPrintedCheck(payment: {
   return isCheck && !payment.printLater && !!(payment.referenceId ?? '').trim();
 }
 
-/** All referenceId strings already in use for a bank account (Q-F scope). */
+/**
+ * Canonical form for collision checks: trim, drop a leading `#`, and for
+ * pure-digit values strip leading zeros so "0123" / "#123" / "123" match.
+ * Non-numeric refs stay as trimmed text (minus leading `#`).
+ */
+export function normalizeCheckNumber(value: unknown): string {
+  let s = String(value ?? '').trim();
+  if (!s) {
+    return '';
+  }
+  if (s.startsWith('#')) {
+    s = s.slice(1).trim();
+  }
+  if (/^\d+$/.test(s)) {
+    const stripped = s.replace(/^0+/, '');
+    return stripped || '0';
+  }
+  return s;
+}
+
+/**
+ * All referenceId strings already in use for a bank account (Q-F scope).
+ * Throws if payment lookup fails — callers must not assign/accept numbers
+ * against an empty used-set (fail closed).
+ */
 export async function getUsedCheckNumbers(
   fyo: Fyo,
   bankAccount: string
 ): Promise<Set<string>> {
   const used = new Set<string>();
-  try {
-    const rows = (await fyo.db.getAll(ModelNameEnum.Payment, {
-      fields: ['referenceId'],
-      filters: { account: bankAccount },
-    })) as { referenceId?: string }[];
-    for (const r of rows) {
-      const ref = (r.referenceId ?? '').trim();
-      if (ref) {
-        used.add(ref);
-      }
+  const rows = (await fyo.db.getAll(ModelNameEnum.Payment, {
+    fields: ['referenceId'],
+    filters: { account: bankAccount },
+  })) as { referenceId?: string }[];
+  for (const r of rows) {
+    const ref = normalizeCheckNumber(r.referenceId);
+    if (ref) {
+      used.add(ref);
     }
-  } catch {
-    /* best effort */
   }
 
   for (const v of await getVoidedCheckNumbers(fyo, bankAccount)) {
@@ -86,7 +106,9 @@ export async function getVoidedCheckNumbers(
     }
     const parsed = JSON.parse(raw) as unknown;
     if (Array.isArray(parsed)) {
-      return parsed.map((v) => String(v).trim()).filter(Boolean);
+      return [
+        ...new Set(parsed.map((v) => normalizeCheckNumber(v)).filter(Boolean)),
+      ];
     }
   } catch {
     /* ignore malformed log */
@@ -113,10 +135,11 @@ async function getNextCheckNumber(
 
 /**
  * O2 / P2 — assign-first in memory. Walk items in order per bank account.
- * Collision (candidate number already used, string equality Q-AI) → skip that
- * item (stays queued) and auto-advance to the next free number. Successful
- * items receive contiguous free numbers per bank account. Provisional numbers
- * are NOT persisted here (Q-AC) — commit happens after the post-print confirm.
+ * Always advance past used numbers (Q-AI string equality) before assigning so
+ * a stale `nextCheckNumber` never skips a payment — it gets the next free #.
+ * Successful items receive contiguous free numbers per bank account.
+ * Provisional numbers are NOT persisted here (Q-AC) — commit happens after
+ * the post-print confirm.
  */
 export async function assignBatchNumbers(
   fyo: Fyo,
@@ -139,7 +162,7 @@ export async function assignBatchNumbers(
     let pointer = await getNextCheckNumber(fyo, bankAccount);
 
     const advancePastUsed = () => {
-      while (used.has(String(pointer))) {
+      while (used.has(normalizeCheckNumber(pointer))) {
         pointer += 1;
       }
     };
@@ -153,18 +176,9 @@ export async function assignBatchNumbers(
         continue;
       }
 
-      const candidate = String(pointer);
-      if (used.has(candidate)) {
-        // Forced collision → skip this item, auto-advance to next free number.
-        skips.push({
-          paymentName: item.paymentName,
-          reason: `Check number ${candidate} already used — advanced past it`,
-        });
-        pointer += 1;
-        advancePastUsed();
-        continue;
-      }
-
+      // Skip used #s (e.g. leftover from old handwritten Save) then assign.
+      advancePastUsed();
+      const candidate = normalizeCheckNumber(pointer);
       assignments.push({
         paymentName: item.paymentName,
         bankAccount,
@@ -172,9 +186,9 @@ export async function assignBatchNumbers(
       });
       used.add(candidate);
       pointer += 1;
-      advancePastUsed();
     }
 
+    advancePastUsed();
     nextByAccount[bankAccount] = pointer;
   }
 
@@ -244,7 +258,7 @@ export async function voidAndRequeue(
   }
 
   const bankAccount = payment.account as string;
-  const oldNumber = (payment.referenceId ?? '').trim();
+  const oldNumber = normalizeCheckNumber(payment.referenceId);
 
   if (oldNumber && bankAccount) {
     const voided = await getVoidedCheckNumbers(fyo, bankAccount);
