@@ -1,7 +1,7 @@
 <template>
   <div :title="df.label">
     <div v-if="showLabel" :class="labelClasses">
-      {{ df.label }}
+      {{ df.label }}<span v-if="isRequired" class="text-red-500"> *</span>
     </div>
     <div :class="showMandatory ? 'show-mandatory' : ''">
       <input
