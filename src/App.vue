@@ -91,7 +91,10 @@ import {
   maybePromptFeedbackSurvey,
 } from './utils/feedbackSurvey';
 import { getSavePath } from './utils/ui';
-import { maybePromptMemorizedDue } from './utils/memorizedTransactions';
+import {
+  maybePromptMemorizedDue,
+  startMemorizedDueRolloverCheck,
+} from './utils/memorizedTransactions';
 import {
   invalidateUsCaCompanyCache,
   REGIONAL_LABELS_CHANGED_EVENT,
@@ -285,6 +288,7 @@ export default defineComponent({
       });
       runWhenIdle(() => {
         void maybePromptMemorizedDue(fyo);
+        startMemorizedDueRolloverCheck(fyo);
       });
     },
     newDatabase() {

@@ -8,14 +8,56 @@ import { showDialog, showToast } from 'src/utils/interactive';
 import { handleErrorWithDialog } from 'src/errorHandling';
 import { routeTo } from 'src/utils/ui';
 
-/** Session-only: dismiss "These are due" until next company open. */
-let dismissedDueThisSession = false;
-/** Company path/id the dismiss flag applies to (reset on switch). */
-let dismissedForCompany: string | null = null;
+/**
+ * #7 — day-scoped snooze. Dismissing "These are due" silences that exact due
+ * set (same templates + due dates) for the rest of the day, across restarts.
+ * A new or changed due item re-prompts; a new day re-prompts.
+ * Stored per company so alternating books on the same day keep separate dismissals.
+ */
+const DUE_SNOOZE_KEY = 'memorizedDueSnooze';
 
-export function resetMemorizedDuePromptSession(): void {
-  dismissedDueThisSession = false;
-  dismissedForCompany = null;
+type DueSnooze = { company: string; date: string; signature: string };
+
+function snoozeStorageKey(company: string): string {
+  return `${DUE_SNOOZE_KEY}:${company || 'default'}`;
+}
+
+function readDueSnooze(company: string): DueSnooze | null {
+  try {
+    const raw =
+      localStorage.getItem(snoozeStorageKey(company)) ??
+      // Migrate pre–per-company key if it matches this company.
+      localStorage.getItem(DUE_SNOOZE_KEY);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as DueSnooze;
+    if (parsed.company && parsed.company !== company) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeDueSnooze(snooze: DueSnooze): void {
+  try {
+    localStorage.setItem(
+      snoozeStorageKey(snooze.company),
+      JSON.stringify(snooze)
+    );
+    localStorage.removeItem(DUE_SNOOZE_KEY);
+  } catch {
+    /* snooze is best-effort */
+  }
+}
+
+function dueSignature(due: MemorizedTransaction[]): string {
+  return due
+    .map((d) => `${String(d.name)}@${String(d.nextDueDate ?? '').slice(0, 10)}`)
+    .sort()
+    .join('|');
 }
 
 export type RegisterPaymentFields = {
@@ -29,6 +71,12 @@ export type RegisterPaymentFields = {
   paymentMethod?: string;
   /** Queue for batch check printing (only honored for Pay + Check — Q-AF). */
   printLater?: boolean;
+  /**
+   * #3: manually entered check number for an already-written check (Pay +
+   * Check, not queued). Rejected if already used or voided on the bank
+   * account; the print sequence auto-advances past manually used numbers.
+   */
+  checkNumber?: string;
 };
 
 /** True when the resolved payment method is a Check-type method. */
@@ -117,6 +165,26 @@ export async function createRegisterPayment(
   // Q-AF: only Pay + Check entries can be queued for printing.
   const queue = wantQueue && paymentType === 'Pay' && isCheck;
 
+  // #3: manual check number for an already-written check. Only meaningful
+  // for Pay + Check and never for queued items (print assigns those).
+  let manualCheckNumber = '';
+  if (!queue && paymentType === 'Pay' && isCheck && fields.checkNumber) {
+    const { getUsedCheckNumbers, normalizeCheckNumber } = await import(
+      'src/utils/checkPrint/numbering'
+    );
+    manualCheckNumber = normalizeCheckNumber(fields.checkNumber);
+    if (manualCheckNumber) {
+      const used = await getUsedCheckNumbers(fyo, fields.bankAccount);
+      if (used.has(manualCheckNumber)) {
+        // Reject duplicates (incl. voided numbers). Print numbering already
+        // auto-advances past manually used numbers, so no sequence bump here.
+        throw new Error(
+          t`Check number ${manualCheckNumber} is already used on this bank account.`
+        );
+      }
+    }
+  }
+
   // Do not seed paymentType before party: party formulas used to force
   // Receive for Customer/Both and would overwrite Pay.
   const doc = fyo.doc.getNewDoc(ModelNameEnum.Payment, {
@@ -138,31 +206,9 @@ export async function createRegisterPayment(
   await doc.set('account', account);
   await doc.set('paymentAccount', paymentAccount);
 
-  // Handwritten path (Print later unticked): assign next free check number
-  // immediately so X1 treats it as already printed. Never assign when the
-  // user asked to queue — even if method/type checks failed.
-  let assignedHandNumber: string | null = null;
-  if (!wantQueue && paymentType === 'Pay' && isCheck) {
-    try {
-      const { assignBatchNumbers } = await import(
-        'src/utils/checkPrint/numbering'
-      );
-      const { assignments } = await assignBatchNumbers(fyo, [
-        {
-          paymentName: 'pending',
-          bankAccount: fields.bankAccount,
-          amount: fields.amount,
-        },
-      ]);
-      if (assignments[0]) {
-        assignedHandNumber = assignments[0].checkNumber;
-        await doc.set('referenceId', assignedHandNumber);
-      }
-    } catch {
-      /* leave blank; user can type a number */
-    }
-  }
-
+  // Do not auto-assign a check number on Save. Numbering happens on print
+  // (or when the user types referenceId). Unticked Print later = unprinted
+  // until then — not the old handwritten / already-printed path.
   // Final guards: sync _preSync runs formulas; keep register values.
   // Direct assign so _canSet / formula side-effects cannot drop printLater
   // or replace the selected bank with Bank[0] from the account formula.
@@ -172,6 +218,8 @@ export async function createRegisterPayment(
   doc.printLater = queue;
   if (queue) {
     doc.referenceId = '';
+  } else if (manualCheckNumber) {
+    doc.referenceId = manualCheckNumber;
   }
   await doc.sync();
   await doc.submit();
@@ -181,23 +229,6 @@ export async function createRegisterPayment(
   if (queue && !doc.printLater) {
     await doc.set('printLater', true);
     await doc.sync();
-  }
-
-  if (assignedHandNumber) {
-    try {
-      const { commitAssignments } = await import(
-        'src/utils/checkPrint/numbering'
-      );
-      await commitAssignments(fyo, [
-        {
-          paymentName: String(doc.name),
-          bankAccount: fields.bankAccount,
-          checkNumber: assignedHandNumber,
-        },
-      ]);
-    } catch {
-      /* number is already on the payment */
-    }
   }
 
   return doc;
@@ -259,7 +290,9 @@ export async function memorizePayment(
     amount,
     memo: payment.memo || payment.referenceId || '',
     frequency: 'Monthly',
-    paymentMethod: (payment.paymentMethod as string) || 'Cash',
+    paymentMethod:
+      (payment.paymentMethod as string) ||
+      (await resolveDefaultPaymentMethod(fyo)),
     nextDueDate: DateTime.now().plus({ months: 1 }).toISODate(),
   });
 
@@ -273,15 +306,16 @@ export async function memorizePayment(
 
 export async function memorizeRegisterFields(
   fyo: Fyo,
-  fields: RegisterPaymentFields
-): Promise<void> {
+  fields: RegisterPaymentFields,
+  options?: { openEditor?: boolean }
+): Promise<boolean> {
   if (!(fields.amount > 0) || !fields.party) {
     await showDialog({
-      title: t`Cannot make recurring`,
+      title: t`Cannot save recurring template`,
       detail: t`Payee and amount are required.`,
       type: 'error',
     });
-    return;
+    return false;
   }
 
   await ensurePartyExists(fyo, fields.party);
@@ -300,16 +334,23 @@ export async function memorizeRegisterFields(
     amount: fyo.pesa(fields.amount),
     memo: fields.memo || '',
     frequency: 'Monthly',
-    paymentMethod: fields.paymentMethod || 'Cash',
+    paymentMethod:
+      fields.paymentMethod || (await resolveDefaultPaymentMethod(fyo)),
     nextDueDate: DateTime.now().plus({ months: 1 }).toISODate(),
   });
 
   await doc.sync();
-  showToast({
-    type: 'success',
-    message: t`Recurring transaction saved`,
-  });
-  await routeTo(`/edit/MemorizedTransaction/${String(doc.name)}`);
+  const openEditor = options?.openEditor !== false;
+  if (openEditor) {
+    // Template-only path: make clear nothing hit the register.
+    showToast({
+      type: 'success',
+      message: t`Recurring template saved — no payment posted`,
+    });
+    await routeTo(`/edit/MemorizedTransaction/${String(doc.name)}`);
+  }
+  // When openEditor is false, caller posts a payment too and owns the toast.
+  return true;
 }
 
 export async function createPaymentFromMemorized(
@@ -374,10 +415,20 @@ export async function runMemorizedNow(
 export async function advanceNextDueDate(
   mt: MemorizedTransaction | Doc
 ): Promise<void> {
+  await mt.setAndSync('nextDueDate', computeNextDueISO(mt));
+}
+
+/** Next schedule date after posting one occurrence (see advanceNextDueDate). */
+function computeNextDueISO(mt: MemorizedTransaction | Doc): string {
   const freq = (mt.frequency as string) || 'Monthly';
   // Anchor from today (not the old nextDueDate) so same-day Run Now is
   // idempotent: Daily → tomorrow, Weekly → today+7, etc.
-  const start = DateTime.now().startOf('day');
+  // Exception (#7): creating early from a lead-time reminder anchors from the
+  // still-future due date so the schedule does not drift earlier.
+  const today = DateTime.now().startOf('day');
+  const oldDueRaw = String(mt.nextDueDate ?? '').slice(0, 10);
+  const oldDue = oldDueRaw ? DateTime.fromISO(oldDueRaw).startOf('day') : null;
+  const start = oldDue && oldDue.isValid && oldDue > today ? oldDue : today;
 
   let next: DateTime;
   if (freq === 'Daily') {
@@ -392,7 +443,7 @@ export async function advanceNextDueDate(
     next = start.plus({ months: 1 });
   }
 
-  await mt.setAndSync('nextDueDate', next.toISODate());
+  return next.toISODate()!;
 }
 
 function todayISO(): string {
@@ -411,6 +462,7 @@ export async function getDueMemorized(
         'party',
         'amount',
         'nextDueDate',
+        'remindDaysBefore',
         'frequency',
         'paymentType',
         'fromAccount',
@@ -419,17 +471,43 @@ export async function getDueMemorized(
         'paymentMethod',
       ],
     });
-    const dueNames = (rows as { name: string; nextDueDate?: string }[])
-      .filter(
-        (r) => r.nextDueDate && String(r.nextDueDate).slice(0, 10) <= today
-      )
+    const dueNames = (
+      rows as {
+        name: string;
+        nextDueDate?: string;
+        remindDaysBefore?: number;
+        title?: string;
+        party?: string;
+      }[]
+    )
+      .filter((r) => {
+        if (!r.nextDueDate) {
+          return false;
+        }
+        // #7: prompt `remindDaysBefore` days ahead of the due date.
+        const lead = Math.max(0, Math.floor(Number(r.remindDaysBefore) || 0));
+        const promptFrom = DateTime.fromISO(
+          String(r.nextDueDate).slice(0, 10)
+        ).minus({ days: lead });
+        return promptFrom.isValid && promptFrom.toISODate()! <= today;
+      })
+      .sort((a, b) => {
+        const da = String(a.nextDueDate ?? '').slice(0, 10);
+        const db = String(b.nextDueDate ?? '').slice(0, 10);
+        if (da !== db) {
+          return da < db ? -1 : 1;
+        }
+        const la = String(a.title || a.party || '');
+        const lb = String(b.title || b.party || '');
+        return la.localeCompare(lb);
+      })
       .map((r) => r.name);
 
     if (!dueNames.length) {
       return [];
     }
 
-    // Bulk-load docs instead of N+1 getDoc
+    // Docs are required for create/advance (amounts, accounts, sync).
     const docs: MemorizedTransaction[] = [];
     for (const name of dueNames) {
       docs.push(
@@ -440,8 +518,10 @@ export async function getDueMemorized(
       );
     }
     return docs;
-  } catch {
+  } catch (error) {
     // Schema may not exist yet on very old DBs mid-migrate
+    // eslint-disable-next-line no-console
+    console.error('getDueMemorized failed', error);
     return [];
   }
 }
@@ -460,14 +540,6 @@ function companyKey(fyo: Fyo): string {
  */
 export async function maybePromptMemorizedDue(fyo: Fyo): Promise<void> {
   const key = companyKey(fyo);
-  if (dismissedDueThisSession && dismissedForCompany === key) {
-    return;
-  }
-  // Company switched — clear prior dismiss
-  if (dismissedForCompany && dismissedForCompany !== key) {
-    dismissedDueThisSession = false;
-    dismissedForCompany = null;
-  }
 
   try {
     const setupComplete = await fyo.getValue(
@@ -493,14 +565,25 @@ export async function maybePromptMemorizedDue(fyo: Fyo): Promise<void> {
       return;
     }
 
-    const lines = due
-      .map((d) => {
-        const amt = fyo.format(d.amount as never, 'Currency');
-        const dueDate = String(d.nextDueDate ?? '').slice(0, 10);
-        const label = String(d.title || d.party || '');
-        return `${label} — ${amt} (${dueDate})`;
-      })
-      .join('\n');
+    // Snoozed today for this exact due set (#7) — do not re-prompt.
+    const signature = dueSignature(due);
+    const snooze = readDueSnooze(key);
+    if (
+      snooze &&
+      snooze.company === key &&
+      snooze.date === todayISO() &&
+      snooze.signature === signature
+    ) {
+      return;
+    }
+
+    // Array detail → one <p> per line in Dialog (string \n collapses in CSS).
+    const lines = due.map((d) => {
+      const amt = fyo.format(d.amount as never, 'Currency');
+      const dueDate = String(d.nextDueDate ?? '').slice(0, 10);
+      const label = String(d.title || d.party || '');
+      return `${label} — ${amt} (${dueDate})`;
+    });
 
     const firstLabel = String(due[0].title || due[0].party || '');
     const buttons =
@@ -552,23 +635,43 @@ export async function maybePromptMemorizedDue(fyo: Fyo): Promise<void> {
     });
 
     if (choice === 'dismiss' || choice == null) {
-      dismissedDueThisSession = true;
-      dismissedForCompany = key;
+      writeDueSnooze({ company: key, date: todayISO(), signature });
       return;
     }
 
-    // 'all' = one occurrence per due template; 'one' = first template only
-    // (still-due others re-list on next open — no multi-period backfill).
+    // Create then advance. If advance fails after a submitted payment, force the
+    // schedule bump via db.update (bypasses Doc validation) so the next prompt
+    // cannot double-post this period.
     const toCreate = choice === 'all' ? due : due.slice(0, 1);
     let created = 0;
     for (const mt of toCreate) {
       try {
         await createPaymentFromMemorized(fyo, mt);
-        await advanceNextDueDate(mt);
-        created += 1;
       } catch (error) {
         await handleErrorWithDialog(error, mt as Doc, true, true);
+        continue;
       }
+
+      try {
+        await advanceNextDueDate(mt);
+      } catch (error) {
+        const nextISO = computeNextDueISO(mt);
+        try {
+          await fyo.db.update(ModelNameEnum.MemorizedTransaction, {
+            name: mt.name,
+            nextDueDate: nextISO,
+          });
+          mt.nextDueDate = nextISO;
+        } catch (forceError) {
+          // eslint-disable-next-line no-console
+          console.error(
+            'advanceNextDueDate failed after payment create',
+            forceError
+          );
+          await handleErrorWithDialog(error, mt as Doc, true, true);
+        }
+      }
+      created += 1;
     }
 
     if (created > 0) {
@@ -580,7 +683,32 @@ export async function maybePromptMemorizedDue(fyo: Fyo): Promise<void> {
             : t`Created ${String(created)} recurring payments`,
       });
     }
-  } catch {
+  } catch (error) {
     // Prompt is best-effort; do not block desk load.
+    // eslint-disable-next-line no-console
+    console.error('maybePromptMemorizedDue failed', error);
   }
+}
+
+/**
+ * #7 — the load-time prompt never fires again if the app stays open for
+ * days. Poll for the day rollover and re-run the due check once per new day
+ * (snooze/dismiss guards above prevent duplicate prompts within a day).
+ */
+let dueRolloverTimer: ReturnType<typeof setInterval> | null = null;
+let dueRolloverDay = '';
+
+export function startMemorizedDueRolloverCheck(fyo: Fyo): void {
+  dueRolloverDay = todayISO();
+  if (dueRolloverTimer) {
+    clearInterval(dueRolloverTimer);
+  }
+  dueRolloverTimer = setInterval(() => {
+    const day = todayISO();
+    if (day === dueRolloverDay) {
+      return;
+    }
+    dueRolloverDay = day;
+    void maybePromptMemorizedDue(fyo);
+  }, 30 * 60 * 1000);
 }

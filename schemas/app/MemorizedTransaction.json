@@ -96,6 +96,15 @@
       "section": "Schedule"
     },
     {
+      "fieldname": "remindDaysBefore",
+      "label": "Remind Days Before Due",
+      "fieldtype": "Int",
+      "default": 0,
+      "minvalue": 0,
+      "description": "Show the due prompt this many days before the due date (0 = on the due date).",
+      "section": "Schedule"
+    },
+    {
       "fieldname": "paymentMethod",
       "label": "Payment Method",
       "fieldtype": "Link",
@@ -115,7 +124,8 @@
     "amount",
     "memo",
     "frequency",
-    "nextDueDate"
+    "nextDueDate",
+    "remindDaysBefore"
   ],
   "keywordFields": ["title", "party", "memo"]
 }

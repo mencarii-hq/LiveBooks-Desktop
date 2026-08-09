@@ -35,6 +35,7 @@ export class MemorizedTransaction extends Doc {
   memo?: string;
   frequency?: MemorizedFrequency;
   nextDueDate?: string | Date;
+  remindDaysBefore?: number;
   paymentMethod?: string;
 
   static defaults: DefaultMap = {
