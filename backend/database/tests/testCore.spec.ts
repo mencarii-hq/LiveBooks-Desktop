@@ -550,6 +550,122 @@ test('CRUD dependent schema', async function (t) {
   await db.close();
 });
 
+test('rename cascades to links, dynamic links, singles and children', async function (t) {
+  const db = await getDb();
+
+  const oldName = 'John Whoe';
+  const newName = 'Jane Whoe';
+
+  await db.insert('Customer', {
+    name: oldName,
+    email: 'john@whoe.com',
+    ...getDefaultMetaFieldValueMap(),
+  });
+
+  await db.insert('SalesInvoice', {
+    name: 'SINV-1001',
+    date: '2022-01-21',
+    customer: oldName,
+    account: 'Debtors',
+    submitted: false,
+    cancelled: false,
+    refType: 'Customer',
+    ref: oldName,
+    ...getDefaultMetaFieldValueMap(),
+  });
+  await db.update('SalesInvoice', {
+    name: 'SINV-1001',
+    items: [{ item: 'Bottle Caps', quantity: 2, rate: 100, amount: 200 }],
+  });
+
+  // Dynamic link referencing a different schema; must not be rewritten.
+  await db.insert('SalesInvoice', {
+    name: 'SINV-1002',
+    date: '2022-01-22',
+    customer: oldName,
+    account: 'Debtors',
+    submitted: false,
+    cancelled: false,
+    refType: 'SomethingElse',
+    ref: oldName,
+    ...getDefaultMetaFieldValueMap(),
+  });
+
+  await db.update('SystemSettings', { defaultCustomer: oldName });
+
+  await db.rename('Customer', oldName, newName);
+
+  const oldCustomer = await db.get('Customer', oldName);
+  t.equal(
+    Object.keys(oldCustomer).length,
+    0,
+    `rename cascade old name gone ${JSON.stringify(oldCustomer)}`
+  );
+
+  const newCustomer = await db.get('Customer', newName);
+  t.equal(
+    newCustomer.email,
+    'john@whoe.com',
+    `rename cascade renamed row ${JSON.stringify(newCustomer)}`
+  );
+
+  const invoiceOne = await db.get('SalesInvoice', 'SINV-1001');
+  t.equal(
+    invoiceOne.customer,
+    newName,
+    `rename cascade link field ${String(invoiceOne.customer)}`
+  );
+  t.equal(
+    invoiceOne.ref,
+    newName,
+    `rename cascade matching dynamic link ${String(invoiceOne.ref)}`
+  );
+
+  const invoiceTwo = await db.get('SalesInvoice', 'SINV-1002');
+  t.equal(
+    invoiceTwo.customer,
+    newName,
+    `rename cascade link field two ${String(invoiceTwo.customer)}`
+  );
+  t.equal(
+    invoiceTwo.ref,
+    oldName,
+    `rename cascade non-matching dynamic link untouched ${String(
+      invoiceTwo.ref
+    )}`
+  );
+
+  const settings = await db.get('SystemSettings');
+  t.equal(
+    settings.defaultCustomer,
+    newName,
+    `rename cascade single value link ${String(settings.defaultCustomer)}`
+  );
+
+  // Renaming a doc with child table rows rewrites the children's parent.
+  await db.rename('SalesInvoice', 'SINV-1001', 'SINV-2001');
+  const renamedInvoice = await db.get('SalesInvoice', 'SINV-2001');
+  const items = renamedInvoice.items as FieldValueMap[];
+  t.equal(items.length, 1, `rename cascade child count ${items.length}`);
+  t.equal(
+    items[0].parent,
+    'SINV-2001',
+    `rename cascade child parent ${String(items[0].parent)}`
+  );
+
+  const orphans = await db.knex!('SalesInvoiceItem').where(
+    'parent',
+    'SINV-1001'
+  );
+  t.equal(
+    orphans.length,
+    0,
+    `rename cascade orphan children ${orphans.length}`
+  );
+
+  await db.close();
+});
+
 test('db deleteAll', async (t) => {
   const db = await getDb();
 

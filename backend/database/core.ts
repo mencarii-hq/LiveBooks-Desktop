@@ -1,6 +1,7 @@
 import { getDbError, NotFoundError, ValueError } from 'fyo/utils/errors';
 import { knex, Knex } from 'knex';
 import {
+  DynamicLinkField,
   Field,
   FieldTypeEnum,
   RawValue,
@@ -377,14 +378,88 @@ export default class DatabaseCore extends DatabaseBase {
   }
 
   async rename(schemaName: string, oldName: string, newName: string) {
-    /**
-     * Rename is expensive mostly won't allow it.
-     * TODO: rename all links
-     * TODO: rename in childtables
-     */
-    await this.knex!(schemaName)
-      .update({ name: newName })
-      .where('name', oldName);
+    await this.knex!.transaction(async (trx) => {
+      // Link columns with FK constraints are renamed by ON UPDATE CASCADE;
+      // the explicit updates below cover columns without FKs (SingleValue,
+      // DynamicLink, child `parent`) and are no-ops where CASCADE applied.
+      await trx(schemaName).update({ name: newName }).where('name', oldName);
+      await this.#renameLinks(trx, schemaName, oldName, newName);
+      await this.#renameInChildTables(trx, schemaName, oldName, newName);
+    });
+  }
+
+  async #renameLinks(
+    trx: Knex.Transaction,
+    schemaName: string,
+    oldName: string,
+    newName: string
+  ) {
+    for (const [linkingSchemaName, schema] of Object.entries(this.schemaMap)) {
+      if (!schema) {
+        continue;
+      }
+
+      const linkFields = schema.fields.filter(
+        (f) => f.fieldtype === FieldTypeEnum.Link && f.target === schemaName
+      );
+      const dynamicLinkFields = schema.fields.filter(
+        (f) => f.fieldtype === FieldTypeEnum.DynamicLink
+      ) as DynamicLinkField[];
+
+      if (schema.isSingle) {
+        for (const field of linkFields) {
+          await trx('SingleValue').update({ value: newName }).where({
+            parent: linkingSchemaName,
+            fieldname: field.fieldname,
+            value: oldName,
+          });
+        }
+
+        for (const field of dynamicLinkFields) {
+          const reference = (await trx('SingleValue')
+            .select('value')
+            .where({ parent: linkingSchemaName, fieldname: field.references })
+            .first()) as { value: RawValue } | undefined;
+          if (reference?.value !== schemaName) {
+            continue;
+          }
+
+          await trx('SingleValue').update({ value: newName }).where({
+            parent: linkingSchemaName,
+            fieldname: field.fieldname,
+            value: oldName,
+          });
+        }
+
+        continue;
+      }
+
+      for (const field of linkFields) {
+        await trx(linkingSchemaName)
+          .update({ [field.fieldname]: newName })
+          .where(field.fieldname, oldName);
+      }
+
+      for (const field of dynamicLinkFields) {
+        await trx(linkingSchemaName)
+          .update({ [field.fieldname]: newName })
+          .where(field.fieldname, oldName)
+          .andWhere(field.references, schemaName);
+      }
+    }
+  }
+
+  async #renameInChildTables(
+    trx: Knex.Transaction,
+    schemaName: string,
+    oldName: string,
+    newName: string
+  ) {
+    for (const field of this.#getTableFields(schemaName)) {
+      await trx(field.target)
+        .update({ parent: newName })
+        .where({ parent: oldName, parentSchemaName: schemaName });
+    }
   }
 
   async update(schemaName: string, fieldValueMap: FieldValueMap) {

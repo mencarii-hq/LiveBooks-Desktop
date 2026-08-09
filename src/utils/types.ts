@@ -114,12 +114,22 @@ export interface DialogOptions {
   detailEmphasis?: string;
   /** If set, user must type this exact phrase to enable the primary button. */
   confirmText?: string;
+  /**
+   * If set, shows a free-text input; the trimmed value is passed to
+   * button actions. Primary button is disabled while the input is empty.
+   */
+  input?: DialogInputOptions;
   buttons?: DialogButton[];
+}
+
+export interface DialogInputOptions {
+  placeholder?: string;
+  value?: string;
 }
 
 export type DialogButton = {
   label: string;
-  action: () => unknown;
+  action: (inputValue?: string) => unknown;
   isPrimary?: boolean;
   isEscape?: boolean;
 };

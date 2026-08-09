@@ -254,6 +254,7 @@ export function getActionsForDoc(doc?: Doc): Action[] {
   ];
 
   if (doc?.schemaName === 'Party') {
+    actions.push(getRenameAction(doc));
     const viewActions = getViewActions(doc);
     actions.push(...viewActions);
   }
@@ -315,6 +316,84 @@ function getViewActions(doc: Doc): Action[] {
     },
   ];
   return actions;
+}
+
+function getRenameAction(doc: Doc): Action {
+  return {
+    label: t`Rename`,
+    condition: (d: Doc) => d.inserted,
+    async action() {
+      await renameDocInteractively(doc);
+    },
+  };
+}
+
+async function renameDocInteractively(doc: Doc): Promise<void> {
+  if (fyo.store.syncEnabled) {
+    showToast({
+      type: 'warning',
+      message: t`Renaming is not available while cloud sync is enabled.`,
+    });
+    return;
+  }
+
+  const oldName = doc.name;
+  if (!oldName) {
+    return;
+  }
+
+  const inputValue = (await showDialog({
+    title: t`Rename ${oldName}`,
+    type: 'info',
+    detail: t`All entries that refer to ${oldName} will be updated. This is local-only and cannot be undone.`,
+    input: { value: oldName, placeholder: t`New name` },
+    buttons: [
+      {
+        label: t`Rename`,
+        action: (value?: string) => value ?? null,
+        isPrimary: true,
+      },
+      { label: t`Cancel`, action: () => null, isEscape: true },
+    ],
+  })) as string | null;
+
+  if (typeof inputValue !== 'string') {
+    return;
+  }
+
+  const newName = inputValue.trim();
+  if (!newName || newName === oldName) {
+    showToast({
+      type: 'error',
+      message: t`Please enter a new name that is different from the current one.`,
+    });
+    return;
+  }
+
+  if (await fyo.db.exists(doc.schemaName, newName)) {
+    showToast({
+      type: 'error',
+      message: t`An entry named ${newName} already exists.`,
+    });
+    return;
+  }
+
+  try {
+    await doc.rename(newName);
+  } catch (err) {
+    await handleErrorWithDialog(err as Error, doc);
+    return;
+  }
+
+  showToast({
+    type: 'success',
+    message: t`${oldName} renamed to ${newName}`,
+  });
+
+  const route = router.currentRoute.value;
+  if (route.params.name === oldName) {
+    await router.replace(getFormRoute(doc.schemaName, newName));
+  }
 }
 
 function getCancelAction(doc: Doc): Action {

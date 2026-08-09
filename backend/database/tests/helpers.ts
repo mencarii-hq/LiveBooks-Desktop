@@ -110,6 +110,17 @@ const SalesInvoice = {
       required: true,
     },
     {
+      fieldname: 'refType',
+      label: 'Reference Type',
+      fieldtype: 'Data',
+    },
+    {
+      fieldname: 'ref',
+      label: 'Reference',
+      fieldtype: 'DynamicLink',
+      references: 'refType',
+    },
+    {
       fieldname: 'grandTotal',
       label: 'Grand Total',
       fieldtype: 'Currency',
@@ -146,6 +157,12 @@ const SystemSettings = {
       label: 'Locale',
       fieldtype: 'Data',
       default: 'en-IN',
+    },
+    {
+      fieldname: 'defaultCustomer',
+      label: 'Default Customer',
+      fieldtype: 'Link',
+      target: 'Customer',
     },
   ],
   quickEditFields: ['locale', 'dateFormat'],

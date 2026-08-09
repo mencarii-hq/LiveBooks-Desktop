@@ -45,6 +45,26 @@
           >
             {{ detailEmphasis }}
           </p>
+          <div v-if="input" class="flex flex-col gap-1">
+            <input
+              ref="promptInput"
+              v-model="typedInput"
+              class="
+                text-sm
+                border
+                dark:border-gray-700
+                rounded
+                px-2
+                py-1.5
+                bg-white
+                dark:bg-gray-900 dark:text-gray-25
+              "
+              :placeholder="input.placeholder"
+              autocomplete="off"
+              spellcheck="false"
+              @keydown.enter.prevent="onConfirmEnter"
+            />
+          </div>
           <div v-if="confirmText" class="flex flex-col gap-1">
             <p class="text-sm text-gray-600 dark:text-gray-300">
               {{ confirmHint }}
@@ -88,7 +108,7 @@
 <script lang="ts">
 import { t } from 'fyo';
 import { getIconConfig } from 'src/utils/interactive';
-import { DialogButton, ToastType } from 'src/utils/types';
+import { DialogButton, DialogInputOptions, ToastType } from 'src/utils/types';
 import { defineComponent, nextTick, PropType, ref } from 'vue';
 import Button from './Button.vue';
 import FeatherIcon from './FeatherIcon.vue';
@@ -110,6 +130,10 @@ export default defineComponent({
       type: String as PropType<string | undefined>,
       required: false,
     },
+    input: {
+      type: Object as PropType<DialogInputOptions | undefined>,
+      required: false,
+    },
     buttons: {
       type: Array as PropType<DialogButton[]>,
       required: true,
@@ -122,13 +146,21 @@ export default defineComponent({
     };
   },
   data() {
-    return { open: false, typedConfirm: '' };
+    return {
+      open: false,
+      typedConfirm: '',
+      typedInput: this.input?.value ?? '',
+    };
   },
   computed: {
     config() {
       return getIconConfig(this.type);
     },
     canConfirm(): boolean {
+      if (this.input && !this.typedInput.trim()) {
+        return false;
+      }
+
       if (!this.confirmText) {
         return true;
       }
@@ -159,6 +191,13 @@ export default defineComponent({
   },
   methods: {
     focusInitial() {
+      if (this.input) {
+        const input = this.$refs.promptInput as HTMLInputElement | undefined;
+        input?.focus();
+        input?.select();
+        return;
+      }
+
       if (this.confirmText) {
         const input = this.$refs.confirmInput as HTMLInputElement | undefined;
         input?.focus();
@@ -213,7 +252,7 @@ export default defineComponent({
       if (button.isPrimary && !this.canConfirm) {
         return;
       }
-      button.action();
+      button.action(this.input ? this.typedInput.trim() : undefined);
       this.open = false;
     },
   },
