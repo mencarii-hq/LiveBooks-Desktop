@@ -49,14 +49,23 @@
             :value="form.party"
             @change="(v) => (form.party = String(v || ''))"
           />
-          <FormControl
-            :border="true"
-            size="small"
-            :show-label="true"
-            :df="categoryField"
-            :value="form.categoryAccount"
-            @change="(v) => (form.categoryAccount = String(v || ''))"
-          />
+          <div v-if="!splitEnabled">
+            <FormControl
+              :border="true"
+              size="small"
+              :show-label="true"
+              :df="categoryField"
+              :value="form.categoryAccount"
+              @change="(v) => (form.categoryAccount = String(v || ''))"
+            />
+            <button
+              type="button"
+              class="mt-1 text-xs text-blue-600 hover:underline"
+              @click="enableSplit"
+            >
+              {{ t`Split across multiple categories…` }}
+            </button>
+          </div>
           <FormControl
             :border="true"
             size="small"
@@ -65,6 +74,100 @@
             :value="form.amount"
             @change="(v) => (form.amount = Number(v) || 0)"
           />
+          <div
+            v-if="splitEnabled"
+            class="
+              sm:col-span-2
+              border border-gray-200
+              dark:border-gray-700
+              rounded
+              p-3
+            "
+          >
+            <div class="flex items-center justify-between">
+              <span
+                class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                {{ t`Split categories` }}
+              </span>
+              <button
+                type="button"
+                class="text-xs text-blue-600 hover:underline"
+                @click="disableSplit"
+              >
+                {{ t`Use a single category` }}
+              </button>
+            </div>
+            <div
+              v-for="(line, idx) in splitLines"
+              :key="idx"
+              class="flex items-end gap-2 mt-2"
+            >
+              <FormControl
+                class="flex-1"
+                :border="true"
+                size="small"
+                :show-label="idx === 0"
+                :df="splitAccountField"
+                :value="line.account"
+                @change="(v) => (line.account = String(v || ''))"
+              />
+              <FormControl
+                class="w-28 shrink-0"
+                :border="true"
+                size="small"
+                :show-label="idx === 0"
+                :df="splitAmountField"
+                :value="line.amount"
+                @change="(v) => (line.amount = Number(v) || 0)"
+              />
+              <FormControl
+                class="flex-1"
+                :border="true"
+                size="small"
+                :show-label="idx === 0"
+                :df="splitMemoField"
+                :value="line.description"
+                @change="(v) => (line.description = String(v || ''))"
+              />
+              <button
+                type="button"
+                class="
+                  h-8
+                  w-8
+                  shrink-0
+                  flex
+                  items-center
+                  justify-center
+                  rounded
+                  text-gray-600
+                  dark:text-gray-400
+                  hover:bg-gray-100
+                  dark:hover:bg-gray-800
+                "
+                :title="t`Remove line`"
+                @click="removeSplitLine(idx)"
+              >
+                <feather-icon name="x" class="w-4 h-4" />
+              </button>
+            </div>
+            <div class="flex items-center justify-between mt-3">
+              <Button @click="addSplitLine">
+                {{ t`Add line` }}
+              </Button>
+              <span
+                class="text-sm tabular-nums text-gray-600 dark:text-gray-400"
+              >
+                {{ t`Gross: ${formattedSplitGross}` }}
+                <span class="mx-1">·</span>
+                {{ t`Withholdings: ${formattedSplitWithholdings}` }}
+                <span class="mx-1">·</span>
+                <span :class="splitRemainder === 0 ? '' : 'text-red-600'">
+                  {{ t`Remaining: ${formattedSplitRemainder}` }}
+                </span>
+              </span>
+            </div>
+          </div>
           <FormControl
             :border="true"
             size="small"
@@ -139,10 +242,6 @@
             t`Save entry posts to the Check Register. Save as recurring stores a schedule only (no payment) — run it later from Recurring Transactions.`
           }}
         </p>
-
-        <p v-if="formError" class="mt-3 text-sm text-red-600">
-          {{ formError }}
-        </p>
       </div>
     </div>
   </div>
@@ -171,6 +270,7 @@ import {
 import { defineComponent } from 'vue';
 
 type AccountOpt = { name: string; accountName?: string };
+type SplitLine = { account: string; amount: number; description: string };
 
 export default defineComponent({
   name: 'BankRegisterWrite',
@@ -181,9 +281,11 @@ export default defineComponent({
       bankAccounts: [] as AccountOpt[],
       paymentMethods: [] as { name: string; type?: string }[],
       saving: false,
-      formError: '',
       // Bump after save so FormControls remount with cleared values.
       formKey: 0,
+      // #8: split the category side into multiple lines.
+      splitEnabled: false,
+      splitLines: [] as SplitLine[],
       form: {
         date: DateTime.now().toISODate() || '',
         party: '',
@@ -323,6 +425,62 @@ export default defineComponent({
         placeholder: this.t`Blank = unprinted`,
       } as Field;
     },
+    // #8: per-row split fields; same category filter as categoryField.
+    splitAccountField(): Field {
+      return { ...this.categoryField, fieldname: 'splitAccount' };
+    },
+    // Signed: negative amounts are withholdings that reduce the check.
+    splitAmountField(): Field {
+      return {
+        fieldtype: 'Float',
+        fieldname: 'splitAmount',
+        label: this.t`Amount`,
+        required: true,
+      } as Field;
+    },
+    splitMemoField(): Field {
+      return {
+        fieldtype: 'Data',
+        fieldname: 'splitMemo',
+        label: this.t`Memo`,
+      } as Field;
+    },
+    // Cents math avoids float drift (0.1 + 0.2) in the sum checks.
+    splitLineCents(): number[] {
+      return this.splitLines.map((line) =>
+        Math.round((Number(line.amount) || 0) * 100)
+      );
+    },
+    /** Sum of positive lines (e.g. gross payroll expense). */
+    splitGrossCents(): number {
+      return this.splitLineCents
+        .filter((cents) => cents > 0)
+        .reduce((sum, cents) => sum + cents, 0);
+    },
+    /** Absolute sum of negative lines (withholdings reducing the check). */
+    splitWithholdingsCents(): number {
+      return -this.splitLineCents
+        .filter((cents) => cents < 0)
+        .reduce((sum, cents) => sum + cents, 0);
+    },
+    splitRemainder(): number {
+      const signedCents = this.splitGrossCents - this.splitWithholdingsCents;
+      const amountCents = Math.round((Number(this.form.amount) || 0) * 100);
+      return (amountCents - signedCents) / 100;
+    },
+    formattedSplitGross(): string {
+      return String(
+        fyo.format(fyo.pesa(this.splitGrossCents / 100), 'Currency')
+      );
+    },
+    formattedSplitWithholdings(): string {
+      return String(
+        fyo.format(fyo.pesa(this.splitWithholdingsCents / 100), 'Currency')
+      );
+    },
+    formattedSplitRemainder(): string {
+      return String(fyo.format(fyo.pesa(this.splitRemainder), 'Currency'));
+    },
   },
   watch: {
     bankAccount(value: string) {
@@ -404,6 +562,66 @@ export default defineComponent({
         this.paymentMethods = [];
       }
     },
+    enableSplit() {
+      this.splitEnabled = true;
+      if (!this.splitLines.length) {
+        // Seed with the single category (if picked) so nothing is lost.
+        this.splitLines = [
+          {
+            account: this.form.categoryAccount,
+            amount: this.form.amount || 0,
+            description: '',
+          },
+          { account: '', amount: 0, description: '' },
+        ];
+      }
+    },
+    disableSplit() {
+      // Keep the first line's category so switching back is non-destructive.
+      this.form.categoryAccount =
+        this.splitLines[0]?.account || this.form.categoryAccount;
+      this.splitEnabled = false;
+      this.splitLines = [];
+    },
+    addSplitLine() {
+      this.splitLines.push({ account: '', amount: 0, description: '' });
+    },
+    removeSplitLine(idx: number) {
+      this.splitLines.splice(idx, 1);
+    },
+    /** #8: returns an error message, or '' when the split lines are valid. */
+    validateSplitLines(): string {
+      if (this.splitLines.length < 2) {
+        return this.t`Add at least two split lines.`;
+      }
+      for (const line of this.splitLines) {
+        if (!line.account) {
+          return this.t`Every split line needs a category.`;
+        }
+        if (!Number(line.amount)) {
+          return this
+            .t`Every split line needs a nonzero amount. Withholdings are negative.`;
+        }
+      }
+      if (this.splitGrossCents <= 0) {
+        return this.t`At least one split line must be positive.`;
+      }
+      if (this.splitRemainder !== 0) {
+        return this
+          .t`Split lines must add up to the check amount. Remaining: ${this.formattedSplitRemainder}`;
+      }
+      return '';
+    },
+    splitFieldsForSubmit(): SplitLine[] | undefined {
+      if (!this.splitEnabled) {
+        return undefined;
+      }
+      return this.splitLines.map((line) => ({
+        account: line.account,
+        amount: line.amount,
+        description: line.description,
+      }));
+    },
     setFormDate(value: unknown) {
       // The Date control emits a JS Date; String(date) is not ISO and fails
       // Datetime conversion downstream (createRegisterPayment and
@@ -414,34 +632,43 @@ export default defineComponent({
       }
       this.form.date = value ? String(value) : '';
     },
+    showFormError(message: string) {
+      showToast({ type: 'error', message, duration: 'long' });
+    },
     async submitEntry() {
-      this.formError = '';
       if (!this.bankAccount) {
-        this.formError = this.t`Select a bank account.`;
+        this.showFormError(this.t`Select a bank account.`);
         return;
       }
       if (!this.form.party?.trim()) {
-        this.formError = this.t`Payee is required.`;
+        this.showFormError(this.t`Payee is required.`);
         return;
       }
-      if (!this.form.categoryAccount) {
-        this.formError = this.t`Category is required.`;
+      if (!this.splitEnabled && !this.form.categoryAccount) {
+        this.showFormError(this.t`Category is required.`);
         return;
       }
       if (!this.form.paymentMethod) {
-        this.formError = this.t`Payment method is required.`;
+        this.showFormError(this.t`Payment method is required.`);
         return;
       }
       if (!(this.form.amount > 0)) {
-        this.formError = this.t`Amount must be greater than 0.`;
+        this.showFormError(this.t`Amount must be greater than 0.`);
         return;
+      }
+      if (this.splitEnabled) {
+        const splitError = this.validateSplitLines();
+        if (splitError) {
+          this.showFormError(splitError);
+          return;
+        }
       }
       this.saving = true;
       try {
         const fields = {
           date: this.form.date,
           party: this.form.party.trim(),
-          categoryAccount: this.form.categoryAccount,
+          categoryAccount: this.splitEnabled ? '' : this.form.categoryAccount,
           bankAccount: this.bankAccount,
           amount: this.form.amount,
           paymentType: this.form.paymentType,
@@ -449,6 +676,7 @@ export default defineComponent({
           paymentMethod: this.form.paymentMethod,
           printLater: !!(this.canQueue && this.form.printLater),
           checkNumber: this.form.checkNumber.trim(),
+          splits: this.splitFieldsForSubmit(),
         };
         await createRegisterPayment(fyo, fields);
         if (this.form.alsoRecurring) {
@@ -471,7 +699,9 @@ export default defineComponent({
         await this.$router.push({ name: 'Check Register' });
       } catch (error) {
         await handleErrorWithDialog(error);
-        this.formError = error instanceof Error ? error.message : String(error);
+        this.showFormError(
+          error instanceof Error ? error.message : String(error)
+        );
       } finally {
         this.saving = false;
       }
@@ -490,14 +720,21 @@ export default defineComponent({
         alsoRecurring: false,
         checkNumber: '',
       };
-      this.formError = '';
+      this.splitEnabled = false;
+      this.splitLines = [];
       this.formKey += 1;
     },
     async memorizeCurrent() {
-      this.formError = '';
       if (!this.bankAccount) {
-        this.formError = this.t`Select a bank account.`;
+        this.showFormError(this.t`Select a bank account.`);
         return;
+      }
+      if (this.splitEnabled) {
+        const splitError = this.validateSplitLines();
+        if (splitError) {
+          this.showFormError(splitError);
+          return;
+        }
       }
       const proceed = (await showDialog({
         title: this.t`Save as recurring template?`,
@@ -520,12 +757,13 @@ export default defineComponent({
         await memorizeRegisterFields(fyo, {
           date: this.form.date,
           party: this.form.party.trim(),
-          categoryAccount: this.form.categoryAccount,
+          categoryAccount: this.splitEnabled ? '' : this.form.categoryAccount,
           bankAccount: this.bankAccount,
           amount: this.form.amount,
           paymentType: this.form.paymentType,
           memo: this.form.memo,
           paymentMethod: this.form.paymentMethod,
+          splits: this.splitFieldsForSubmit(),
         });
       } catch (error) {
         await handleErrorWithDialog(error);

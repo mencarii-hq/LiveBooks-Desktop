@@ -191,7 +191,9 @@
                         {{ row.checkNo }}
                       </div>
                       <div class="cell-body">{{ row.payee }}</div>
-                      <div class="cell-body">{{ row.category }}</div>
+                      <div class="cell-body" :title="row.categoryTitle">
+                        {{ row.category }}
+                      </div>
                       <div class="cell-body">{{ row.memo }}</div>
                       <div class="cell-body ms-auto tabular-nums">
                         {{ row.payment }}
@@ -302,6 +304,8 @@ type RegisterRow = {
   checkNo: string;
   payee: string;
   category: string;
+  /** #8: tooltip listing "Category: amount" lines for split payments. */
+  categoryTitle: string;
   memo: string;
   payment: string;
   deposit: string;
@@ -704,8 +708,23 @@ export default defineComponent({
         const cancelled = new Set<string>();
         const paymentMap = new Map<
           string,
-          { memo: string; category: string; party: string; checkNo: string }
+          {
+            memo: string;
+            category: string;
+            categoryTitle: string;
+            party: string;
+            checkNo: string;
+          }
         >();
+
+        const money = (v: unknown) => {
+          if (v == null) return 0;
+          if (typeof v === 'number') return v;
+          if (typeof v === 'object' && v && 'float' in v) {
+            return Number((v as { float: number }).float) || 0;
+          }
+          return Number(v) || 0;
+        };
 
         if (paymentNames.length) {
           const pays = (await fyo.db.getAll(ModelNameEnum.Payment, {
@@ -730,6 +749,30 @@ export default defineComponent({
             referenceId?: string;
             party?: string;
           }[];
+
+          // #8: split payments show "Split" in the category column with a
+          // per-line tooltip. One batched query for all displayed payments.
+          const splitsByParent = new Map<
+            string,
+            { account?: string; amount?: unknown }[]
+          >();
+          const splitRows = (await fyo.db.getAll(ModelNameEnum.PaymentSplit, {
+            // PaymentSplit is shared with MemorizedTransaction; scope to
+            // Payment parents so a name collision can't leak template rows.
+            filters: {
+              parent: ['in', paymentNames],
+              parentSchemaName: ModelNameEnum.Payment,
+            },
+            fields: ['parent', 'account', 'amount', 'idx'],
+            orderBy: 'idx',
+            order: 'asc',
+          })) as { parent: string; account?: string; amount?: unknown }[];
+          for (const s of splitRows) {
+            const rows = splitsByParent.get(s.parent) ?? [];
+            rows.push(s);
+            splitsByParent.set(s.parent, rows);
+          }
+
           for (const p of pays) {
             if (p.cancelled) {
               cancelled.add(p.name);
@@ -737,23 +780,29 @@ export default defineComponent({
             }
             const categoryId =
               p.paymentType === 'Pay' ? p.paymentAccount : p.account;
+            const splits = splitsByParent.get(p.name) ?? [];
+            let category = this.accountLabel(categoryId);
+            let categoryTitle = '';
+            if (splits.length) {
+              category = this.t`Split`;
+              categoryTitle = splits
+                .map(
+                  (s) =>
+                    `${this.accountLabel(s.account)}: ${String(
+                      fyo.format(fyo.pesa(money(s.amount)), 'Currency')
+                    )}`
+                )
+                .join('\n');
+            }
             paymentMap.set(p.name, {
               memo: p.memo || '',
               checkNo: (p.referenceId || '').trim(),
-              category: this.accountLabel(categoryId),
+              category,
+              categoryTitle,
               party: p.party || '',
             });
           }
         }
-
-        const money = (v: unknown) => {
-          if (v == null) return 0;
-          if (typeof v === 'number') return v;
-          if (typeof v === 'object' && v && 'float' in v) {
-            return Number((v as { float: number }).float) || 0;
-          }
-          return Number(v) || 0;
-        };
 
         let balance = 0;
         const rows: RegisterRow[] = [];
@@ -778,6 +827,7 @@ export default defineComponent({
             checkNo: payInfo?.checkNo || '',
             payee: payInfo?.party || ale.party || '',
             category: payInfo?.category || '',
+            categoryTitle: payInfo?.categoryTitle || '',
             memo: payInfo?.memo || '',
             payment: credit > 0 ? fyo.format(fyo.pesa(credit), 'Currency') : '',
             deposit: debit > 0 ? fyo.format(fyo.pesa(debit), 'Currency') : '',
