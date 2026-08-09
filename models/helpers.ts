@@ -558,7 +558,7 @@ export function getInvoiceStatus(doc: RenderData | Doc): InvoiceStatus {
   if (
     doc.submitted &&
     !doc.cancelled &&
-    (doc.outstandingAmount as Money).eq(doc.grandTotal as Money)
+    (doc.outstandingAmount as Money).eq(doc.baseGrandTotal as Money)
   ) {
     return 'Unpaid';
   }
@@ -571,7 +571,7 @@ export function getInvoiceStatus(doc: RenderData | Doc): InvoiceStatus {
     doc.submitted &&
     !doc.isCancelled &&
     (doc.outstandingAmount as Money).isPositive() &&
-    (doc.outstandingAmount as Money).neq(doc.grandTotal as Money)
+    (doc.outstandingAmount as Money).neq(doc.baseGrandTotal as Money)
   ) {
     return 'PartlyPaid';
   }
