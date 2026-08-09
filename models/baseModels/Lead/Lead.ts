@@ -22,10 +22,12 @@ export class Lead extends Doc {
   };
 
   createCustomer() {
+    const { name, mobile, ...rest } = this.getValidDict();
     return this.fyo.doc.getNewDoc(ModelNameEnum.Party, {
-      ...this.getValidDict(),
+      ...rest,
+      partyName: name,
       fromLead: this.name,
-      phone: this.mobile as string,
+      phone: mobile as string,
       role: 'Customer',
     });
   }

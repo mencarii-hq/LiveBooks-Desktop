@@ -22,6 +22,9 @@ const partyMap = {
   },
 };
 
+let itemId: Record<string, string> = {};
+let partyId = '';
+
 const priceListMap = {
   PL_SELL: {
     name: 'PL_SELL',
@@ -39,21 +42,34 @@ test('Price List: create dummy item, party, price lists', async (t) => {
   // Create Items
   for (const { name, rate } of Object.values(itemMap)) {
     const item = getItem(name, rate, false);
-    await fyo.doc.getNewDoc(ModelNameEnum.Item, item).sync();
-    t.ok(await fyo.db.exists(ModelNameEnum.Item, name), `Item: ${name} exists`);
+    const doc = await fyo.doc.getNewDoc(ModelNameEnum.Item, item).sync();
+    itemId[name] = doc.name as string;
+    t.ok(
+      await fyo.db.exists(ModelNameEnum.Item, itemId[name]),
+      `Item: ${name} exists`
+    );
   }
 
-  // Create Parties
   for (const { name, email } of Object.values(partyMap)) {
-    await fyo.doc.getNewDoc(ModelNameEnum.Party, { name, email }).sync();
+    const doc = await fyo.doc
+      .getNewDoc(ModelNameEnum.Party, { name, email })
+      .sync();
+    partyId = doc.name as string;
     t.ok(
-      await fyo.db.exists(ModelNameEnum.Party, name),
+      await fyo.db.exists(ModelNameEnum.Party, partyId),
       `Party: ${name} exists`
     );
   }
 
   for (const priceListItem of Object.values(priceListMap)) {
-    await fyo.doc.getNewDoc(ModelNameEnum.PriceList, priceListItem).sync();
+    const pl = {
+      ...priceListItem,
+      priceListItem: priceListItem.priceListItem.map((row) => ({
+        ...row,
+        item: itemId[row.item as string],
+      })),
+    };
+    await fyo.doc.getNewDoc(ModelNameEnum.PriceList, pl).sync();
     t.ok(
       await fyo.db.exists(ModelNameEnum.PriceList, priceListItem.name),
       `Price List: ${priceListItem.name} exists`
@@ -66,12 +82,12 @@ test('Price List: create dummy item, party, price lists', async (t) => {
 test('Check if InvoiceItem rate fetched from PriceList', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: new Date('2023-01-01'),
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.set('priceList', priceListMap.PL_SELL.name);
   await sinv.append('items', {});
-  await sinv.items?.[0].set('item', itemMap.Pen.name);
+  await sinv.items?.[0].set('item', itemId[itemMap.Pen.name]);
 
   t.equal(
     sinv.items?.[0].rate?.float,

@@ -595,7 +595,9 @@ export class Search {
       }
 
       const options: GetAllOptions = {
-        fields: [searchable.fields, searchable.meta].flat(),
+        fields: [
+          ...new Set(['name', ...searchable.fields, ...searchable.meta]),
+        ],
         order: 'desc',
       };
 
@@ -838,7 +840,7 @@ export class Search {
     const schemaLabel = this.fyo.schemaMap[schemaName]?.label ?? schemaName;
     const route = this._getRouteFromKeyword(keyword);
     return {
-      label: keyword.values[0],
+      label: this._getDisplayLabelFromKeyword(keyword, schemaName),
       schemaLabel,
       more: keyword.values.slice(1),
       group: 'Docs',
@@ -848,13 +850,32 @@ export class Search {
     };
   }
 
+  _getDisplayLabelFromKeyword(keyword: Keyword, schemaName: string): string {
+    const schema = this.fyo.schemaMap[schemaName];
+    const displayField = schema?.linkDisplayField || schema?.titleField;
+    if (displayField && displayField !== 'name') {
+      const searchable = this.searchables[schemaName];
+      const idx = searchable?.fields.indexOf(displayField) ?? -1;
+      if (idx >= 0 && keyword.values[idx]) {
+        return keyword.values[idx];
+      }
+    }
+
+    if (keyword.meta.parent) {
+      return keyword.values[1] ?? keyword.values[0];
+    }
+
+    return keyword.values[0];
+  }
+
   _getRouteFromKeyword(keyword: Keyword): RouteLocationRaw {
     const { parent, parentSchemaName, schemaName } = keyword.meta;
     if (parent && parentSchemaName) {
       return getFormRoute(parentSchemaName as string, parent as string);
     }
 
-    return getFormRoute(schemaName as string, keyword.values[0]);
+    const docName = keyword.meta.docName as string | undefined;
+    return getFormRoute(schemaName as string, docName ?? keyword.values[0]);
   }
 
   _getGroupedKeywords() {
@@ -977,6 +998,9 @@ export class Search {
     }
 
     keyword.meta.schemaName = searchable.schemaName;
+    if (typeof map.name === 'string') {
+      keyword.meta.docName = map.name;
+    }
     if (keyword.meta.parent) {
       keyword.values.unshift(keyword.meta.parent as string);
     }

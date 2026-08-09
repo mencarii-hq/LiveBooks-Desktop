@@ -3,6 +3,7 @@ import { DocMap, ModelMap, SinglesMap } from 'fyo/model/types';
 import { coreModels } from 'fyo/models';
 import { NotFoundError, ValueError } from 'fyo/utils/errors';
 import Observable from 'fyo/utils/observable';
+import { isWorkforcePartyRole } from 'models/baseModels/Party/types';
 import { Schema } from 'schemas/types';
 import { getRandomString } from 'utils';
 import { Fyo } from '..';
@@ -99,7 +100,8 @@ export class DocHandler {
     }
 
     const doc = new Model!(schema, data, this.fyo, isRawValueMap);
-    doc.name ??= this.getTemporaryName(schema);
+    const role = typeof data.role === 'string' ? data.role : undefined;
+    doc.name ??= this.getTemporaryName(schema, role);
     if (cacheDoc) {
       this.#addToCache(doc);
     }
@@ -107,13 +109,25 @@ export class DocHandler {
     return doc;
   }
 
-  isTemporaryName(name: string, schema: Schema): boolean {
-    const label = schema.label ?? schema.name;
-    const template = this.fyo.t`New ${label} `;
-    return name.includes(template);
+  #temporaryNameLabel(schema: Schema, role?: string | null): string {
+    if (schema.name === 'Party' && isWorkforcePartyRole(role)) {
+      return this.fyo.t`Employee`;
+    }
+    return schema.label ?? schema.name;
   }
 
-  getTemporaryName(schema: Schema): string {
+  isTemporaryName(name: string, schema: Schema, role?: string | null): boolean {
+    // Party workforce temp ids use "Employee"; when role is unknown, accept
+    // both labels so beforeSync / UI helpers still recognize temp names.
+    const labels =
+      schema.name === 'Party' && role == null
+        ? [schema.label ?? schema.name, this.fyo.t`Employee`]
+        : [this.#temporaryNameLabel(schema, role)];
+
+    return labels.some((label) => name.includes(this.fyo.t`New ${label} `));
+  }
+
+  getTemporaryName(schema: Schema, role?: string | null): string {
     if (schema.naming === 'random') {
       return getRandomString();
     }
@@ -122,7 +136,7 @@ export class DocHandler {
 
     const idx = this.#temporaryNameCounters[schema.name];
     this.#temporaryNameCounters[schema.name] = idx + 1;
-    const label = schema.label ?? schema.name;
+    const label = this.#temporaryNameLabel(schema, role);
 
     return this.fyo.t`New ${label} ${String(idx).padStart(2, '0')}`;
   }

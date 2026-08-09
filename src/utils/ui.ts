@@ -86,7 +86,7 @@ export async function routeTo(route: RouteLocationRaw) {
 }
 
 export async function deleteDocWithPrompt(doc: Doc) {
-  const schemaLabel = fyo.schemaMap[doc.schemaName]!.label;
+  const schemaLabel = getDocTypeLabel(doc);
   let detail = t`This action is permanent.`;
   if (doc.isTransactional && doc.isSubmitted) {
     detail = t`This action is permanent and will delete associated ledger entries.`;
@@ -254,7 +254,6 @@ export function getActionsForDoc(doc?: Doc): Action[] {
   ];
 
   if (doc?.schemaName === 'Party') {
-    actions.push(getRenameAction(doc));
     const viewActions = getViewActions(doc);
     actions.push(...viewActions);
   }
@@ -316,84 +315,6 @@ function getViewActions(doc: Doc): Action[] {
     },
   ];
   return actions;
-}
-
-function getRenameAction(doc: Doc): Action {
-  return {
-    label: t`Rename`,
-    condition: (d: Doc) => d.inserted,
-    async action() {
-      await renameDocInteractively(doc);
-    },
-  };
-}
-
-async function renameDocInteractively(doc: Doc): Promise<void> {
-  if (fyo.store.syncEnabled) {
-    showToast({
-      type: 'warning',
-      message: t`Renaming is not available while cloud sync is enabled.`,
-    });
-    return;
-  }
-
-  const oldName = doc.name;
-  if (!oldName) {
-    return;
-  }
-
-  const inputValue = (await showDialog({
-    title: t`Rename ${oldName}`,
-    type: 'info',
-    detail: t`All entries that refer to ${oldName} will be updated. This is local-only and cannot be undone.`,
-    input: { value: oldName, placeholder: t`New name` },
-    buttons: [
-      {
-        label: t`Rename`,
-        action: (value?: string) => value ?? null,
-        isPrimary: true,
-      },
-      { label: t`Cancel`, action: () => null, isEscape: true },
-    ],
-  })) as string | null;
-
-  if (typeof inputValue !== 'string') {
-    return;
-  }
-
-  const newName = inputValue.trim();
-  if (!newName || newName === oldName) {
-    showToast({
-      type: 'error',
-      message: t`Please enter a new name that is different from the current one.`,
-    });
-    return;
-  }
-
-  if (await fyo.db.exists(doc.schemaName, newName)) {
-    showToast({
-      type: 'error',
-      message: t`An entry named ${newName} already exists.`,
-    });
-    return;
-  }
-
-  try {
-    await doc.rename(newName);
-  } catch (err) {
-    await handleErrorWithDialog(err as Error, doc);
-    return;
-  }
-
-  showToast({
-    type: 'success',
-    message: t`${oldName} renamed to ${newName}`,
-  });
-
-  const route = router.currentRoute.value;
-  if (route.params.name === oldName) {
-    await router.replace(getFormRoute(doc.schemaName, newName));
-  }
 }
 
 function getCancelAction(doc: Doc): Action {
@@ -875,11 +796,35 @@ async function showInsufficientInventoryDialog(doc: SalesInvoice) {
   return true;
 }
 
+/** Real Party display name for dialogs; ignores temp "New Customers & Suppliers 02" ids. */
+function getPartyPersonName(doc: Doc): string | undefined {
+  if (doc.schemaName !== ModelNameEnum.Party) {
+    return undefined;
+  }
+  const raw = doc.get('partyName');
+  const name = typeof raw === 'string' ? raw.trim() : '';
+  if (
+    !name ||
+    isUuidDocId(name) ||
+    doc.fyo.doc.isTemporaryName(name, doc.schema)
+  ) {
+    return undefined;
+  }
+  return name;
+}
+
 async function showSubmitOrSyncDialog(doc: Doc, type: 'submit' | 'sync') {
   const label = getDocReferenceLabel(doc);
+  const typeLabel = getDocTypeLabel(doc);
+  const personName = getPartyPersonName(doc);
   let title = t`Save ${label}?`;
   if (type === 'submit') {
     title = t`Submit ${label}?`;
+  } else if (personName) {
+    // e.g. "Save Employee Jane Doe?" — role + person name, not schema label
+    title = t`Save ${typeLabel} ${personName}?`;
+  } else if (doc.schemaName === ModelNameEnum.Party) {
+    title = t`Save ${typeLabel}?`;
   }
 
   let detail: string;
@@ -924,8 +869,15 @@ async function showSubmitOrSyncDialog(doc: Doc, type: 'submit' | 'sync') {
 
 function getDocSyncMessage(doc: Doc): string {
   const label = getDocReferenceLabel(doc);
-  const detail = t`Create new ${doc.schema.label} entry?`;
+  const typeLabel = getDocTypeLabel(doc);
+  const personName = getPartyPersonName(doc);
+  const detail = personName
+    ? t`Create new ${typeLabel} entry for ${personName}?`
+    : t`Create new ${typeLabel} entry?`;
   if (doc.inserted) {
+    if (personName) {
+      return t`Save changes made to ${typeLabel} ${personName}?`;
+    }
     return t`Save changes made to ${label}?`;
   }
 
@@ -941,7 +893,7 @@ function getDocSyncMessage(doc: Doc): string {
 }
 
 function getDocSubmitMessage(doc: Doc): string {
-  const details = [t`Mark ${doc.schema.label} as submitted?`];
+  const details = [t`Mark ${getDocTypeLabel(doc)} as submitted?`];
 
   if (doc instanceof SalesInvoice && doc.makeAutoPayment) {
     const toAccount = doc.autoPaymentAccount!;
@@ -1036,18 +988,43 @@ export function showCannotCancelOrDeleteToast(doc: Doc) {
 }
 
 /**
+ * Schema/type label for dialogs. Party uses role-specific wording so Employee
+ * save/delete copy does not say "Customers & Suppliers".
+ */
+export function getDocTypeLabel(doc: Doc): string {
+  if (doc.schemaName === ModelNameEnum.Party) {
+    const role = doc.get('role') as string | undefined;
+    if (role === 'Employee' || role === 'Contractor') {
+      return t`Employee`;
+    }
+    if (role === 'Customer') {
+      return t`Customer`;
+    }
+    if (role === 'Supplier') {
+      return t`Supplier`;
+    }
+  }
+
+  return String(doc.schema.label || doc.schemaName);
+}
+
+/**
  * User-facing doc label for toasts/dialogs/form headers.
  * Prefer titleField / linkDisplayField; never surface UUID primary keys.
+ * Skip fyo temp ids ("New Customers & Suppliers 02") so Party dialogs use
+ * the role-specific type label (Employee / Customer / Supplier) instead.
  */
 export function getDocReferenceLabel(doc: Doc): string {
-  const schemaLabel = String(doc.schema.label || doc.schemaName);
+  const schemaLabel = getDocTypeLabel(doc);
   const titleField =
     doc.schema.linkDisplayField || doc.schema.titleField || 'name';
+  const isTemp = (value: string | undefined) =>
+    !!value && doc.fyo.doc.isTemporaryName(value, doc.schema);
 
   if (titleField !== 'name') {
     const rawTitle = doc.get(titleField);
     const title = typeof rawTitle === 'string' ? rawTitle.trim() : '';
-    if (title && !isUuidDocId(title)) {
+    if (title && !isUuidDocId(title) && !isTemp(title)) {
       return title;
     }
   }
@@ -1055,7 +1032,9 @@ export function getDocReferenceLabel(doc: Doc): string {
   if (
     doc.schema.naming === 'random' ||
     doc.schema.naming === 'uuid' ||
-    isUuidDocId(doc.name)
+    isUuidDocId(doc.name) ||
+    isTemp(doc.name) ||
+    (doc.schemaName === ModelNameEnum.Party && doc.notInserted)
   ) {
     return schemaLabel;
   }

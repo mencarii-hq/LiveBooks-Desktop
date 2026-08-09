@@ -17,6 +17,8 @@ import {
   salesIncomeAccountId,
   serviceIncomeAccountId,
 } from 'utils/ids/coaAccountLookup';
+import { generateDocId, isUuidDocId } from 'utils/ids';
+import { ModelNameEnum } from 'models/types';
 import { isUsCaCompany } from 'utils/regional';
 
 interface UOMConversionItem {
@@ -26,6 +28,7 @@ interface UOMConversionItem {
 }
 
 export class Item extends Doc {
+  itemName?: string;
   itemCode?: string;
   trackItem?: boolean;
   itemType?: 'Product' | 'Service';
@@ -91,6 +94,61 @@ export class Item extends Doc {
 
   async beforeSync(): Promise<void> {
     await super.beforeSync();
+
+    // Only assign/rewrite the PK on insert. Changing `name` on an already
+    // inserted doc would update against a non-existent row (#updateOne uses
+    // the current name as the WHERE key and does not rename the PK).
+    if (!this.inserted) {
+      if (this.name && !isUuidDocId(this.name)) {
+        // Temp UI ids look like "New Item 01" — never promote those into
+        // itemName (lists, invoices, and validation use that field).
+        if (!this.fyo.doc.isTemporaryName(this.name, this.schema)) {
+          this.itemName ??= this.name;
+        }
+        this.name = generateDocId();
+      } else if (!this.name) {
+        this.name = generateDocId();
+      }
+    }
+
+    if (typeof this.itemName === 'string') {
+      this.itemName = this.itemName.trim();
+    }
+
+    // Hard-block duplicate itemName (case-insensitive) on create/rename.
+    // Existing books may already have case-insensitive duplicates; allow those
+    // items to keep saving as long as itemName is unchanged.
+    let persisted: { itemName?: string } | null = null;
+    if (this.inserted && this.name) {
+      persisted = (await this.fyo.db.get(ModelNameEnum.Item, this.name)) as {
+        itemName?: string;
+      } | null;
+    }
+
+    if (this.itemName) {
+      const normalizedName = this.itemName.toLowerCase();
+      const nameUnchanged =
+        !!persisted?.itemName &&
+        persisted.itemName.trim().toLowerCase() === normalizedName;
+
+      if (!nameUnchanged) {
+        const allItems = (await this.fyo.db.getAll(ModelNameEnum.Item, {
+          fields: ['name', 'itemName'],
+        })) as { name: string; itemName?: string }[];
+        const duplicate = allItems.find(
+          (i) =>
+            i.name !== this.name &&
+            i.itemName &&
+            i.itemName.trim().toLowerCase() === normalizedName
+        );
+        if (duplicate) {
+          throw new ValidationError(
+            'Item name must be unique. Rename with a prefix or suffix to continue.'
+          );
+        }
+      }
+    }
+
     const latestByUom = new Map<string, UOMConversionItem>();
 
     this.uomConversions.forEach((item) => {
@@ -260,7 +318,7 @@ export class Item extends Doc {
 
   static getListViewSettings(): ListViewSettings {
     return {
-      columns: ['name', 'unit', 'tax', 'rate'],
+      columns: ['itemName', 'unit', 'tax', 'rate'],
     };
   }
 

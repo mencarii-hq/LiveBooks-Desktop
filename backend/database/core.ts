@@ -625,6 +625,16 @@ export default class DatabaseCore extends DatabaseBase {
           Boolean
         ) as string[];
         builder[type](field, operator, nonNulls).orWhere(field, null);
+      } else if (operator === 'not in') {
+        // SQL NOT IN excludes NULL column values; for filters, a NULL value
+        // is "not in" any list (e.g. accounts without an accountType must
+        // pass ['not in', [...]] category filters).
+        const nonNulls = (comparisonValue as (string | null)[]).filter(
+          (v) => v !== null
+        ) as string[];
+        builder[type]((q) => {
+          void q.whereNotIn(field, nonNulls).orWhereNull(field);
+        });
       } else {
         builder[type](field, operator as string, comparisonValue as string);
       }
@@ -708,7 +718,11 @@ export default class DatabaseCore extends DatabaseBase {
     return newForeignKeys;
   }
 
-  #buildColumnForTable(table: Knex.AlterTableBuilder, field: Field) {
+  #buildColumnForTable(
+    table: Knex.AlterTableBuilder,
+    field: Field,
+    { forAlter = false }: { forAlter?: boolean } = {}
+  ) {
     if (field.fieldtype === FieldTypeEnum.Table) {
       // In case columnType is "Table"
       // childTable links are handled using the childTable's "parent" field
@@ -734,8 +748,11 @@ export default class DatabaseCore extends DatabaseBase {
       column.defaultTo(field.default);
     }
 
-    // required
-    if (field.required) {
+    // required — skip NOT NULL on ALTER ADD COLUMN. SQLite rejects
+    // `ADD COLUMN … NOT NULL` without a non-NULL default when the table
+    // already has rows (e.g. Party.partyName / Item.itemName). App-level
+    // `required` and post-migrate patches still enforce/backfill values.
+    if (field.required && !forAlter) {
       column.notNullable();
     }
 
@@ -759,7 +776,7 @@ export default class DatabaseCore extends DatabaseBase {
       }
 
       for (const field of diff.added) {
-        this.#buildColumnForTable(table, field);
+        this.#buildColumnForTable(table, field, { forAlter: true });
       }
     });
 

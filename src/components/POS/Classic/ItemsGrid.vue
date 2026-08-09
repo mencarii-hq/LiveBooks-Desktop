@@ -59,7 +59,7 @@
               "
             >
               <p class="text-4xl font-semibold text-gray-400 select-none">
-                {{ getExtractedWords(item.name) }}
+                {{ getExtractedWords(itemDisplayName(item)) }}
               </p>
             </div>
             <p
@@ -85,7 +85,9 @@
             </p>
           </div>
         </div>
-        <h3 class="text-lg font-medium dark:text-white">{{ item.name }}</h3>
+        <h3 class="text-lg font-medium dark:text-white">
+          {{ itemDisplayName(item) }}
+        </h3>
 
         <p class="text-lg font-medium dark:text-white">
           {{
@@ -118,6 +120,9 @@ export default defineComponent({
     },
   },
   methods: {
+    itemDisplayName(item: POSItem) {
+      return item.itemName?.trim() || item.name;
+    },
     getExtractedWords(item: string) {
       const initials = item.split(' ').map((word) => {
         return word[0].toUpperCase();

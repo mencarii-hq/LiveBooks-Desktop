@@ -29,6 +29,8 @@ const locationMap = {
   LocationTwo: 'LocationTwo',
 };
 
+let itemId: Record<string, string> = {};
+
 /**
  * Section 1: Test Creation of Items and Locations
  */
@@ -37,8 +39,12 @@ test('create dummy items & locations', async (t) => {
   // Create Items
   for (const { name, rate } of Object.values(itemMap)) {
     const item = getItem(name, rate);
-    await fyo.doc.getNewDoc(ModelNameEnum.Item, item).sync();
-    t.ok(await fyo.db.exists(ModelNameEnum.Item, name), `${name} exists`);
+    const doc = await fyo.doc.getNewDoc(ModelNameEnum.Item, item).sync();
+    itemId[name] = doc.name as string;
+    t.ok(
+      await fyo.db.exists(ModelNameEnum.Item, itemId[name]),
+      `${name} exists`
+    );
   }
 
   // Create Locations
@@ -61,7 +67,7 @@ test('create stock movement, material receipt', async (t) => {
     new Date('2022-11-03T09:57:04.528'),
     [
       {
-        item: itemMap.Ink.name,
+        item: itemId[itemMap.Ink.name],
         to: locationMap.LocationOne,
         quantity,
         rate,
@@ -83,11 +89,11 @@ test('create stock movement, material receipt', async (t) => {
   const sle = sles[0];
   t.notEqual(new Date(sle.date).toString(), 'Invalid Date');
   t.equal(parseInt(sle.name), 1);
-  t.equal(sle.item, itemMap.Ink.name);
+  t.equal(sle.item, itemId[itemMap.Ink.name]);
   t.equal(parseFloat(sle.rate), rate);
   t.equal(sle.quantity, quantity);
   t.equal(sle.location, locationMap.LocationOne);
-  t.equal(await fyo.db.getStockQuantity(itemMap.Ink.name), quantity);
+  t.equal(await fyo.db.getStockQuantity(itemId[itemMap.Ink.name]), quantity);
 });
 
 test('create stock movement, material transfer', async (t) => {
@@ -99,7 +105,7 @@ test('create stock movement, material transfer', async (t) => {
     new Date('2022-11-03T09:58:04.528'),
     [
       {
-        item: itemMap.Ink.name,
+        item: itemId[itemMap.Ink.name],
         from: locationMap.LocationOne,
         to: locationMap.LocationTwo,
         quantity,
@@ -117,7 +123,7 @@ test('create stock movement, material transfer', async (t) => {
 
   for (const sle of sles) {
     t.notEqual(new Date(sle.date).toString(), 'Invalid Date');
-    t.equal(sle.item, itemMap.Ink.name);
+    t.equal(sle.item, itemId[itemMap.Ink.name]);
     t.equal(parseFloat(sle.rate), rate);
 
     if (sle.location === locationMap.LocationOne) {
@@ -130,10 +136,13 @@ test('create stock movement, material transfer', async (t) => {
   }
 
   t.equal(
-    await fyo.db.getStockQuantity(itemMap.Ink.name, locationMap.LocationOne),
+    await fyo.db.getStockQuantity(
+      itemId[itemMap.Ink.name],
+      locationMap.LocationOne
+    ),
     0
   );
-  t.equal(await fyo.db.getStockQuantity(itemMap.Ink.name), quantity);
+  t.equal(await fyo.db.getStockQuantity(itemId[itemMap.Ink.name]), quantity);
 });
 
 test('create stock movement, material issue', async (t) => {
@@ -145,7 +154,7 @@ test('create stock movement, material issue', async (t) => {
     new Date('2022-11-03T09:59:04.528'),
     [
       {
-        item: itemMap.Ink.name,
+        item: itemId[itemMap.Ink.name],
         from: locationMap.LocationTwo,
         quantity,
         rate,
@@ -162,11 +171,11 @@ test('create stock movement, material issue', async (t) => {
 
   const sle = sles[0];
   t.notEqual(new Date(sle.date).toString(), 'Invalid Date');
-  t.equal(sle.item, itemMap.Ink.name);
+  t.equal(sle.item, itemId[itemMap.Ink.name]);
   t.equal(parseFloat(sle.rate), rate);
   t.equal(sle.quantity, -quantity);
   t.equal(sle.location, locationMap.LocationTwo);
-  t.equal(await fyo.db.getStockQuantity(itemMap.Ink.name), 0);
+  t.equal(await fyo.db.getStockQuantity(itemId[itemMap.Ink.name]), 0);
 });
 
 /**
@@ -196,7 +205,7 @@ test('cancel stock movement', async (t) => {
     t.equal(slesAfter.length, 0);
   }
 
-  t.equal(await fyo.db.getStockQuantity(itemMap.Ink.name), null);
+  t.equal(await fyo.db.getStockQuantity(itemId[itemMap.Ink.name]), null);
 });
 
 /**
@@ -235,7 +244,8 @@ async function runEntries(
 }
 
 test('create stock movements, invalid entries, in sequence', async (t) => {
-  const { name: item, rate } = itemMap.Pen;
+  const { rate } = itemMap.Pen;
+  const item = itemId[itemMap.Pen.name];
   const quantity = 10;
   await runEntries(
     item,
@@ -318,7 +328,8 @@ test('create stock movements, invalid entries, in sequence', async (t) => {
 });
 
 test('create stock movements, invalid entries, out of sequence', async (t) => {
-  const { name: item, rate } = itemMap.Ink;
+  const { rate } = itemMap.Ink;
+  const item = itemId[itemMap.Ink.name];
   const quantity = 10;
   await runEntries(
     item,

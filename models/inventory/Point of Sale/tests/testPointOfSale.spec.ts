@@ -21,10 +21,19 @@ const itemMap = {
   },
 };
 
+let itemId: Record<string, string> = {};
+let partyId = '';
+
 test('insert test docs', async (t) => {
-  await fyo.doc.getNewDoc(ModelNameEnum.Item, itemMap.Pen).sync();
-  await fyo.doc.getNewDoc(ModelNameEnum.Item, itemMap.Ink).sync();
-  await fyo.doc.getNewDoc(ModelNameEnum.Party, customer).sync();
+  for (const item of Object.values(itemMap)) {
+    const doc = await fyo.doc.getNewDoc(ModelNameEnum.Item, item).sync();
+    itemId[item.name] = doc.name as string;
+  }
+
+  const partyDoc = await fyo.doc
+    .getNewDoc(ModelNameEnum.Party, customer)
+    .sync();
+  partyId = partyDoc.name as string;
 });
 
 let sinvDocOne: SalesInvoice | undefined;
@@ -41,11 +50,11 @@ test('check pos transacted amount', async (t) => {
     isPOS: true,
     date: new Date('2023-01-01'),
     account: 'Debtors',
-    party: customer.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinvDocOne.append('items', {
-    item: itemMap.Pen.name,
+    item: itemId[itemMap.Pen.name],
     rate: itemMap.Pen.rate,
     quantity: 1,
   });
@@ -59,11 +68,11 @@ test('check pos transacted amount', async (t) => {
     isPOS: true,
     date: new Date('2023-01-01'),
     account: 'Debtors',
-    party: customer.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinvDocTwo.append('items', {
-    item: itemMap.Pen.name,
+    item: itemId[itemMap.Pen.name],
     rate: itemMap.Pen.rate,
     quantity: 1,
   });

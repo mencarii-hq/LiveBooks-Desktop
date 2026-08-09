@@ -12,6 +12,7 @@ export const routeFilters = {
   },
   Suppliers: { role: ['in', ['Supplier', 'Both']] },
   Customers: { role: ['in', ['Customer', 'Both']] },
+  Employees: { role: ['in', ['Employee', 'Contractor']] },
   Party: { role: 'Both' },
 };
 
@@ -23,5 +24,6 @@ export const createFilters = {
   SalesPayments: { paymentType: 'Receive' },
   Suppliers: { role: 'Supplier' },
   Customers: { role: 'Customer' },
+  Employees: { role: 'Employee' },
   Party: { role: 'Both' },
 };

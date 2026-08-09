@@ -147,9 +147,10 @@ export default defineComponent({
           this.sinvDoc.loyaltyPoints = newValue;
         } else {
           throw new Error(
-            `${this.sinvDoc.party as string} only has ${
-              this.loyaltyPoints
-            } points`
+            `${
+              (partyData.partyName as string)?.trim() ||
+              (this.sinvDoc.party as string)
+            } only has ${this.loyaltyPoints} points`
           );
         }
 

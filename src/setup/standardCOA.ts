@@ -139,6 +139,13 @@ export function getStandardCOA(): COATree {
           },
           [t`Payroll Payable`]: {},
         },
+        [t`Credit Cards`]: {
+          accountType: 'CreditCard',
+          isGroup: true,
+          [t`Credit Card`]: {
+            accountType: 'CreditCard',
+          },
+        },
         [t`Stock Liabilities`]: {
           [t`Stock Received But Not Billed`]: {
             accountType: 'Stock Received But Not Billed',

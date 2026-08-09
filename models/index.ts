@@ -24,6 +24,8 @@ import { PaymentFor } from './baseModels/PaymentFor/PaymentFor';
 import { PaymentSplit } from './baseModels/PaymentSplit/PaymentSplit';
 import { CheckPrintSettings } from './baseModels/CheckPrintSettings/CheckPrintSettings';
 import { MemorizedTransaction } from './baseModels/MemorizedTransaction/MemorizedTransaction';
+import { PayrollDeduction } from './baseModels/PayrollDeduction/PayrollDeduction';
+import { PayrollProfile } from './baseModels/PayrollProfile/PayrollProfile';
 import { PriceList } from './baseModels/PriceList/PriceList';
 import { PriceListItem } from './baseModels/PriceList/PriceListItem';
 import { PricingRule } from './baseModels/PricingRule/PricingRule';
@@ -99,6 +101,8 @@ export const models = {
   PaymentSplit,
   CheckPrintSettings,
   MemorizedTransaction,
+  PayrollDeduction,
+  PayrollProfile,
   PrintSettings,
   PriceList,
   PriceListItem,

@@ -77,14 +77,16 @@ export default defineComponent({
 
       const matchedItems = (await this.fyo.db.getAll('Item', {
         filters: { barcode },
-        fields: ['name'],
-      })) as { name: string }[];
+        fields: ['name', 'itemName'],
+      })) as { name: string; itemName?: string }[];
 
-      const itemName = matchedItems?.[0]?.name;
+      const matchedItem = matchedItems?.[0];
+      const itemId = matchedItem?.name;
 
-      if (itemName) {
-        this.success(this.t`${itemName} quantity 1 added.`);
-        this.$emit('item-selected', itemName);
+      if (itemId) {
+        const itemLabel = matchedItem.itemName?.trim() || itemId;
+        this.success(this.t`${itemLabel} quantity 1 added.`);
+        this.$emit('item-selected', itemId);
 
         return;
       }
@@ -117,15 +119,18 @@ export default defineComponent({
         ),
       };
 
-      const fields = ['name', 'unit'];
+      const fields = ['name', 'itemName', 'unit'];
 
       const items =
         (await this.fyo.db.getAll('Item', { filters, fields })) || [];
-      const { name, unit } = items[0] || {};
+      const { name, itemName, unit } = items[0] || {};
 
       if (!name) {
         return this.error(this.t`Item with barcode ${barcode} not found.`);
       }
+
+      const itemLabel =
+        (itemName as string | undefined)?.trim() || (name as string);
 
       const quantity = isWeightEnabled
         ? this.parseBarcode(
@@ -135,7 +140,7 @@ export default defineComponent({
           )
         : 1;
 
-      this.success(this.t`${name as string} quantity ${quantity} added.`);
+      this.success(this.t`${itemLabel} quantity ${quantity} added.`);
       this.$emit('item-selected', name, quantity);
     },
 

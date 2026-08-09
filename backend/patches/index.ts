@@ -10,6 +10,8 @@ import fixItemHSNField from './fixItemHSNField';
 import createPaymentMethods from './createPaymentMethods';
 import uuidIdentityMigration from './uuidIdentityMigration';
 import migrateChequeToCheck from './migrateChequeToCheck';
+import migrateManualCreditCards from './migrateManualCreditCards';
+import partyItemDisplayNames from './partyItemDisplayNames';
 
 export default [
   { name: 'testPatch', version: '0.5.0-beta.0', patch: testPatch },
@@ -60,5 +62,17 @@ export default [
     name: 'migrateChequeToCheck',
     version: '1.0.3',
     patch: migrateChequeToCheck,
+  },
+  {
+    name: 'partyItemDisplayNames',
+    version: '1.0.4',
+    patch: partyItemDisplayNames,
+    // After uuidIdentityMigration (priority 200) so Tier-C damage is repairable.
+    priority: 150,
+  },
+  {
+    name: 'migrateManualCreditCards',
+    version: '1.0.4',
+    patch: migrateManualCreditCards,
   },
 ] as Patch[];

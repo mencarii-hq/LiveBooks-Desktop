@@ -36,6 +36,7 @@ const fyo = getTestFyo();
 setupTestFyo(fyo, __filename);
 
 const partyName = 'Split Test Party';
+let partyId = '';
 // Account docs are named by UUID in this fork; ids are set after creation.
 // Default fixtures (Cash account, Cash payment method's account link) are
 // name-literal and broken under uuid naming, so the spec creates its own
@@ -88,7 +89,7 @@ function getSplitPayment(
   const paymentAccount = paymentType === 'Pay' ? expenseA : cashAccount;
 
   return fyo.doc.getNewDoc(ModelNameEnum.Payment, {
-    party: partyName,
+    party: partyId,
     date: new Date(),
     paymentType,
     account,
@@ -113,10 +114,15 @@ test('split setup: party, expense accounts, number series', async (t) => {
     'PAY- number series exists'
   );
 
-  await fyo.doc
-    .getNewDoc(ModelNameEnum.Party, { name: partyName, role: 'Both' })
+  const partyDoc = await fyo.doc
+    .getNewDoc(ModelNameEnum.Party, {
+      name: partyName,
+      partyName,
+      role: 'Both',
+    })
     .sync();
-  t.ok(await fyo.db.exists(ModelNameEnum.Party, partyName), 'party exists');
+  partyId = partyDoc.name as string;
+  t.ok(await fyo.db.exists(ModelNameEnum.Party, partyId), 'party exists');
 
   const groups = (await fyo.db.getAll(ModelNameEnum.Account, {
     filters: { isGroup: true, rootType: 'Expense' },
@@ -126,6 +132,7 @@ test('split setup: party, expense accounts, number series', async (t) => {
 
   const docA = fyo.doc.getNewDoc(ModelNameEnum.Account, {
     name: 'Split Expense A',
+    accountName: 'Split Expense A',
     rootType: 'Expense',
     parentAccount: groups[0].name,
     isGroup: false,
@@ -139,6 +146,7 @@ test('split setup: party, expense accounts, number series', async (t) => {
 
   const docB = fyo.doc.getNewDoc(ModelNameEnum.Account, {
     name: 'Split Expense B',
+    accountName: 'Split Expense B',
     rootType: 'Expense',
     parentAccount: groups[0].name,
     isGroup: false,
@@ -158,6 +166,7 @@ test('split setup: party, expense accounts, number series', async (t) => {
 
   const docCash = fyo.doc.getNewDoc(ModelNameEnum.Account, {
     name: 'Split Test Cash',
+    accountName: 'Split Test Cash',
     rootType: 'Asset',
     accountType: 'Cash',
     parentAccount: assetGroups[0].name,
@@ -189,6 +198,7 @@ test('split setup: party, expense accounts, number series', async (t) => {
   for (const label of ['Split Fed WH', 'Split State WH', 'Split Local WH']) {
     const doc = fyo.doc.getNewDoc(ModelNameEnum.Account, {
       name: label,
+      accountName: label,
       rootType: 'Liability',
       parentAccount: liabilityGroups[0].name,
       isGroup: false,
@@ -397,7 +407,7 @@ test('payroll validation: signed mismatch and all-negative lines reject', async 
 test('memorized payroll template replays with correct signs', async (t) => {
   const mt = fyo.doc.getNewDoc(ModelNameEnum.MemorizedTransaction, {
     title: 'Payroll Template',
-    party: partyName,
+    party: partyId,
     paymentType: 'Pay',
     fromAccount: cashAccount,
     toAccount: expenseA,

@@ -1,7 +1,7 @@
 import { Doc } from 'fyo/model/doc';
 import { FiltersMap } from 'fyo/model/types';
 import { Money } from 'pesa';
-import { AccountTypeEnum } from '../Account/types';
+import { NON_CATEGORY_ACCOUNT_TYPES } from '../Account/types';
 
 /**
  * Child row splitting the category side of a register Payment (or a
@@ -18,15 +18,7 @@ export class PaymentSplit extends Doc {
     // non-party account can be a split category.
     account: () => ({
       isGroup: false,
-      accountType: [
-        'not in',
-        [
-          AccountTypeEnum.Bank,
-          AccountTypeEnum.Cash,
-          AccountTypeEnum.Receivable,
-          AccountTypeEnum.Payable,
-        ],
-      ],
+      accountType: ['not in', [...NON_CATEGORY_ACCOUNT_TYPES]],
     }),
   };
 }

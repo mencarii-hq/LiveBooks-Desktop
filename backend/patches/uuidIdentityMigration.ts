@@ -41,8 +41,6 @@ const TIER_B_NUMBER_SERIES = [
   'PricingRule',
 ] as const;
 
-const TIER_C_MASTER = ['Item', 'Party'] as const;
-
 const PLAID_MAP_TABLE = 'PlaidBankAccountMap';
 
 type AccountRow = {
@@ -128,7 +126,10 @@ async function execute(dm: DatabaseManager) {
       await rewriteAccountLinkColumns(trx, schemaMap, accountMap);
       await migrateTierA(trx);
       await migrateTierB(trx);
-      await migrateTierCMaster(trx);
+      // Party/Item UUID + display-name migration is handled by
+      // partyItemDisplayNames (Account-style backfill + link rewrite).
+      // Tier C here previously destroyed human names without rewriting
+      // party/item link columns — do not reintroduce it.
       await migratePlaidChartAccounts(trx, accountMap);
       await setSchemaMigrationVersion(trx, SCHEMA_MIGRATION_COMPLETE);
     });
@@ -258,22 +259,6 @@ async function migrateTierB(trx: Knex): Promise<void> {
           .where({ name: row.name })
           .update({ documentNumber: row.name });
       }
-      await renamePrimaryKey(trx, table, row.name, newName);
-    }
-  }
-}
-
-async function migrateTierCMaster(trx: Knex): Promise<void> {
-  for (const table of TIER_C_MASTER) {
-    if (!(await trx.schema.hasTable(table))) {
-      continue;
-    }
-    const rows = (await trx(table).select('name')) as { name: string }[];
-    for (const row of rows) {
-      if (isUuidDocId(row.name)) {
-        continue;
-      }
-      const newName = generateDocId();
       await renamePrimaryKey(trx, table, row.name, newName);
     }
   }

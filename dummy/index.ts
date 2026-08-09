@@ -273,7 +273,8 @@ async function getSalesInvoices(
       false
     ) as SalesInvoice;
 
-    await doc.set('party', customer!.name);
+    const customerId = partyIdByDisplayName[customer!.name];
+    await doc.set('party', customerId);
     if (!doc.account) {
       doc.account = debtorsAccountId(fyo);
     }
@@ -283,7 +284,8 @@ async function getSalesInvoices(
     const numItems = Math.ceil(Math.random() * 5);
     for (let i = 0; i < numItems; i++) {
       const item = sample(salesItems);
-      if ((doc.items ?? []).find((i) => i.item === item)) {
+      const itemId = itemIdByDisplayName[item!.name];
+      if ((doc.items ?? []).find((row) => row.item === itemId)) {
         continue;
       }
 
@@ -307,7 +309,7 @@ async function getSalesInvoices(
       const rate = fyo.pesa(item!.rate * (fc + 1)).clip(0);
       await doc.append('items', {});
       await doc.items!.at(-1)!.set({
-        item: item!.name,
+        item: itemId,
         rate,
         quantity,
         amount: rate.mul(quantity),
@@ -416,7 +418,7 @@ async function getSalesPurchaseInvoices(
         false
       ) as PurchaseInvoice;
 
-      await doc.set('party', supplier);
+      await doc.set('party', partyIdByDisplayName[supplier]);
       if (!doc.account) {
         doc.account = creditorsAccountId(fyo);
       }
@@ -427,7 +429,10 @@ async function getSalesPurchaseInvoices(
       for (const item of supplierGrouped[supplier]) {
         await doc.append('items', {});
         const quantity = purchaseQty[item];
-        await doc.items!.at(-1)!.set({ item, quantity });
+        await doc.items!.at(-1)!.set({
+          item: itemIdByDisplayName[item],
+          quantity,
+        });
       }
 
       invoices.push(doc);
@@ -473,7 +478,7 @@ async function getNonSalesPurchaseInvoices(
       ) as PurchaseInvoice;
 
       const party = purchaseItemPartyMap[name];
-      await doc.set('party', party);
+      await doc.set('party', partyIdByDisplayName[party]);
       if (!doc.account) {
         doc.account = creditorsAccountId(fyo);
       }
@@ -490,7 +495,7 @@ async function getNonSalesPurchaseInvoices(
       }
 
       await row.set({
-        item: item.name,
+        item: itemIdByDisplayName[item.name],
         quantity,
         rate: fyo.pesa(rate).clip(0),
       });
@@ -502,32 +507,44 @@ async function getNonSalesPurchaseInvoices(
   return invoices;
 }
 
+/** Display name (from dummy JSON) → UUID PK after sync. */
+let partyIdByDisplayName: Record<string, string> = {};
+let itemIdByDisplayName: Record<string, string> = {};
+
 async function generateStaticEntries(fyo: Fyo) {
-  await generateItems(fyo);
-  await generateParties(fyo);
+  itemIdByDisplayName = await generateItems(fyo);
+  partyIdByDisplayName = await generateParties(fyo);
 }
 
-async function generateItems(fyo: Fyo) {
+async function generateItems(fyo: Fyo): Promise<Record<string, string>> {
+  const ids: Record<string, string> = {};
   for (const item of items) {
+    const displayName = item.name;
     const doc = fyo.doc.getNewDoc(
       'Item',
       {
         ...item,
+        itemName: displayName,
         incomeAccount: resolveDemoCoaAccountId(fyo, item.incomeAccount),
         expenseAccount: resolveDemoCoaAccountId(fyo, item.expenseAccount),
       },
       false
     );
     await doc.sync();
+    ids[displayName] = doc.name as string;
   }
+  return ids;
 }
 
-async function generateParties(fyo: Fyo) {
+async function generateParties(fyo: Fyo): Promise<Record<string, string>> {
+  const ids: Record<string, string> = {};
   for (const party of parties) {
+    const displayName = party.name;
     const doc = fyo.doc.getNewDoc(
       'Party',
       {
         ...party,
+        partyName: displayName,
         defaultAccount: party.defaultAccount
           ? resolveStandardCoaAccountLabel(fyo, party.defaultAccount)
           : party.defaultAccount,
@@ -535,7 +552,9 @@ async function generateParties(fyo: Fyo) {
       false
     );
     await doc.sync();
+    ids[displayName] = doc.name as string;
   }
+  return ids;
 }
 
 async function syncAndSubmit(docs: Doc[], notifier?: Notifier) {

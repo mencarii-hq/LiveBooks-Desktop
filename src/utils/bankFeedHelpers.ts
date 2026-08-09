@@ -1,7 +1,12 @@
 import { fyo } from 'src/initFyo';
 import type { PlaidFeedItemRow } from 'src/utils/plaidBankFeedsApi';
-import { AccountTypeEnum } from 'models/baseModels/Account/types';
 import { ModelNameEnum } from 'models/types';
+import { FEED_AND_RECONCILE_ACCOUNT_TYPES } from 'src/utils/registerAccountTypes';
+
+export {
+  isPlaidCreditAccount,
+  FEED_AND_RECONCILE_ACCOUNT_TYPES,
+} from 'src/utils/registerAccountTypes';
 export type PlaidMapRow = {
   plaidItemId: string;
   plaidAccountId: string;
@@ -137,19 +142,19 @@ export async function loadAllBankCoaAccounts(): Promise<BankCoaAccount[]> {
   return (await fyo.db.getAll(ModelNameEnum.Account, {
     fields: ['name', 'accountName', 'rootType', 'disabled'],
     filters: {
-      accountType: AccountTypeEnum.Bank,
+      accountType: ['in', [...FEED_AND_RECONCILE_ACCOUNT_TYPES]],
       isGroup: false,
       disabled: false,
     },
   })) as BankCoaAccount[];
 }
 
-/** Archived (disabled) bank leaf accounts — for restore UI on Bank Feed Hub Manual tab. */
+/** Archived (disabled) bank/CC leaf accounts — for restore UI on Bank Feed Hub Manual tab. */
 export async function loadArchivedBankCoaAccounts(): Promise<BankCoaAccount[]> {
   const rows = (await fyo.db.getAll(ModelNameEnum.Account, {
     fields: ['name', 'accountName', 'rootType', 'disabled'],
     filters: {
-      accountType: AccountTypeEnum.Bank,
+      accountType: ['in', [...FEED_AND_RECONCILE_ACCOUNT_TYPES]],
       isGroup: false,
       disabled: true,
     },

@@ -70,6 +70,13 @@ export type RegisterSplitLine = {
 export type RegisterPaymentFields = {
   date: string | Date;
   party: string;
+  /**
+   * Known Party id. When set, it is used directly and `party` (payee text)
+   * is never matched or auto-created — callers that already hold the exact
+   * Party (e.g. payroll profiles) must pass this so a payee-text mismatch
+   * cannot create a stray Party.
+   */
+  partyId?: string;
   categoryAccount: string;
   bankAccount: string;
   amount: number;
@@ -109,7 +116,8 @@ function splitCategoryAccount(splits: RegisterSplitLine[]): string {
   return (splits.find((s) => s.amount > 0) ?? splits[0]).account;
 }
 
-function moneyToNumber(value: unknown): number {
+/** Coerce a pesa Money, numeric string, or number to a JS number. */
+export function moneyToNumber(value: unknown): number {
   const money = value as { float?: number } | null | undefined;
   if (typeof money?.float === 'number') {
     return money.float;
@@ -183,7 +191,8 @@ export async function createRegisterPayment(
     throw new Error(t`Amount must be greater than 0.`);
   }
 
-  await ensurePartyExists(fyo, fields.party);
+  const partyId =
+    fields.partyId || (await ensurePartyExists(fyo, fields.party));
 
   // R2: register entries default to Check when no method is supplied.
   const paymentMethod =
@@ -199,8 +208,10 @@ export async function createRegisterPayment(
     ? splitCategoryAccount(splits)
     : fields.categoryAccount;
 
-  // Pay: credit bank (account), debit category (paymentAccount)
-  // Receive: debit bank (paymentAccount), credit category (account)
+  // Pay: credit register account, debit category (paymentAccount)
+  // Receive: debit register account, credit category (account)
+  // CreditCard: Charge=Pay (credit liability), Payment=Receive (debit liability).
+  // Pay-the-card from bank: Pay with bankAccount=Bank and category=CreditCard.
   const account = paymentType === 'Pay' ? fields.bankAccount : categoryAccount;
   const paymentAccount =
     paymentType === 'Pay' ? categoryAccount : fields.bankAccount;
@@ -244,7 +255,7 @@ export async function createRegisterPayment(
   await doc.set('date', fields.date);
   await doc.set('amount', fyo.pesa(fields.amount));
   await doc.set('memo', fields.memo || '');
-  await doc.set('party', fields.party);
+  await doc.set('party', partyId);
   // Set type AFTER party so role-based formulas cannot win.
   await doc.set('paymentType', paymentType);
   // Set accounts after type so account formulas see the correct Pay/Receive.
@@ -289,16 +300,25 @@ export async function createRegisterPayment(
   return doc;
 }
 
-async function ensurePartyExists(fyo: Fyo, partyName: string): Promise<void> {
-  const exists = await fyo.db.exists(ModelNameEnum.Party, partyName);
-  if (exists) {
-    return;
+async function ensurePartyExists(fyo: Fyo, partyName: string): Promise<string> {
+  const trimmed = partyName.trim();
+  const parties = (await fyo.db.getAll(ModelNameEnum.Party, {
+    fields: ['name', 'partyName'],
+  })) as { name: string; partyName?: string }[];
+  const normalized = trimmed.toLowerCase();
+  const match = parties.find(
+    (party) => party.partyName?.trim().toLowerCase() === normalized
+  );
+  if (match) {
+    return match.name;
   }
+
   const party = fyo.doc.getNewDoc(ModelNameEnum.Party, {
-    name: partyName,
+    partyName: trimmed,
     role: 'Both',
   });
   await party.sync();
+  return party.name as string;
 }
 
 export async function memorizePayment(
@@ -382,7 +402,7 @@ export async function memorizeRegisterFields(
     return false;
   }
 
-  await ensurePartyExists(fyo, fields.party);
+  const partyId = await ensurePartyExists(fyo, fields.party);
 
   // #8: with splits, the first positive split's account stands in for the
   // single category account (same convention as createRegisterPayment).
@@ -398,7 +418,7 @@ export async function memorizeRegisterFields(
 
   const doc = fyo.doc.getNewDoc(ModelNameEnum.MemorizedTransaction, {
     title: fields.party,
-    party: fields.party,
+    party: partyId,
     paymentType: fields.paymentType,
     fromAccount: account,
     toAccount: paymentAccount,

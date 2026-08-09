@@ -95,7 +95,7 @@
 
     <!-- Rest of the form -->
     <SmartFillBox
-      v-if="doc && schemaName === 'Party'"
+      v-if="doc && schemaName === 'Party' && !isWorkforceParty"
       :doc="doc"
       class="border-b dark:border-gray-800"
       @change="onSmartFillChange"
@@ -129,6 +129,7 @@ import {
   focusOrSelectFormControl,
 } from 'src/utils/ui';
 import { useDocShortcuts } from 'src/utils/vueUtils';
+import { isWorkforcePartyRole, PartyRole } from 'models/baseModels/Party/types';
 import { ModelNameEnum } from 'models/types';
 import { deleteChartOfAccountsAccount } from 'src/utils/chartOfAccountsActions';
 import { computed, defineComponent, inject, ref } from 'vue';
@@ -182,6 +183,12 @@ export default defineComponent({
     };
   },
   computed: {
+    isWorkforceParty(): boolean {
+      if (this.schemaName !== ModelNameEnum.Party || !this.doc) {
+        return false;
+      }
+      return isWorkforcePartyRole(this.doc.role as PartyRole);
+    },
     showChartOfAccountsDeleteButton(): boolean {
       const doc = this.doc;
       return !!(

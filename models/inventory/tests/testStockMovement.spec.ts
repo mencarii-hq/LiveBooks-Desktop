@@ -12,6 +12,8 @@ import { StockMovement } from '../StockMovement';
 const fyo = getTestFyo();
 setupTestFyo(fyo, __filename);
 
+const itemIds: Record<string, string> = {};
+
 test('check store and create test items', async (t) => {
   const e = await fyo.db.exists(ModelNameEnum.Location, 'Stores');
   t.equals(e, true, 'location Stores exist');
@@ -24,8 +26,9 @@ test('check store and create test items', async (t) => {
 
   const exists: boolean[] = [];
   for (const item of items) {
-    await fyo.doc.getNewDoc('Item', item).sync();
-    exists.push(await fyo.db.exists('Item', item.name));
+    const doc = await fyo.doc.getNewDoc('Item', item).sync();
+    itemIds[item.name] = doc.name as string;
+    exists.push(await fyo.db.exists('Item', itemIds[item.name]));
   }
 
   t.ok(exists.every(Boolean), 'items created');
@@ -40,14 +43,14 @@ test('Stock Movement, Material Receipt', async (t) => {
   });
 
   await sm.append('items', {
-    item: 'RawOne',
+    item: itemIds['RawOne'],
     quantity: 1,
     rate: 100,
     toLocation: 'Stores',
   });
 
   await sm.append('items', {
-    item: 'RawTwo',
+    item: itemIds['RawTwo'],
     quantity: 1,
     rate: 100,
     toLocation: 'Stores',
@@ -57,17 +60,17 @@ test('Stock Movement, Material Receipt', async (t) => {
   await assertDoesNotThrow(async () => await sm.submit());
 
   t.equal(
-    await fyo.db.getStockQuantity('RawOne', 'Stores'),
+    await fyo.db.getStockQuantity(itemIds['RawOne'], 'Stores'),
     1,
     'item RawOne added'
   );
   t.equal(
-    await fyo.db.getStockQuantity('RawTwo', 'Stores'),
+    await fyo.db.getStockQuantity(itemIds['RawTwo'], 'Stores'),
     1,
     'item RawTwo added'
   );
   t.equal(
-    await fyo.db.getStockQuantity('Final', 'Stores'),
+    await fyo.db.getStockQuantity(itemIds['Final'], 'Stores'),
     null,
     'item Final not yet added'
   );
@@ -82,7 +85,7 @@ test('Stock Movement, Manufacture', async (t) => {
   });
 
   await sm.append('items', {
-    item: 'RawOne',
+    item: itemIds['RawOne'],
     quantity: 1,
     rate: 100,
   });
@@ -96,7 +99,7 @@ test('Stock Movement, Manufacture', async (t) => {
   t.notOk(sm.items?.[0].to, 'to location not set');
 
   await sm.append('items', {
-    item: 'RawTwo',
+    item: itemIds['RawTwo'],
     quantity: 1,
     rate: 100,
     fromLocation: 'Stores',
@@ -105,7 +108,7 @@ test('Stock Movement, Manufacture', async (t) => {
   await assertThrows(async () => await sm.sync());
 
   await sm.append('items', {
-    item: 'Final',
+    item: itemIds['Final'],
     quantity: 1,
     rate: 100,
     toLocation: 'Stores',
@@ -115,19 +118,19 @@ test('Stock Movement, Manufacture', async (t) => {
   await assertDoesNotThrow(async () => await sm.submit());
 
   t.equal(
-    await fyo.db.getStockQuantity('RawOne', 'Stores'),
+    await fyo.db.getStockQuantity(itemIds['RawOne'], 'Stores'),
     0,
     'item RawOne removed'
   );
 
   t.equal(
-    await fyo.db.getStockQuantity('RawTwo', 'Stores'),
+    await fyo.db.getStockQuantity(itemIds['RawTwo'], 'Stores'),
     0,
     'item RawTwo removed'
   );
 
   t.equal(
-    await fyo.db.getStockQuantity('Final', 'Stores'),
+    await fyo.db.getStockQuantity(itemIds['Final'], 'Stores'),
     1,
     'item Final added'
   );

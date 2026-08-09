@@ -2,9 +2,19 @@
   "name": "Party",
   "label": "Party",
   "isAbstract": true,
+  "naming": "manual",
+  "titleField": "partyName",
+  "linkDisplayField": "partyName",
   "fields": [
     {
       "fieldname": "name",
+      "label": "ID",
+      "fieldtype": "Data",
+      "hidden": true,
+      "readOnly": true
+    },
+    {
+      "fieldname": "partyName",
       "label": "Name",
       "fieldtype": "Data",
       "required": true,
@@ -82,5 +92,5 @@
     "defaultAccount",
     "currency"
   ],
-  "keywordFields": ["name"]
+  "keywordFields": ["partyName"]
 }

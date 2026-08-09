@@ -72,24 +72,42 @@ const locationMap = {
   LocationOne: 'LocationOne',
 };
 
+let itemId: Record<string, string> = {};
+let partyId = '';
+
 test('Pricing Rule: create dummy item, party, pricing rules, free items, locations', async (t) => {
   // Create Items
   for (const { name, rate } of Object.values(itemMap)) {
     const item = getItem(name, rate, false);
-    await fyo.doc.getNewDoc(ModelNameEnum.Item, item).sync();
-    t.ok(await fyo.db.exists(ModelNameEnum.Item, name), `Item: ${name} exists`);
+    const doc = await fyo.doc.getNewDoc(ModelNameEnum.Item, item).sync();
+    itemId[name] = doc.name as string;
+    t.ok(
+      await fyo.db.exists(ModelNameEnum.Item, itemId[name]),
+      `Item: ${name} exists`
+    );
   }
 
-  // Create Party
-  await fyo.doc.getNewDoc(ModelNameEnum.Party, partyMap.partyOne).sync();
+  const partyDoc = await fyo.doc
+    .getNewDoc(ModelNameEnum.Party, partyMap.partyOne)
+    .sync();
+  partyId = partyDoc.name as string;
   t.ok(
-    await fyo.db.exists(ModelNameEnum.Party, partyMap.partyOne.name),
+    await fyo.db.exists(ModelNameEnum.Party, partyId),
     `Party: ${partyMap.partyOne.name} exists`
   );
 
-  // Create Pricing Rules
   for (const pricingRule of Object.values(pricingRuleMap)) {
-    await fyo.doc.getNewDoc(ModelNameEnum.PricingRule, pricingRule).sync();
+    const rule = {
+      ...pricingRule,
+      appliedItems: pricingRule.appliedItems?.map((row) => ({
+        ...row,
+        item: itemId[row.item as string],
+      })),
+      ...(pricingRule.freeItem
+        ? { freeItem: itemId[pricingRule.freeItem as string] }
+        : {}),
+    };
+    await fyo.doc.getNewDoc(ModelNameEnum.PricingRule, rule).sync();
 
     t.ok(
       await fyo.db.exists(ModelNameEnum.PricingRule, pricingRule.name),
@@ -109,7 +127,7 @@ test('Pricing Rule: create dummy item, party, pricing rules, free items, locatio
     new Date('2022-11-03T09:57:04.528'),
     [
       {
-        item: itemMap.Pen.name,
+        item: itemId[itemMap.Pen.name],
         to: locationMap.LocationOne,
         quantity: 25,
         rate: 500,
@@ -120,7 +138,7 @@ test('Pricing Rule: create dummy item, party, pricing rules, free items, locatio
   await (await stockMovement.sync()).submit();
   t.equal(
     await fyo.db.getStockQuantity(
-      itemMap.Pen.name,
+      itemId[itemMap.Pen.name],
       locationMap.LocationOne,
       undefined,
       undefined
@@ -136,10 +154,13 @@ test('Pricing Rule: create dummy item, party, pricing rules, free items, locatio
 test('disabled pricing rule is not applied', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: new Date(),
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
-  await sinv.append('items', { item: itemMap.Jacket.name, quantity: 5 });
+  await sinv.append('items', {
+    item: itemId[itemMap.Jacket.name],
+    quantity: 5,
+  });
   await sinv.runFormulas();
 
   t.equal(sinv.pricingRuleDetail?.length, undefined);
@@ -156,11 +177,11 @@ test('pricing rule is applied when filtered by min and max qty', async (t) => {
 
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: new Date(),
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Jacket.name,
+    item: itemId[itemMap.Jacket.name],
     quantity: 5,
     rate: itemMap.Jacket.rate,
   });
@@ -182,10 +203,13 @@ test('pricing rule is applied when filtered by min and max qty', async (t) => {
 test('pricing rule is not applied when item qty is < min  qty', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: new Date(),
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
-  await sinv.append('items', { item: itemMap.Jacket.name, quantity: 3 });
+  await sinv.append('items', {
+    item: itemId[itemMap.Jacket.name],
+    quantity: 3,
+  });
   await sinv.runFormulas();
 
   t.equal(sinv.pricingRuleDetail?.length, undefined);
@@ -194,10 +218,13 @@ test('pricing rule is not applied when item qty is < min  qty', async (t) => {
 test('pricing rule is not applied when item qty is > max  qty', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: new Date(),
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
-  await sinv.append('items', { item: itemMap.Jacket.name, quantity: 10 });
+  await sinv.append('items', {
+    item: itemId[itemMap.Jacket.name],
+    quantity: 10,
+  });
   await sinv.runFormulas();
 
   t.equal(sinv.pricingRuleDetail?.length, undefined);
@@ -206,11 +233,11 @@ test('pricing rule is not applied when item qty is > max  qty', async (t) => {
 test('pricing rule is applied when filtered by min and max amount', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: new Date(),
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Jacket.name,
+    item: itemId[itemMap.Jacket.name],
     quantity: 5,
     rate: itemMap.Jacket.rate,
   });
@@ -232,11 +259,11 @@ test('pricing rule is applied when filtered by min and max amount', async (t) =>
 test('Pricing Rule is not applied when item amount is < min  amount', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: new Date(),
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Jacket.name,
+    item: itemId[itemMap.Jacket.name],
     quantity: 2,
     rate: itemMap.Jacket.rate,
   });
@@ -252,11 +279,11 @@ test('Pricing Rule is not applied when item amount is < min  amount', async (t) 
 test('Pricing Rule is not applied when item amount is > max amount', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: new Date(),
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Jacket.name,
+    item: itemId[itemMap.Jacket.name],
     quantity: 7,
     rate: itemMap.Jacket.rate,
   });
@@ -272,11 +299,11 @@ test('Pricing Rule is not applied when item amount is > max amount', async (t) =
 test('Pricing Rule is not applied when sinvDate < validFrom date', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: '2024-01-01',
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Cap.name,
+    item: itemId[itemMap.Cap.name],
     quantity: 5,
     rate: itemMap.Cap.rate,
   });
@@ -292,11 +319,11 @@ test('Pricing Rule is not applied when sinvDate < validFrom date', async (t) => 
 test('Pricing Rule is not applied when sinvDate > validFrom date', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: '2024-03-01',
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Cap.name,
+    item: itemId[itemMap.Cap.name],
     quantity: 5,
     rate: itemMap.Cap.rate,
   });
@@ -312,11 +339,11 @@ test('Pricing Rule is not applied when sinvDate > validFrom date', async (t) => 
 test('Pricing Rule is applied when filtered by qty, amount and dates', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: '2024-02-01',
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Cap.name,
+    item: itemId[itemMap.Cap.name],
     quantity: 5,
     rate: itemMap.Cap.rate,
   });
@@ -332,11 +359,11 @@ test('Pricing Rule is applied when filtered by qty, amount and dates', async (t)
 test('Pricing Rule is applied when filtered by qty, amount and dates', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: '2024-02-01',
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Cap.name,
+    item: itemId[itemMap.Cap.name],
     quantity: 5,
     rate: itemMap.Cap.rate,
   });
@@ -352,11 +379,11 @@ test('Pricing Rule is applied when filtered by qty, amount and dates', async (t)
 test('Pricing Rule is not applied when qty condition is false, rest is true', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: '2024-02-01',
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Cap.name,
+    item: itemId[itemMap.Cap.name],
     quantity: 7,
     rate: itemMap.Cap.rate,
   });
@@ -372,11 +399,11 @@ test('Pricing Rule is not applied when qty condition is false, rest is true', as
 test('Pricing Rule is not applied when amount condition is false, rest is true', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: '2024-02-01',
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Cap.name,
+    item: itemId[itemMap.Cap.name],
     quantity: 11,
     rate: fyo.pesa(250),
   });
@@ -392,11 +419,11 @@ test('Pricing Rule is not applied when amount condition is false, rest is true',
 test('Pricing Rule is not applied when validity condition is false, rest is true', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: '2024-03-01',
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Cap.name,
+    item: itemId[itemMap.Cap.name],
     quantity: 5,
     rate: itemMap.Cap.rate,
   });
@@ -413,7 +440,7 @@ test('create two pricing rules, Highest priority pricing rule is applied', async
   const newPricingRuleDoc = fyo.doc.getNewDoc(ModelNameEnum.PricingRule, {
     ...pricingRuleMap[1],
     priority: '2',
-    appliedItems: [{ item: itemMap.Cap.name }],
+    appliedItems: [{ item: itemId[itemMap.Cap.name] }],
   });
 
   await newPricingRuleDoc.runFormulas();
@@ -421,11 +448,11 @@ test('create two pricing rules, Highest priority pricing rule is applied', async
 
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: '2024-02-01',
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Cap.name,
+    item: itemId[itemMap.Cap.name],
     quantity: 5,
     rate: itemMap.Cap.rate,
   });
@@ -449,11 +476,11 @@ test('Pricing Rule is not applied due to two docs having same priority', async (
 
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: '2024-02-01',
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Cap.name,
+    item: itemId[itemMap.Cap.name],
     quantity: 5,
     rate: itemMap.Cap.rate,
   });
@@ -465,11 +492,11 @@ test('Pricing Rule is not applied due to two docs having same priority', async (
 test('create a price discount of type rate, discounted rate should apply', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: '2024-02-01',
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Jacket.name,
+    item: itemId[itemMap.Jacket.name],
     quantity: 5,
     rate: itemMap.Jacket.rate,
   });
@@ -493,11 +520,11 @@ test('create a price discount of type percent, discount percent should apply', a
 
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: '2024-02-01',
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Jacket.name,
+    item: itemId[itemMap.Jacket.name],
     quantity: 5,
     rate: itemMap.Jacket.rate,
   });
@@ -521,11 +548,11 @@ test('create a price discount of type amount, discount amount should apply', asy
 
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: '2024-02-01',
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Jacket.name,
+    item: itemId[itemMap.Jacket.name],
     quantity: 5,
     rate: itemMap.Jacket.rate,
   });
@@ -546,11 +573,11 @@ test('create a product discount giving 1 free item', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     account: 'Debtors',
     date: '2024-02-01',
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Cap.name,
+    item: itemId[itemMap.Cap.name],
     quantity: 5,
     rate: itemMap.Cap.rate,
   });
@@ -575,11 +602,11 @@ test('create a product discount, recurse 2', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     account: 'Debtors',
     date: '2024-02-01',
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Cap.name,
+    item: itemId[itemMap.Cap.name],
     quantity: 5,
     rate: itemMap.Cap.rate,
   });

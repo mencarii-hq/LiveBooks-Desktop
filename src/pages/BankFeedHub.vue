@@ -549,6 +549,7 @@ import { openPlaidLinkModal } from 'src/utils/plaidLinkClient';
 import {
   feedItemById,
   isManualBankAccount,
+  isPlaidCreditAccount,
   loadAllBankCoaAccounts,
   loadArchivedBankCoaAccounts,
   loadPlaidAccountMaps,
@@ -1055,7 +1056,10 @@ export default defineComponent({
         const rows = (await fyo.db.getAll(ModelNameEnum.Account, {
           fields: ['name', 'accountName', 'rootType'],
           filters: {
-            accountType: AccountTypeEnum.Bank,
+            accountType: [
+              'in',
+              [AccountTypeEnum.Bank, AccountTypeEnum.CreditCard],
+            ],
             isGroup: false,
             disabled: false,
           },
@@ -1390,7 +1394,10 @@ export default defineComponent({
       this.chartBankAccounts = (await fyo.db.getAll(ModelNameEnum.Account, {
         fields: ['name', 'accountName', 'rootType'],
         filters: {
-          accountType: AccountTypeEnum.Bank,
+          accountType: [
+            'in',
+            [AccountTypeEnum.Bank, AccountTypeEnum.CreditCard],
+          ],
           isGroup: false,
           disabled: false,
         },
@@ -1499,6 +1506,20 @@ export default defineComponent({
           message: t`Choose a chart of accounts bank account before saving.`,
         });
         return;
+      }
+      // Plaid credit accounts belong on CreditCard (liability) ledger
+      // accounts; warn when the mapping would treat one as a bank asset.
+      if (
+        isPlaidCreditAccount(acc.type, acc.subtype) &&
+        this.ledgerByName[chart]?.rootType !== 'Liability'
+      ) {
+        showToast({
+          type: 'warning',
+          message: t`${this.labelForPlaid(
+            acc
+          )} is a credit card; the selected ledger account will treat it as a bank asset.`,
+          duration: 'long',
+        });
       }
       const conflicting = (await fyo.db.getAll(
         ModelNameEnum.PlaidBankAccountMap,

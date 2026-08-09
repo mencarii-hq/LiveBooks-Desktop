@@ -20,6 +20,8 @@ setupTestFyo(fyo, __filename);
 const item = 'Pen';
 const location = 'Common';
 const party = 'Someone';
+let partyId = '';
+let itemId = '';
 const testDocs = {
   Item: {
     [item]: getItem(item, 100),
@@ -33,16 +35,26 @@ const testDocs = {
 test('insert test docs', async (t) => {
   for (const schemaName in testDocs) {
     for (const name in testDocs[schemaName]) {
-      await fyo.doc.getNewDoc(schemaName, testDocs[schemaName][name]).sync();
+      const doc = await fyo.doc.getNewDoc(
+        schemaName,
+        testDocs[schemaName][name]
+      );
+      await doc.sync();
+      if (schemaName === 'Party') {
+        partyId = doc.name as string;
+      }
+      if (schemaName === 'Item') {
+        itemId = doc.name as string;
+      }
     }
   }
 
-  t.ok(await fyo.db.exists(ModelNameEnum.Party, party), 'party created');
+  t.ok(await fyo.db.exists(ModelNameEnum.Party, partyId), 'party created');
   t.ok(
     await fyo.db.exists(ModelNameEnum.Location, location),
     'location created'
   );
-  t.ok(await fyo.db.exists(ModelNameEnum.Item, item), 'item created');
+  t.ok(await fyo.db.exists(ModelNameEnum.Item, itemId), 'item created');
 });
 
 test('inventory settings', async (t) => {
@@ -60,11 +72,11 @@ test('PurchaseReceipt, create inward stock movement', async (t) => {
   const quantity = 10;
   const doc = await getStockTransfer(
     ModelNameEnum.PurchaseReceipt,
-    party,
+    partyId,
     date,
     [
       {
-        item,
+        item: itemId,
         location,
         quantity,
         rate,
@@ -90,7 +102,7 @@ test('PurchaseReceipt, create inward stock movement', async (t) => {
     'sle created'
   );
   t.equal(
-    await fyo.db.getStockQuantity(item, location),
+    await fyo.db.getStockQuantity(itemId, location),
     quantity,
     'stock purchased'
   );
@@ -98,7 +110,7 @@ test('PurchaseReceipt, create inward stock movement', async (t) => {
 
   const ales = await getALEs(doc.name!, doc.schemaName, fyo);
   for (const ale of ales) {
-    t.equal(ale.party, party, 'party matches');
+    t.equal(ale.party, partyId, 'party matches');
     if (ale.account === 'Stock Received But Not Billed') {
       t.equal(parseFloat(ale.debit), 0);
       t.equal(parseFloat(ale.credit), grandTotal);
@@ -115,11 +127,11 @@ test('Shipment, create outward stock movement', async (t) => {
   const quantity = 5;
   const doc = await getStockTransfer(
     ModelNameEnum.Shipment,
-    party,
+    partyId,
     date,
     [
       {
-        item,
+        item: itemId,
         location,
         quantity,
         rate,
@@ -145,7 +157,7 @@ test('Shipment, create outward stock movement', async (t) => {
     'sle created'
   );
   t.equal(
-    await fyo.db.getStockQuantity(item, location),
+    await fyo.db.getStockQuantity(itemId, location),
     10 - quantity,
     'stock purchased'
   );
@@ -153,7 +165,7 @@ test('Shipment, create outward stock movement', async (t) => {
 
   const ales = await getALEs(doc.name!, doc.schemaName, fyo);
   for (const ale of ales) {
-    t.equal(ale.party, party, 'party matches');
+    t.equal(ale.party, partyId, 'party matches');
     if (ale.account === 'Cost of Goods Sold') {
       t.equal(parseFloat(ale.debit), grandTotal);
       t.equal(parseFloat(ale.credit), 0);
@@ -170,11 +182,11 @@ test('Shipment, invalid', async (t) => {
   const quantity = 10;
   const doc = await getStockTransfer(
     ModelNameEnum.Shipment,
-    party,
+    partyId,
     date,
     [
       {
-        item,
+        item: itemId,
         location,
         quantity,
         rate,
@@ -186,7 +198,11 @@ test('Shipment, invalid', async (t) => {
   await doc.sync();
   const grandTotal = quantity * rate;
 
-  t.equal(await fyo.db.getStockQuantity(item, location), 5, 'stock unchanged');
+  t.equal(
+    await fyo.db.getStockQuantity(itemId, location),
+    5,
+    'stock unchanged'
+  );
   t.equal(doc.grandTotal?.float, grandTotal);
   await assertThrows(async () => await doc.submit());
 
@@ -213,7 +229,11 @@ test('Stock Transfer, invalid cancellation', async (t) => {
   t.ok(name?.startsWith('PREC-'));
   const doc = await fyo.doc.getDoc(ModelNameEnum.PurchaseReceipt, name);
   await assertThrows(async () => await doc.cancel());
-  t.equal(await fyo.db.getStockQuantity(item, location), 5, 'stock unchanged');
+  t.equal(
+    await fyo.db.getStockQuantity(itemId, location),
+    5,
+    'stock unchanged'
+  );
   t.equal(
     (await getSLEs(name, doc.schemaName, fyo)).length,
     1,
@@ -237,7 +257,7 @@ test('Shipment, cancel and delete', async (t) => {
   await assertDoesNotThrow(async () => await doc.cancel());
   t.ok(doc.isCancelled), `doc is cancelled`;
 
-  t.equal(await fyo.db.getStockQuantity(item, location), 10, 'stock changed');
+  t.equal(await fyo.db.getStockQuantity(itemId, location), 10, 'stock changed');
   t.equal((await getSLEs(name, doc.schemaName, fyo)).length, 0, 'sle deleted');
   const ales = await getALEs(name, doc.schemaName, fyo);
   t.ok(ales.every((i) => !!i.reverted) && ales.length === 4, 'ale reverted');
@@ -271,7 +291,11 @@ test('Purchase Receipt, cancel and delete', async (t) => {
   await assertDoesNotThrow(async () => await doc.cancel());
   t.ok(doc.isCancelled), `doc is cancelled`;
 
-  t.equal(await fyo.db.getStockQuantity(item, location), null, 'stock changed');
+  t.equal(
+    await fyo.db.getStockQuantity(itemId, location),
+    null,
+    'stock changed'
+  );
   t.equal((await getSLEs(name, doc.schemaName, fyo)).length, 0, 'sle deleted');
   const ales = await getALEs(name, doc.schemaName, fyo);
   t.ok(ales.every((i) => !!i.reverted) && ales.length === 4, 'ale reverted');
@@ -297,10 +321,10 @@ test('Purchase Invoice then Purchase Receipt', async (t) => {
   const date = new Date('2022-01-04');
   await pinv.set({
     date,
-    party,
+    party: partyId,
     account: 'Creditors',
   });
-  await pinv.append('items', { item, quantity, rate });
+  await pinv.append('items', { item: itemId, quantity, rate });
   await pinv.sync();
   await pinv.submit();
 
@@ -387,11 +411,11 @@ test('Sales Invoice then partial Shipment', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice) as Invoice;
 
   await sinv.set({
-    party,
+    party: partyId,
     date: new Date('2022-01-06'),
     account: 'Debtors',
   });
-  await sinv.append('items', { item, quantity: 3, rate });
+  await sinv.append('items', { item: itemId, quantity: 3, rate });
   await sinv.sync();
   await sinv.submit();
 
@@ -542,11 +566,11 @@ test('Create Shipment from manually set Back Ref', async (t) => {
   const totalQuantity = 10;
   const prec = await getStockTransfer(
     ModelNameEnum.PurchaseReceipt,
-    party,
+    partyId,
     new Date('2022-01-08'),
     [
       {
-        item,
+        item: itemId,
         location,
         quantity: totalQuantity,
         rate,
@@ -559,11 +583,11 @@ test('Create Shipment from manually set Back Ref', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice) as Invoice;
   const quantity = 5;
   await sinv.set({
-    party,
+    party: partyId,
     date: new Date('2022-01-09'),
     account: 'Debtors',
   });
-  await sinv.append('items', { item, quantity, rate });
+  await sinv.append('items', { item: itemId, quantity, rate });
   await (await sinv.sync()).submit();
 
   t.equal(sinv.stockNotTransferred, quantity, "stock hasn't been transferred");
@@ -577,7 +601,7 @@ test('Create Shipment from manually set Back Ref', async (t) => {
 
   await (await shpm.sync()).submit();
   t.equal(
-    await fyo.db.getStockQuantity(item, location),
+    await fyo.db.getStockQuantity(itemId, location),
     totalQuantity - quantity,
     'quantity shipped'
   );
@@ -590,7 +614,7 @@ test('Create Shipment then create return against it', async (t) => {
   const shpm = fyo.doc.getNewDoc(ModelNameEnum.Shipment) as Shipment;
 
   await shpm.set({
-    party,
+    party: partyId,
     date: new Date('2023-05-18'),
     items: [{ item, quantity: 3, rate }],
   });
@@ -646,11 +670,12 @@ test('Create Shipment return of batched item', async (t) => {
   };
 
   const newItemDoc = fyo.doc.getNewDoc(ModelNameEnum.Item, item);
-  newItemDoc.sync();
-  newItemDoc.submit();
+  await newItemDoc.sync();
+  await newItemDoc.submit();
+  const batchedItemId = newItemDoc.name as string;
 
   t.ok(
-    fyo.db.exists(ModelNameEnum.Item, item.name),
+    fyo.db.exists(ModelNameEnum.Item, batchedItemId),
     `item ${item.name} created`
   );
 
@@ -682,7 +707,7 @@ test('Create Shipment return of batched item', async (t) => {
   });
 
   await smovDoc.append('items', {
-    item: item.name,
+    item: batchedItemId,
     quantity: 4,
     rate: item.rate,
     toLocation: 'Stores',
@@ -690,7 +715,7 @@ test('Create Shipment return of batched item', async (t) => {
   });
 
   await smovDoc.append('items', {
-    item: item.name,
+    item: batchedItemId,
     quantity: 8,
     rate: item.rate,
     toLocation: 'Stores',
@@ -704,11 +729,21 @@ test('Create Shipment return of batched item', async (t) => {
 
   const shipmentDoc = fyo.doc.getNewDoc(ModelNameEnum.Shipment) as Shipment;
   await shipmentDoc.set({
-    party,
+    party: partyId,
     date: new Date(),
     items: [
-      { item: item.name, quantity: 4, rate: item.rate, batch: batches[0].name },
-      { item: item.name, quantity: 8, rate: item.rate, batch: batches[1].name },
+      {
+        item: batchedItemId,
+        quantity: 4,
+        rate: item.rate,
+        batch: batches[0].name,
+      },
+      {
+        item: batchedItemId,
+        quantity: 8,
+        rate: item.rate,
+        batch: batches[1].name,
+      },
     ],
   });
 
@@ -721,11 +756,21 @@ test('Create Shipment return of batched item', async (t) => {
 
   await shpmReturnDoc.set({
     date: new Date(),
-    party,
+    party: partyId,
     returnAgainst: shipmentDoc.name,
     items: [
-      { item: item.name, quantity: 2, rate: item.rate, batch: batches[0].name },
-      { item: item.name, quantity: 4, rate: item.rate, batch: batches[1].name },
+      {
+        item: batchedItemId,
+        quantity: 2,
+        rate: item.rate,
+        batch: batches[0].name,
+      },
+      {
+        item: batchedItemId,
+        quantity: 4,
+        rate: item.rate,
+        batch: batches[1].name,
+      },
     ],
   });
   await shpmReturnDoc.sync();
@@ -769,7 +814,7 @@ test('Create Purchase Reciept then create return against it', async (t) => {
   ) as PurchaseReceipt;
 
   await prec.set({
-    party,
+    party: partyId,
     date: new Date('2023-05-18'),
     items: [{ item, quantity: 3, rate }],
   });
@@ -828,21 +873,22 @@ test('Create Purchase Reciept return of serialized item', async (t) => {
   };
 
   const newItemDoc = fyo.doc.getNewDoc(ModelNameEnum.Item, item);
-  newItemDoc.sync();
-  newItemDoc.submit();
+  await newItemDoc.sync();
+  await newItemDoc.submit();
+  const serializedItemId = newItemDoc.name as string;
 
   t.ok(
-    fyo.db.exists(ModelNameEnum.Item, item.name),
+    fyo.db.exists(ModelNameEnum.Item, serializedItemId),
     `item ${item.name} created`
   );
 
   const precDoc = fyo.doc.getNewDoc(ModelNameEnum.PurchaseReceipt, {
     date: new Date('2023-07-27T18:30:00.435Z'),
-    party,
+    party: partyId,
   }) as PurchaseReceipt;
 
   await precDoc.append('items', {
-    item: item.name,
+    item: serializedItemId,
     quantity: 2,
     rate: item.rate,
     toLocation: 'Stores',
@@ -850,7 +896,7 @@ test('Create Purchase Reciept return of serialized item', async (t) => {
   });
 
   await precDoc.append('items', {
-    item: item.name,
+    item: serializedItemId,
     quantity: 2,
     rate: item.rate,
     toLocation: 'Stores',
@@ -868,12 +914,12 @@ test('Create Purchase Reciept return of serialized item', async (t) => {
 
   const returnPrecDoc = fyo.doc.getNewDoc(ModelNameEnum.PurchaseReceipt, {
     date: new Date('2023-07-27T18:30:00.435Z'),
-    party,
+    party: partyId,
     returnAgainst: precDoc.name,
   }) as PurchaseReceipt;
 
   await returnPrecDoc.append('items', {
-    item: item.name,
+    item: serializedItemId,
     quantity: 1,
     rate: item.rate,
     toLocation: 'Stores',
@@ -881,7 +927,7 @@ test('Create Purchase Reciept return of serialized item', async (t) => {
   });
 
   await returnPrecDoc.append('items', {
-    item: item.name,
+    item: serializedItemId,
     quantity: 1,
     rate: item.rate,
     toLocation: 'Stores',

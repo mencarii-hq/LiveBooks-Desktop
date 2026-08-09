@@ -252,6 +252,10 @@ import { DateTime } from 'luxon';
 import { ModelNameEnum } from 'models/types';
 import { AccountTypeEnum } from 'models/baseModels/Account/types';
 import { Field } from 'schemas/types';
+import {
+  isCreditCardAccountType,
+  REGISTER_ACCOUNT_TYPES,
+} from 'src/utils/registerAccountTypes';
 import Button from 'src/components/Button.vue';
 import FormControl from 'src/components/Controls/FormControl.vue';
 import PageHeader from 'src/components/PageHeader.vue';
@@ -279,6 +283,7 @@ export default defineComponent({
     return {
       bankAccount: '',
       bankAccounts: [] as AccountOpt[],
+      accountTypeById: {} as Record<string, string>,
       paymentMethods: [] as { name: string; type?: string }[],
       saving: false,
       // Bump after save so FormControls remount with cleared values.
@@ -318,17 +323,20 @@ export default defineComponent({
         this.selectedMethodType === 'Check' && this.form.paymentType === 'Pay'
       );
     },
+    isCreditCardRegister(): boolean {
+      return isCreditCardAccountType(this.accountTypeById[this.bankAccount]);
+    },
     bankAccountField(): Field {
       return {
         fieldtype: 'Link',
         target: 'Account',
         fieldname: 'bankAccount',
-        label: this.t`Bank account`,
-        placeholder: this.t`Bank account`,
+        label: this.t`Account`,
+        placeholder: this.t`Account`,
         required: true,
         filters: {
           isGroup: false,
-          accountType: ['in', [AccountTypeEnum.Bank, AccountTypeEnum.Cash]],
+          accountType: ['in', [...REGISTER_ACCOUNT_TYPES]],
         },
       } as Field;
     },
@@ -351,6 +359,19 @@ export default defineComponent({
       } as Field;
     },
     categoryField(): Field {
+      // Dynamic: bank→allow CreditCard (pay the card); CC→allow Bank/Cash (pay from bank).
+      const excluded = this.isCreditCardRegister
+        ? [
+            AccountTypeEnum.CreditCard,
+            AccountTypeEnum.Receivable,
+            AccountTypeEnum.Payable,
+          ]
+        : [
+            AccountTypeEnum.Bank,
+            AccountTypeEnum.Cash,
+            AccountTypeEnum.Receivable,
+            AccountTypeEnum.Payable,
+          ];
       return {
         fieldtype: 'Link',
         target: 'Account',
@@ -360,15 +381,7 @@ export default defineComponent({
         required: true,
         filters: {
           isGroup: false,
-          accountType: [
-            'not in',
-            [
-              AccountTypeEnum.Bank,
-              AccountTypeEnum.Cash,
-              AccountTypeEnum.Receivable,
-              AccountTypeEnum.Payable,
-            ],
-          ],
+          accountType: ['not in', excluded],
         },
       } as Field;
     },
@@ -382,16 +395,22 @@ export default defineComponent({
       } as Field;
     },
     paymentTypeField(): Field {
+      // CC: Charge=Pay (credit liability), Payment=Receive (debit liability).
+      // Bank/Cash: Payment=Pay, Deposit=Receive.
+      const payLabel = this.isCreditCardRegister
+        ? this.t`Charge`
+        : this.t`Payment`;
+      const receiveLabel = this.isCreditCardRegister
+        ? this.t`Payment`
+        : this.t`Deposit`;
       return {
-        // Select (not AutoComplete): show labels Payment/Deposit while
-        // storing Pay/Receive for Payment.paymentType.
         fieldtype: 'Select',
         fieldname: 'paymentType',
         label: this.t`Entry type`,
         required: true,
         options: [
-          { label: this.t`Payment`, value: 'Pay' },
-          { label: this.t`Deposit`, value: 'Receive' },
+          { label: payLabel, value: 'Pay' },
+          { label: receiveLabel, value: 'Receive' },
         ],
       } as Field;
     },
@@ -539,13 +558,20 @@ export default defineComponent({
       const banks = (await fyo.db.getAll(ModelNameEnum.Account, {
         filters: {
           isGroup: false,
-          accountType: ['in', [AccountTypeEnum.Bank, AccountTypeEnum.Cash]],
+          accountType: ['in', [...REGISTER_ACCOUNT_TYPES]],
         },
-        fields: ['name', 'accountName'],
+        fields: ['name', 'accountName', 'accountType'],
         orderBy: 'accountName',
         order: 'asc',
-      })) as AccountOpt[];
+      })) as (AccountOpt & { accountType?: string })[];
       this.bankAccounts = banks;
+      const typeById: Record<string, string> = {};
+      for (const a of banks) {
+        if (a.accountType) {
+          typeById[a.name] = a.accountType;
+        }
+      }
+      this.accountTypeById = typeById;
     },
     async loadPaymentMethods() {
       try {
@@ -637,7 +663,7 @@ export default defineComponent({
     },
     async submitEntry() {
       if (!this.bankAccount) {
-        this.showFormError(this.t`Select a bank account.`);
+        this.showFormError(this.t`Select a bank or credit card account.`);
         return;
       }
       if (!this.form.party?.trim()) {
@@ -726,7 +752,7 @@ export default defineComponent({
     },
     async memorizeCurrent() {
       if (!this.bankAccount) {
-        this.showFormError(this.t`Select a bank account.`);
+        this.showFormError(this.t`Select a bank or credit card account.`);
         return;
       }
       if (this.splitEnabled) {

@@ -327,7 +327,10 @@ export default defineComponent({
         const reconcilable = (await fyo.db.getAll(ModelNameEnum.Account, {
           fields: ['name', 'accountName', 'rootType'],
           filters: {
-            accountType: AccountTypeEnum.Bank,
+            accountType: [
+              'in',
+              [AccountTypeEnum.Bank, AccountTypeEnum.CreditCard],
+            ],
             isGroup: false,
             disabled: false,
           },

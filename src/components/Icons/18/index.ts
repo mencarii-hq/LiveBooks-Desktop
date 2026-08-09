@@ -12,6 +12,7 @@ import Mail from './mail.vue';
 import POS from './pos.vue';
 import OpeningAc from './opening-ac.vue';
 import Percentage from './percentage.vue';
+import People from './people.vue';
 import Property from './property.vue';
 import PurchaseInvoice from './purchase-invoice.vue';
 import Purchase from './purchase.vue';
@@ -40,6 +41,7 @@ export default {
   'pos': POS,
   'opening-ac': OpeningAc,
   'percentage': Percentage,
+  'people': People,
   'property': Property,
   'purchase-invoice': PurchaseInvoice,
   'purchase': Purchase,

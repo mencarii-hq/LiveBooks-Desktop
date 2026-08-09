@@ -25,6 +25,7 @@ const ACCOUNT_TYPE_ROOT_TYPE_MAP: Record<string, string> = {
   Stock: 'Asset',
   Temporary: 'Asset',
   'Accumulated Depreciation': 'Asset',
+  CreditCard: 'Liability',
   Payable: 'Liability',
   'Stock Received But Not Billed': 'Liability',
   Tax: 'Liability',

@@ -22,13 +22,17 @@ import { Transactional } from 'models/Transactional/Transactional';
 import { ModelNameEnum } from 'models/types';
 import { Money } from 'pesa';
 import { QueryFilter } from 'utils/db/types';
-import { AccountTypeEnum } from '../Account/types';
+import {
+  AccountTypeEnum,
+  MONEY_ACCOUNT_TYPES,
+  NON_CATEGORY_ACCOUNT_TYPES,
+} from '../Account/types';
 import { Invoice } from '../Invoice/Invoice';
 import { Party } from '../Party/Party';
 import { PaymentFor } from '../PaymentFor/PaymentFor';
 import { PaymentSplit } from '../PaymentSplit/PaymentSplit';
 import { PaymentType, PaymentTypeEnum } from './types';
-import { PartyRoleEnum } from '../Party/types';
+import { isWorkforcePartyRole, PartyRoleEnum } from '../Party/types';
 import { TaxSummary } from '../TaxSummary/TaxSummary';
 import { PaymentMethod } from '../PaymentMethod/PaymentMethod';
 
@@ -703,15 +707,7 @@ export class Payment extends Transactional {
     const accounts = (await this.fyo.db.getAll(ModelNameEnum.Account, {
       fields: ['name', 'accountType'],
       filters: {
-        accountType: [
-          'in',
-          [
-            AccountTypeEnum.Bank,
-            AccountTypeEnum.Cash,
-            AccountTypeEnum.Payable,
-            AccountTypeEnum.Receivable,
-          ],
-        ],
+        accountType: ['in', [...NON_CATEGORY_ACCOUNT_TYPES]],
       },
     })) as { name: string; accountType: AccountTypeEnum }[];
 
@@ -733,7 +729,7 @@ export class Payment extends Transactional {
 
   async _getAccountFromParty() {
     const party = (await this.loadAndGetLink('party')) as Party | null;
-    if (!party || party.role === 'Both') {
+    if (!party || party.role === 'Both' || isWorkforcePartyRole(party.role)) {
       return null;
     }
 
@@ -788,11 +784,16 @@ export class Payment extends Transactional {
       formula: async () => {
         const accountsMap = await this._getAccountsMap();
         if (this.paymentType === 'Pay') {
-          return (
-            (await this._getReferenceAccount()) ??
-            accountsMap[AccountTypeEnum.Payable]?.[0] ??
-            null
-          );
+          const reference = await this._getReferenceAccount();
+          if (reference) {
+            return reference;
+          }
+          // Employees are not AP parties — do not fall back to Creditors/Payable.
+          const party = (await this.loadAndGetLink('party')) as Party | null;
+          if (isWorkforcePartyRole(party?.role)) {
+            return null;
+          }
+          return accountsMap[AccountTypeEnum.Payable]?.[0] ?? null;
         }
 
         const paymentMethodDoc = await this.paymentMethodDoc();
@@ -933,7 +934,9 @@ export class Payment extends Transactional {
     party: (doc: Doc) => {
       const paymentType = (doc as Payment).paymentType;
       if (paymentType === 'Pay') {
-        return { role: ['in', ['Supplier', 'Both']] } as QueryFilter;
+        return {
+          role: ['in', ['Supplier', 'Both', 'Employee', 'Contractor']],
+        } as QueryFilter;
       }
 
       if (paymentType === 'Receive') {
@@ -956,21 +959,41 @@ export class Payment extends Transactional {
       if (paymentMethod.name === 'Cash') {
         return { accountType: 'Cash', isGroup: false };
       } else {
-        return { accountType: ['in', ['Bank', 'Cash']], isGroup: false };
+        // Register / non-Cash: Bank, Cash, or CreditCard as the money side.
+        return {
+          accountType: ['in', [...MONEY_ACCOUNT_TYPES]],
+          isGroup: false,
+        };
       }
     },
-    paymentAccount: (doc: Doc) => {
+    paymentAccount: async (doc: Doc) => {
       const paymentType = doc.paymentType as PaymentType;
       const paymentMethod = doc.paymentMethod as PaymentMethod;
 
       if (paymentType === 'Pay') {
+        // Employees are not AP parties: their payments post to the category
+        // (expense-side) account, same picker as register splits. The account
+        // formula intentionally leaves paymentAccount empty for them.
+        const party = (await doc.loadAndGetLink('party')) as Party | null;
+        if (isWorkforcePartyRole(party?.role)) {
+          return {
+            isGroup: false,
+            accountType: ['not in', [...NON_CATEGORY_ACCOUNT_TYPES]],
+          };
+        }
         return { accountType: 'Payable', isGroup: false };
       }
 
+      // Receive deposit side: Bank/Cash only. CreditCard is a liability —
+      // customer receipts must not debit a card (register CC payments set
+      // paymentAccount programmatically via createRegisterPayment).
       if (paymentMethod.name === 'Cash') {
         return { accountType: 'Cash', isGroup: false };
       } else {
-        return { accountType: ['in', ['Bank', 'Cash']], isGroup: false };
+        return {
+          accountType: ['in', ['Bank', 'Cash']],
+          isGroup: false,
+        };
       }
     },
   };

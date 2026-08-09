@@ -54,6 +54,7 @@ export interface POSItem {
   id?: number;
   image?: string;
   name: string;
+  itemName?: string;
   rate: Money;
   item?: string;
   batch?: string;

@@ -8,7 +8,21 @@
         custom-scroll custom-scroll-thumb1
       "
     >
-      <div class="flex flex-col min-h-0" :style="tableWidthStyle">
+      <!-- Empty State (centered in the list pane) -->
+      <div
+        v-if="!data?.length"
+        class="flex flex-1 flex-col items-center justify-center"
+      >
+        <img src="../../assets/img/list-empty-state.svg" alt="" class="w-24" />
+        <p class="my-3 text-gray-800 dark:text-gray-100">
+          {{ t`No entries found` }}
+        </p>
+        <Button v-if="canCreate" type="primary" @click="$emit('makeNewDoc')">
+          {{ t`Make Entry` }}
+        </Button>
+      </div>
+
+      <div v-else class="flex flex-col min-h-0" :style="tableWidthStyle">
         <!-- Title Row -->
         <div
           class="flex items-center"
@@ -173,20 +187,6 @@
     <div v-if="data?.length" class="mt-auto">
       <hr class="dark:border-gray-800" />
       <Paginator :item-count="data.length" @index-change="setPageIndices" />
-    </div>
-
-    <!-- Empty State -->
-    <div
-      v-if="!data?.length"
-      class="flex flex-col items-center justify-center my-auto"
-    >
-      <img src="../../assets/img/list-empty-state.svg" alt="" class="w-24" />
-      <p class="my-3 text-gray-800 dark:text-gray-100">
-        {{ t`No entries found` }}
-      </p>
-      <Button v-if="canCreate" type="primary" @click="$emit('makeNewDoc')">
-        {{ t`Make Entry` }}
-      </Button>
     </div>
   </div>
 </template>

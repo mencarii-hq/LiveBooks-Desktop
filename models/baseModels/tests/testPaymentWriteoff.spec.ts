@@ -28,6 +28,8 @@ const partyName = 'Test Party';
 const itemName = 'Test Item';
 const rate = 157.5;
 const writeoffAmount = 2.5;
+let partyId = '';
+let itemId = '';
 
 interface Ale {
   account: string;
@@ -69,30 +71,32 @@ test('#1540 setup: party, item, write-off account', async (t) => {
     'write-off account is configured'
   );
 
-  await fyo.doc
+  const partyDoc = await fyo.doc
     .getNewDoc(ModelNameEnum.Party, {
       name: partyName,
       role: 'Both',
     })
     .sync();
+  partyId = partyDoc.name as string;
 
-  await fyo.doc
+  const itemDoc = await fyo.doc
     .getNewDoc(ModelNameEnum.Item, {
       name: itemName,
       rate,
       for: 'Both',
     })
     .sync();
+  itemId = itemDoc.name as string;
 
-  t.ok(await fyo.db.exists(ModelNameEnum.Party, partyName), 'party exists');
-  t.ok(await fyo.db.exists(ModelNameEnum.Item, itemName), 'item exists');
+  t.ok(await fyo.db.exists(ModelNameEnum.Party, partyId), 'party exists');
+  t.ok(await fyo.db.exists(ModelNameEnum.Item, itemId), 'item exists');
 });
 
 test('#1540 Receive: write-off posts Cash=amountPaid, WriteOff Dr, Debtors clears full amount', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     account: 'Debtors',
-    party: partyName,
-    items: [{ item: itemName, rate, quantity: 1 }],
+    party: partyId,
+    items: [{ item: itemId, rate, quantity: 1 }],
   }) as SalesInvoice;
 
   await sinv.runFormulas();
@@ -140,8 +144,8 @@ test('#1540 Receive: write-off posts Cash=amountPaid, WriteOff Dr, Debtors clear
 test('#1540 Purchase payment with write-off: cash moves amountPaid, party clears full amount, ledger balances', async (t) => {
   const pinv = fyo.doc.getNewDoc(ModelNameEnum.PurchaseInvoice, {
     account: 'Creditors',
-    party: partyName,
-    items: [{ item: itemName, rate, quantity: 1 }],
+    party: partyId,
+    items: [{ item: itemId, rate, quantity: 1 }],
   }) as PurchaseInvoice;
 
   await pinv.runFormulas();

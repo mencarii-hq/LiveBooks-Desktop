@@ -113,6 +113,7 @@ import Popover from 'src/components/Popover.vue';
 import Base from './Base.vue';
 
 import { defineComponent } from 'vue';
+import { getOptionList } from 'fyo/utils';
 import { SelectOption } from 'schemas/types';
 export default defineComponent({
   name: 'Select',
@@ -148,7 +149,7 @@ export default defineComponent({
         return [];
       }
 
-      return this.df.options;
+      return getOptionList(this.df, this.doc);
     },
   },
   methods: {

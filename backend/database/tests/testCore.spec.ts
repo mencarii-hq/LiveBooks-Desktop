@@ -558,6 +558,7 @@ test('rename cascades to links, dynamic links, singles and children', async func
 
   await db.insert('Customer', {
     name: oldName,
+    partyName: oldName,
     email: 'john@whoe.com',
     ...getDefaultMetaFieldValueMap(),
   });
@@ -689,6 +690,7 @@ test('db deleteAll', async (t) => {
   for (const { name, email, phone } of customers) {
     await db.insert('Customer', {
       name,
+      partyName: name,
       email,
       phone,
       ...getDefaultMetaFieldValueMap(),
@@ -736,6 +738,42 @@ test('db deleteAll', async (t) => {
       })
     ).length,
     0
+  );
+
+  await db.close();
+});
+
+test('db filters: "not in" includes NULL column values', async (t) => {
+  const db = await getDb();
+
+  // No email: the column stays NULL, and NULL is "not in" any list (matches
+  // e.g. accounts without an accountType passing category filters).
+  await db.insert('Customer', {
+    name: 'customer-null',
+    partyName: 'customer-null',
+    ...getDefaultMetaFieldValueMap(),
+  });
+  await db.insert('Customer', {
+    name: 'customer-x',
+    partyName: 'customer-x',
+    email: 'x@temp.com',
+    ...getDefaultMetaFieldValueMap(),
+  });
+  await db.insert('Customer', {
+    name: 'customer-y',
+    partyName: 'customer-y',
+    email: 'y@temp.com',
+    ...getDefaultMetaFieldValueMap(),
+  });
+
+  const rows = (await db.getAll('Customer', {
+    fields: ['name'],
+    filters: { email: ['not in', ['x@temp.com']] },
+  })) as { name: string }[];
+  t.deepEqual(
+    rows.map((r) => r.name).sort(),
+    ['customer-null', 'customer-y'],
+    'NULL column value passes a "not in" filter'
   );
 
   await db.close();

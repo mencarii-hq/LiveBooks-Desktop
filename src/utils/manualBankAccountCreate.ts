@@ -202,7 +202,9 @@ export async function createManualBankAccount(
       parentAccount,
       isGroup: false,
       rootType,
-      accountType: AccountTypeEnum.Bank,
+      accountType: isCreditCard
+        ? AccountTypeEnum.CreditCard
+        : AccountTypeEnum.Bank,
     });
     await accountDoc.sync();
     createdAccountName = String(accountDoc.name ?? name);

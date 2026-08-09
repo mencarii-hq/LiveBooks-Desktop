@@ -2,6 +2,8 @@
   "name": "Party",
   "label": "Customers & Suppliers",
   "naming": "manual",
+  "titleField": "partyName",
+  "linkDisplayField": "partyName",
   "fields": [
     {
       "fieldname": "image",
@@ -11,6 +13,14 @@
     },
     {
       "fieldname": "name",
+      "label": "ID",
+      "fieldtype": "Data",
+      "hidden": true,
+      "readOnly": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "partyName",
       "label": "Name",
       "fieldtype": "Data",
       "required": true,
@@ -34,6 +44,14 @@
         {
           "value": "Customer",
           "label": "Customer"
+        },
+        {
+          "value": "Employee",
+          "label": "Employee"
+        },
+        {
+          "value": "Contractor",
+          "label": "Contractor"
         }
       ],
       "required": true,
@@ -125,5 +143,5 @@
     "role",
     "taxId"
   ],
-  "keywordFields": ["name", "email", "role"]
+  "keywordFields": ["partyName", "email", "role"]
 }

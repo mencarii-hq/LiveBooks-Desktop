@@ -35,9 +35,23 @@ export class GeneralLedger extends LedgerReport {
   groupBy: 'none' | 'party' | 'account' | 'referenceName' = 'none';
   _rawData: LedgerEntry[] = [];
   _accountNameMap: Record<string, string> = {};
+  _partyNameMap: Record<string, string> = {};
 
   constructor(fyo: Fyo) {
     super(fyo);
+  }
+
+  async _setPartyNameMap() {
+    const parties = await this.fyo.db.getAllRaw('Party', {
+      fields: ['name', 'partyName'],
+    });
+
+    this._partyNameMap = {};
+    for (const party of parties) {
+      const label = String(party.partyName ?? '').trim();
+      this._partyNameMap[party.name as string] =
+        label || (party.name as string);
+    }
   }
 
   async _setAccountNameMap() {
@@ -64,6 +78,7 @@ export class GeneralLedger extends LedgerReport {
   async setReportData(filter?: string, force?: boolean) {
     this.loading = true;
     await this._setAccountNameMap();
+    await this._setPartyNameMap();
     let sort = true;
     if (force || filter !== 'grouped' || this._rawData.length === 0) {
       await this._setRawData();
@@ -167,6 +182,10 @@ export class GeneralLedger extends LedgerReport {
 
       if (fieldname === 'account' && rawValue != null) {
         value = this._accountNameMap[String(rawValue)] ?? value;
+      }
+
+      if (fieldname === 'party' && rawValue != null) {
+        value = this._partyNameMap[String(rawValue)] ?? value;
       }
 
       row.cells.push({

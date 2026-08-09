@@ -118,9 +118,13 @@ import {
   formatPlaidAccountLabel,
   type PlaidLinkedAccountRow,
 } from 'src/utils/plaidLinkedAccountsApi';
-import { loadPlaidAccountMaps } from 'src/utils/bankFeedHelpers';
+import {
+  isPlaidCreditAccount,
+  loadPlaidAccountMaps,
+} from 'src/utils/bankFeedHelpers';
 import { accountDisplayName } from 'utils/accountDisplay';
 import { disconnectPlaidAccountFeedLocalAndRemote } from 'src/utils/bankAccountSettings';
+import { FEED_AND_RECONCILE_ACCOUNT_TYPES } from 'src/utils/registerAccountTypes';
 
 export default defineComponent({
   name: 'PlaidAccountManageDrawer',
@@ -212,13 +216,29 @@ export default defineComponent({
         linkedRes.accounts.find((a) => a.account_id === this.plaidAccountId) ??
         null;
 
-      this.chartAccounts = (await fyo.db.getAll(ModelNameEnum.Account, {
+      const allChart = (await fyo.db.getAll(ModelNameEnum.Account, {
         fields: ['name', 'accountName', 'accountType'],
         filters: {
-          accountType: AccountTypeEnum.Bank,
+          accountType: ['in', [...FEED_AND_RECONCILE_ACCOUNT_TYPES]],
           isGroup: false,
         },
       })) as { name: string; accountName?: string; accountType?: string }[];
+
+      // Plaid credit → prefer CreditCard COA rows in the picker (Bank still listed).
+      const preferCc = isPlaidCreditAccount(
+        this.linked?.type,
+        this.linked?.subtype
+      );
+      this.chartAccounts = preferCc
+        ? [
+            ...allChart.filter(
+              (a) => a.accountType === AccountTypeEnum.CreditCard
+            ),
+            ...allChart.filter(
+              (a) => a.accountType !== AccountTypeEnum.CreditCard
+            ),
+          ]
+        : allChart;
 
       const maps = await loadPlaidAccountMaps();
       const map = maps.find(
@@ -227,7 +247,16 @@ export default defineComponent({
           m.plaidAccountId === this.plaidAccountId
       );
       this.resolvedChart = map?.chartAccount || '';
-      this.chartSelection = this.resolvedChart;
+      // Unmapped Plaid credit → preselect first CreditCard COA when present.
+      if (
+        !this.resolvedChart &&
+        preferCc &&
+        this.chartAccounts[0]?.accountType === AccountTypeEnum.CreditCard
+      ) {
+        this.chartSelection = this.chartAccounts[0].name;
+      } else {
+        this.chartSelection = this.resolvedChart;
+      }
     },
     async saveMapping() {
       const chart = this.chartSelection;
@@ -264,6 +293,27 @@ export default defineComponent({
           message: t`"${chart}" is already mapped to ${ownerLabel}. Each ledger account can only be linked once.`,
         });
         return;
+      }
+      // Plaid credit accounts belong on CreditCard ledger accounts so
+      // registers and reconcile treat them as liabilities.
+      const chosen = this.chartAccounts.find((a) => a.name === chart);
+      if (
+        isPlaidCreditAccount(this.linked?.type, this.linked?.subtype) &&
+        chosen &&
+        chosen.accountType !== AccountTypeEnum.CreditCard
+      ) {
+        const proceed = (await showDialog({
+          type: 'warning',
+          title: t`Map credit card to a bank account?`,
+          detail: t`"${this.accountLabel}" is a credit card at your bank, but the selected ledger account is not a credit card account. Registers and balances will treat it as a bank asset. Continue anyway?`,
+          buttons: [
+            { label: t`Cancel`, action: () => false, isEscape: true },
+            { label: t`Map anyway`, action: () => true, isPrimary: true },
+          ],
+        })) as boolean;
+        if (!proceed) {
+          return;
+        }
       }
       this.saveBusy = true;
       try {

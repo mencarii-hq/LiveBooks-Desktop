@@ -1195,6 +1195,13 @@ export async function validateQty(
     itemName = item.item as string;
   }
 
+  const itemDisplayName = (await sinvDoc.fyo.getValue(
+    ModelNameEnum.Item,
+    itemName,
+    'itemName'
+  )) as string | null;
+  const itemLabel = itemDisplayName?.trim() || itemName;
+
   if (itemhasBatch) {
     if (!item.batch) {
       throw new ValidationError(t`Please select a batch first`);
@@ -1212,7 +1219,7 @@ export async function validateQty(
   }
 
   if (!itemQtyMap[itemName] || itemQtyMap[itemName].availableQty === 0) {
-    throw new ValidationError(t`Item ${itemName} has Zero Quantity`);
+    throw new ValidationError(t`Item ${itemLabel} has Zero Quantity`);
   }
 
   if (item.batch) {
@@ -1222,7 +1229,7 @@ export async function validateQty(
         (existingItems[0]?.quantity as number)
     ) {
       throw new ValidationError(
-        t`Item ${itemName} only has ${
+        t`Item ${itemLabel} only has ${
           itemQtyMap[itemName][item.batch as string]
         } Quantity in batch ${item.batch as string}`
       );
@@ -1233,7 +1240,7 @@ export async function validateQty(
       itemQtyMap[itemName].availableQty < (existingItems[0]?.quantity as number)
     ) {
       throw new ValidationError(
-        t`Item ${itemName} only has ${itemQtyMap[itemName].availableQty} Quantity`
+        t`Item ${itemLabel} only has ${itemQtyMap[itemName].availableQty} Quantity`
       );
     }
   }

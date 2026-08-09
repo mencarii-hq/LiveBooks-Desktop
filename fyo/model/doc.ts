@@ -487,7 +487,9 @@ export class Doc extends Observable<DocValue | Doc[]> {
     convertToDocValue = false
   ): Doc {
     if (!this.name && this.schema.naming !== 'manual') {
-      this.name = this.fyo.doc.getTemporaryName(this.schema);
+      const roleValue = this.get('role');
+      const role = typeof roleValue === 'string' ? roleValue : undefined;
+      this.name = this.fyo.doc.getTemporaryName(this.schema, role);
     }
 
     docValueMap.name ??= getRandomString();

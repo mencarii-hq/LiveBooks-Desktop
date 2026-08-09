@@ -27,6 +27,9 @@ const partyData = {
   email: 'john@whoe.com',
 };
 
+let itemId = '';
+let partyId = '';
+
 const today = new Date();
 const fromDate = new Date(today);
 fromDate.setDate(today.getDate() - 10);
@@ -53,17 +56,21 @@ const collectionRulesData = [
 ];
 
 test('create test docs', async (t) => {
-  await fyo.doc.getNewDoc(ModelNameEnum.Item, itemData).sync();
+  const itemDoc = await fyo.doc.getNewDoc(ModelNameEnum.Item, itemData).sync();
+  itemId = itemDoc.name as string;
 
   t.ok(
-    fyo.db.exists(ModelNameEnum.Item, itemData.name),
+    fyo.db.exists(ModelNameEnum.Item, itemId),
     `dummy item ${itemData.name}  exists`
   );
 
-  await fyo.doc.getNewDoc(ModelNameEnum.Party, partyData).sync();
+  const partyDoc = await fyo.doc
+    .getNewDoc(ModelNameEnum.Party, partyData)
+    .sync();
+  partyId = partyDoc.name as string;
 
   t.ok(
-    fyo.db.exists(ModelNameEnum.Party, partyData.name),
+    fyo.db.exists(ModelNameEnum.Party, partyId),
     `dummy party ${partyData.name} exists`
   );
 
@@ -94,7 +101,7 @@ test('create a Loyalty Program document', async (t) => {
 
   const partyDoc = (await fyo.doc.getDoc(
     ModelNameEnum.Party,
-    partyData.name
+    partyId
   )) as Party;
 
   await partyDoc.setAndSync('loyaltyProgram', loyaltyProgramData.name);
@@ -128,11 +135,11 @@ async function loyaltyPointEntryDoc(sinvName: string) {
 async function createSalesInvoice(invoiceDate?: Date) {
   const sinvDoc = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     account: 'Debtors',
-    party: partyData.name,
+    party: partyId,
     date: invoiceDate || new Date(),
     items: [
       {
-        item: itemData.name,
+        item: itemId,
         rate: itemData.rate,
         quantity: 1,
       },
@@ -253,7 +260,7 @@ test('redeem loyalty points and verify a new loyalty point entry doc is created'
 
   const partyDoc = (await fyo.doc.getDoc(
     ModelNameEnum.Party,
-    partyData.name
+    partyId
   )) as Party;
 
   const totalPoints = await partyDoc._getTotalLoyaltyPoints();

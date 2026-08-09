@@ -172,7 +172,7 @@ export abstract class BaseGSTR extends Report {
 
     const gstrRow: GSTRRow = {
       gstin: party.gstin ?? '',
-      partyName: entry.party!,
+      partyName: party.partyName?.trim() || party.name || entry.party!,
       invNo: entry.name!,
       invDate: entry.date!,
       rate: 0,

@@ -1,0 +1,46 @@
+{
+  "name": "PayrollDeduction",
+  "label": "Payroll Deduction",
+  "isSingle": false,
+  "isChild": true,
+  "fields": [
+    {
+      "fieldname": "account",
+      "label": "Account",
+      "fieldtype": "Link",
+      "target": "Account",
+      "required": true
+    },
+    {
+      "fieldname": "deductionType",
+      "label": "Type",
+      "fieldtype": "Select",
+      "options": [
+        {
+          "value": "Fixed",
+          "label": "Fixed"
+        },
+        {
+          "value": "Percent",
+          "label": "Percent"
+        }
+      ],
+      "required": true,
+      "default": "Fixed"
+    },
+    {
+      "fieldname": "amount",
+      "label": "Amount",
+      "fieldtype": "Currency",
+      "description": "Fixed: currency amount. Percent: percentage of gross (0-100).",
+      "required": true
+    },
+    {
+      "fieldname": "description",
+      "label": "Description",
+      "fieldtype": "Data"
+    }
+  ],
+  "tableFields": ["account", "deductionType", "amount", "description"],
+  "keywordFields": ["account", "description"]
+}

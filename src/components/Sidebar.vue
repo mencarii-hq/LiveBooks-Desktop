@@ -18,7 +18,7 @@
       class="flex-1 min-h-0 overflow-y-auto window-no-drag sidebar-nav-scroll"
     >
       <!-- Brand + company -->
-      <div class="mt-2">
+      <div>
         <div
           data-testid="switch-company"
           class="
@@ -54,7 +54,7 @@
             class="flex-shrink-0"
             :name="group.icon"
             :size="group.iconSize || '18'"
-            :height="group.iconHeight ?? 3"
+            :height="group.iconHeight ?? 4"
             :active="!!isGroupActive(group)"
             :darkMode="darkMode"
             :onPrimary="true"
@@ -424,6 +424,9 @@ function matchPartyEditSidebarItem(
   }
   if (role === 'Both') {
     return item.name === 'party';
+  }
+  if (role === 'Employee' || role === 'Contractor') {
+    return item.name === 'employees';
   }
   return false;
 }
@@ -1056,6 +1059,19 @@ export default defineComponent({
 </script>
 
 <style scoped>
+/* Sidebar text bumped 5% over Tailwind defaults */
+.sidebar-root .text-lg {
+  font-size: 1.18125rem; /* 1.125rem * 1.05 */
+}
+
+.sidebar-root .text-base {
+  font-size: 1.05rem; /* 1rem * 1.05 */
+}
+
+.sidebar-root .text-sm {
+  font-size: 0.91875rem; /* 0.875rem * 1.05 */
+}
+
 .sidebar-nav-scroll {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;

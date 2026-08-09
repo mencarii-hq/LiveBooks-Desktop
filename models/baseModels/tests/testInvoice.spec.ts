@@ -28,6 +28,9 @@ const partyData = {
   email: 'john@whoe.com',
 };
 
+let itemId = '';
+let partyId = '';
+
 const batchMap = {
   batchOne: {
     name: 'PN-AB001',
@@ -40,16 +43,20 @@ const batchMap = {
 };
 
 test('create test docs', async (t) => {
-  await fyo.doc.getNewDoc(ModelNameEnum.Item, itemData).sync();
+  const itemDoc = await fyo.doc.getNewDoc(ModelNameEnum.Item, itemData).sync();
+  itemId = itemDoc.name as string;
 
   t.ok(
-    fyo.db.exists(ModelNameEnum.Item, itemData.name),
+    fyo.db.exists(ModelNameEnum.Item, itemId),
     `dummy item ${itemData.name}  exists`
   );
 
-  await fyo.doc.getNewDoc(ModelNameEnum.Party, partyData).sync();
+  const partyDoc = await fyo.doc
+    .getNewDoc(ModelNameEnum.Party, partyData)
+    .sync();
+  partyId = partyDoc.name as string;
   t.ok(
-    fyo.db.exists(ModelNameEnum.Party, partyData.name),
+    fyo.db.exists(ModelNameEnum.Party, partyId),
     `dummy party ${partyData.name} exists`
   );
 
@@ -65,10 +72,10 @@ test('create test docs', async (t) => {
 test('create SINV with batch then create payment against it', async (t) => {
   const sinvDoc = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     account: 'Debtors',
-    party: partyData.name,
+    party: partyId,
     items: [
       {
-        item: itemData.name,
+        item: itemId,
         batch: batchMap.batchOne.name,
         rate: itemData.rate,
         quantity: 2,
@@ -102,7 +109,7 @@ test('create SINV return for one qty', async (t) => {
 
   returnDoc.items = [];
   returnDoc.append('items', {
-    item: itemData.name,
+    item: itemId,
     batch: batchMap.batchOne.name,
     quantity: 1,
     rate: itemData.rate,
@@ -221,11 +228,11 @@ test('creating PINV return when invoice is not paid', async (t) => {
   ) as PurchaseInvoice;
 
   await pinvDoc.set({
-    party: partyData.name,
+    party: partyId,
     account: 'Creditors',
     items: [
       {
-        item: itemData.name,
+        item: itemId,
         batch: batchMap.batchOne.name,
         quantity: 2,
         rate: itemData.rate,

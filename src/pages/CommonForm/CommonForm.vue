@@ -30,7 +30,7 @@
           dark:text-gray-100
         "
       >
-        {{ schema.label }}
+        {{ formTitle }}
       </p>
     </template>
     <template v-if="hasDoc" #header>
@@ -95,7 +95,7 @@
       </FormHeader>
 
       <SmartFillBox
-        v-if="isParty && hasDoc"
+        v-if="isParty && hasDoc && !isWorkforceParty"
         :doc="doc"
         @change="updateGroupedFields"
       />
@@ -123,6 +123,12 @@
           @editrow="(doc: Doc) => showRowEditForm(doc)"
           @value-change="onValueChange"
           @row-change="updateGroupedFields"
+        />
+        <EmployeePaySection
+          v-if="isWorkforceParty"
+          ref="paySection"
+          class="p-4 border-t dark:border-gray-800"
+          :party-doc="doc"
         />
       </div>
 
@@ -190,6 +196,7 @@ import { Action } from 'fyo/model/types';
 import { DEFAULT_CURRENCY } from 'fyo/utils/consts';
 import { ValidationError } from 'fyo/utils/errors';
 import { getDocStatus } from 'models/helpers';
+import { isWorkforcePartyRole, PartyRole } from 'models/baseModels/Party/types';
 import { ModelNameEnum } from 'models/types';
 import { Field, Schema } from 'schemas/types';
 import Button from 'src/components/Button.vue';
@@ -221,6 +228,7 @@ import {
 import { useDocShortcuts } from 'src/utils/vueUtils';
 import { computed, defineComponent, inject, nextTick, ref } from 'vue';
 import CommonFormSection from './CommonFormSection.vue';
+import EmployeePaySection from './EmployeePaySection.vue';
 import LinkedEntries from './LinkedEntries.vue';
 import RowEditForm from './RowEditForm.vue';
 
@@ -229,6 +237,7 @@ export default defineComponent({
     FormContainer,
     FormHeader,
     CommonFormSection,
+    EmployeePaySection,
     Button,
     DropdownWithActions,
     Barcode,
@@ -283,6 +292,23 @@ export default defineComponent({
     };
   },
   computed: {
+    formTitle(): string {
+      const label = this.schema?.label ?? '';
+      if (this.schemaName !== 'Party' || !this.hasDoc) {
+        return label;
+      }
+      const role = this.doc.role as string | undefined;
+      if (role === 'Employee' || role === 'Contractor') {
+        return this.t`Employee`;
+      }
+      if (role === 'Customer') {
+        return this.t`Customer`;
+      }
+      if (role === 'Supplier') {
+        return this.t`Supplier`;
+      }
+      return label;
+    },
     showSaveButton(): boolean {
       if (!this.hasDoc) {
         return false;
@@ -364,6 +390,12 @@ export default defineComponent({
     isParty(): boolean {
       return this.schemaName === ModelNameEnum.Party;
     },
+    isWorkforceParty(): boolean {
+      if (!this.isParty || !this.hasDoc) {
+        return false;
+      }
+      return isWorkforcePartyRole(this.doc.role as PartyRole);
+    },
     status(): string {
       if (!this.hasDoc) {
         return '';
@@ -390,6 +422,9 @@ export default defineComponent({
             if (typeof title === 'string' && title.trim()) {
               return title.trim();
             }
+          }
+          if (this.isWorkforceParty) {
+            return this.t`New Employee`;
           }
         }
         return this.t`New Entry`;
@@ -588,9 +623,13 @@ export default defineComponent({
       );
     },
     async sync(useDialog?: boolean) {
-      if (await commonDocSync(this.doc, useDialog)) {
-        this.updateGroupedFields();
+      // Pay validates/saves via EmployeePaySection Party beforeSync/afterSync
+      // hooks (also covers keyboard shortcuts that call doc.sync directly).
+      if (!(await commonDocSync(this.doc, useDialog))) {
+        return;
       }
+
+      this.updateGroupedFields();
     },
     async submit() {
       if (await commonDocSubmit(this.doc)) {

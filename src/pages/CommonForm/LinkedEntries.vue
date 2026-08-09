@@ -355,6 +355,11 @@ export default defineComponent({
     async setLinkedEntries() {
       const linkedEntries = await getLinkedEntries(this.doc);
       for (const key in linkedEntries) {
+        // Pay is edited inline on the Employee form — hide the linked stub.
+        if (key === ModelNameEnum.PayrollProfile) {
+          continue;
+        }
+
         const collapsed = false;
         const entryNames = linkedEntries[key];
         if (!entryNames.length) {
@@ -440,6 +445,8 @@ const linkEntryDisplayFields: Record<string, string[]> = {
     'location',
     'quantity',
   ],
+  [ModelNameEnum.Party]: ['partyName', 'email', 'role'],
+  [ModelNameEnum.Item]: ['itemName', 'itemCode', 'rate'],
 };
 </script>
 <style scoped>

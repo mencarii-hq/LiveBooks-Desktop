@@ -996,7 +996,10 @@ export default defineComponent({
           fields: ['name', 'rootType'],
           filters: {
             name: this.accountTitle,
-            accountType: AccountTypeEnum.Bank,
+            accountType: [
+              'in',
+              [AccountTypeEnum.Bank, AccountTypeEnum.CreditCard],
+            ],
             isGroup: false,
           },
         })) as { name: string; rootType?: string }[];

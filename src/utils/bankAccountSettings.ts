@@ -30,7 +30,7 @@ export async function ledgerSignedBalanceForAccount(
       fields: ['name', 'rootType'],
       filters: {
         name: accountName,
-        accountType: AccountTypeEnum.Bank,
+        accountType: ['in', [AccountTypeEnum.Bank, AccountTypeEnum.CreditCard]],
         isGroup: false,
       },
       limit: 1,

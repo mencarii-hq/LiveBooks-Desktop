@@ -51,6 +51,8 @@ export enum ModelNameEnum {
   PaymentSplit = 'PaymentSplit',
   CheckPrintSettings = 'CheckPrintSettings',
   MemorizedTransaction = 'MemorizedTransaction',
+  PayrollDeduction = 'PayrollDeduction',
+  PayrollProfile = 'PayrollProfile',
   PriceList = 'PriceList',
   PriceListItem = 'PriceListItem',
   PricingRule = 'PricingRule',

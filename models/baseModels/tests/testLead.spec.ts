@@ -19,11 +19,15 @@ const itemData: { name: string; rate: number } = {
   rate: 100,
 };
 
+let itemId = '';
+let partyIdFromLead = '';
+
 test('create test docs for Lead', async (t) => {
-  await fyo.doc.getNewDoc(ModelNameEnum.Item, itemData).sync();
+  const itemDoc = await fyo.doc.getNewDoc(ModelNameEnum.Item, itemData).sync();
+  itemId = itemDoc.name as string;
 
   t.ok(
-    fyo.db.exists(ModelNameEnum.Item, itemData.name),
+    fyo.db.exists(ModelNameEnum.Item, itemId),
     `dummy item ${itemData.name}  exists`
   );
 });
@@ -49,6 +53,7 @@ test('create Customer from Lead', async (t) => {
   );
 
   await newCustomer.sync();
+  partyIdFromLead = newCustomer.name as string;
 
   t.equals(
     leadDoc.status,
@@ -57,7 +62,7 @@ test('create Customer from Lead', async (t) => {
   );
 
   t.ok(
-    await fyo.db.exists(ModelNameEnum.Party, newCustomer.name),
+    await fyo.db.exists(ModelNameEnum.Party, partyIdFromLead),
     'Customer created from Lead'
   );
 });
@@ -69,7 +74,7 @@ test('create SalesQuote', async (t) => {
 
   newSalesQuote.items = [];
   newSalesQuote.append('items', {
-    item: itemData.name,
+    item: itemId,
     quantity: 1,
     rate: itemData.rate,
   });
@@ -98,13 +103,13 @@ test('create SalesQuote', async (t) => {
 test('delete Customer then lead status changes to Interested', async (t) => {
   const partyDoc = (await fyo.doc.getDoc(
     ModelNameEnum.Party,
-    'name2'
+    partyIdFromLead
   )) as Party;
 
   await partyDoc.delete();
 
   t.equals(
-    await fyo.db.exists(ModelNameEnum.Party, 'name2'),
+    await fyo.db.exists(ModelNameEnum.Party, partyIdFromLead),
     false,
     'Customer deleted'
   );

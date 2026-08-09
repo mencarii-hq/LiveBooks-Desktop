@@ -71,9 +71,12 @@ export class BespokeQueries {
   }
 
   static async getCashflow(db: DatabaseCore, fromDate: string, toDate: string) {
+    // Include CreditCard: a charge posts a credit on the card (outflow), and
+    // paying the card from a bank account nets to zero across the two legs,
+    // so aggregating all three types avoids both gaps and double counting.
     const cashAndBankAccounts = db.knex!('Account')
       .select('name')
-      .where('accountType', 'in', ['Cash', 'Bank'])
+      .where('accountType', 'in', ['Cash', 'Bank', 'CreditCard'])
       .andWhere('isGroup', false);
     const dateAsMonthYear = db.knex!.raw(`strftime('%Y-%m', ??)`, 'date');
     return (await db.knex!('AccountingLedgerEntry')
@@ -151,13 +154,19 @@ export class BespokeQueries {
     fromDate: string,
     toDate: string
   ): Promise<{ party: string; total: number }[]> {
+    // Party PKs are UUIDs post-migration; widgets need the display name.
     return (await db.knex!('SalesInvoice')
-      .select('party')
+      .leftJoin('Party', 'SalesInvoice.party', 'Party.name')
+      .select({
+        party: db.knex!.raw(
+          `coalesce(nullif(trim(Party.partyName), ''), SalesInvoice.party)`
+        ),
+      })
       .sum({ total: db.knex!.raw('cast(baseGrandTotal as real)') })
-      .where('submitted', true)
-      .where('cancelled', false)
-      .whereBetween('date', [fromDate, toDate])
-      .groupBy('party')
+      .where('SalesInvoice.submitted', true)
+      .where('SalesInvoice.cancelled', false)
+      .whereBetween('SalesInvoice.date', [fromDate, toDate])
+      .groupBy('SalesInvoice.party')
       .orderBy('total', 'desc')
       .limit(5)) as { party: string; total: number }[];
   }
@@ -167,13 +176,19 @@ export class BespokeQueries {
     fromDate: string,
     toDate: string
   ): Promise<{ party: string; total: number }[]> {
+    // Party PKs are UUIDs post-migration; widgets need the display name.
     return (await db.knex!('PurchaseInvoice')
-      .select('party')
+      .leftJoin('Party', 'PurchaseInvoice.party', 'Party.name')
+      .select({
+        party: db.knex!.raw(
+          `coalesce(nullif(trim(Party.partyName), ''), PurchaseInvoice.party)`
+        ),
+      })
       .sum({ total: db.knex!.raw('cast(baseGrandTotal as real)') })
-      .where('submitted', true)
-      .where('cancelled', false)
-      .whereBetween('date', [fromDate, toDate])
-      .groupBy('party')
+      .where('PurchaseInvoice.submitted', true)
+      .where('PurchaseInvoice.cancelled', false)
+      .whereBetween('PurchaseInvoice.date', [fromDate, toDate])
+      .groupBy('PurchaseInvoice.party')
       .orderBy('total', 'desc')
       .limit(5)) as { party: string; total: number }[];
   }
@@ -586,6 +601,13 @@ export class BespokeQueries {
 
     const refTypes = [ModelNameEnum.Payment, ModelNameEnum.JournalEntry];
 
+    // BankStatementLine.amount is inflow-positive / outflow-negative, i.e.
+    // signed ALE debit − credit for asset banks. The liability (CreditCard)
+    // native form — credit − debit ≈ −amount — is the same predicate after
+    // negating both sides, so a single check covers both root types.
+    const amountSql =
+      'abs(cast(debit as real) - cast(credit as real) - ?) < 0.02';
+
     // Exclude refs already linked by a matched BankStatementLine so one JE/Payment
     // cannot be suggested for two feed lines (soft match refs live on the line).
     return (await db.knex!(ModelNameEnum.AccountingLedgerEntry)
@@ -593,9 +615,7 @@ export class BespokeQueries {
       .where({ account: bankAccount, reverted: false })
       .whereIn('referenceType', refTypes)
       .whereRaw('substr(date, 1, 10) between ? and ?', [fromIso, toIso])
-      .whereRaw('abs(cast(debit as real) - cast(credit as real) - ?) < 0.02', [
-        lineAmount,
-      ])
+      .whereRaw(amountSql, [lineAmount])
       .whereRaw(
         `not exists (
           select 1 from "BankStatementLine" bsl

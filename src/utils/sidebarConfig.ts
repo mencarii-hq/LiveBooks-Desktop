@@ -192,6 +192,26 @@ function getCompleteSidebar(): SidebarConfig {
       ],
     },
     {
+      label: t`Payroll`,
+      name: 'payroll',
+      icon: 'people',
+      route: '/pay-run',
+      items: [
+        {
+          label: t`Employees`,
+          name: 'employees',
+          route: `/list/Party/${t`Employees`}`,
+          schemaName: 'Party',
+          filters: routeFilters.Employees,
+        },
+        {
+          label: t`Pay Run`,
+          name: 'pay-run',
+          route: '/pay-run',
+        },
+      ],
+    },
+    {
       label: isUsCaCompany(fyo) ? t`Receivables` : t`Sales`,
       name: 'sales',
       icon: 'sales',

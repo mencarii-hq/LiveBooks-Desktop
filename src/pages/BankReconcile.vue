@@ -175,7 +175,11 @@
                 <span
                   class="block text-xs text-gray-500 dark:text-gray-300 mt-1"
                 >
-                  {{ t`Closing balance on your statement (the target).` }}
+                  {{
+                    isLiabilityAccount
+                      ? t`Statement ending balance — the amount you owe — as a positive number.`
+                      : t`Closing balance on your statement (the target).`
+                  }}
                 </span>
               </label>
             </div>
@@ -453,7 +457,7 @@
           </h3>
           <p class="text-xs text-gray-600 dark:text-gray-300 mb-3">
             {{
-              t`Use for bank fees, interest, or anything on the statement that is not in your books yet. Saving posts a journal entry and marks the new line cleared.`
+              t`Use for fees, interest, or anything on the statement that is not in your books yet. Saving posts a journal entry and marks the new line cleared.`
             }}
           </p>
           <div
@@ -686,6 +690,13 @@ export default defineComponent({
     },
     targetBalance(): number {
       return Number(this.endingBalanceInput ?? 0);
+    },
+    /** Liability (credit card) accounts: balances are credit-positive. */
+    isLiabilityAccount(): boolean {
+      return (
+        !!this.accountRootType &&
+        isCredit(this.accountRootType as Parameters<typeof isCredit>[0])
+      );
     },
     clearedSignedSum(): number {
       let sum = 0;
@@ -988,7 +999,11 @@ export default defineComponent({
             payee,
             referenceShort,
             signed,
-            isBankEntry: je?.entryType === 'Bank Entry',
+            // Opening-balance JEs auto-clear: banks post 'Bank Entry',
+            // credit cards post 'Credit Card Entry'.
+            isBankEntry:
+              je?.entryType === 'Bank Entry' ||
+              je?.entryType === 'Credit Card Entry',
             cleared: clearedByName.get(a.name) === true,
           };
         });

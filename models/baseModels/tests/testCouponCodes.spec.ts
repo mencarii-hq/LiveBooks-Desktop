@@ -101,27 +101,45 @@ const locationMap = {
   LocationOne: 'LocationOne',
 };
 
+let itemId: Record<string, string> = {};
+let partyId = '';
+
 test(' Coupon Codes: create dummy item, party, pricing rules, coupon codes', async (t) => {
   // Create Items
   for (const { name, rate } of Object.values(itemMap)) {
     const item = getItem(name, rate, false);
 
-    await fyo.doc.getNewDoc(ModelNameEnum.Item, item).sync();
+    const doc = await fyo.doc.getNewDoc(ModelNameEnum.Item, item).sync();
+    itemId[name] = doc.name as string;
 
-    t.ok(await fyo.db.exists(ModelNameEnum.Item, name), `Item: ${name} exists`);
+    t.ok(
+      await fyo.db.exists(ModelNameEnum.Item, itemId[name]),
+      `Item: ${name} exists`
+    );
   }
 
-  // Create Party
-  await fyo.doc.getNewDoc(ModelNameEnum.Party, partyMap.partyOne).sync();
+  const partyDoc = await fyo.doc
+    .getNewDoc(ModelNameEnum.Party, partyMap.partyOne)
+    .sync();
+  partyId = partyDoc.name as string;
 
   t.ok(
-    await fyo.db.exists(ModelNameEnum.Party, partyMap.partyOne.name),
+    await fyo.db.exists(ModelNameEnum.Party, partyId),
     `Party: ${partyMap.partyOne.name} exists`
   );
 
-  // Create Pricing Rules
   for (const pricingRule of Object.values(pricingRuleMap)) {
-    await fyo.doc.getNewDoc(ModelNameEnum.PricingRule, pricingRule).sync();
+    const rule = {
+      ...pricingRule,
+      appliedItems: pricingRule.appliedItems?.map((row) => ({
+        ...row,
+        item: itemId[row.item as string],
+      })),
+      ...(pricingRule.freeItem
+        ? { freeItem: itemId[pricingRule.freeItem as string] }
+        : {}),
+    };
+    await fyo.doc.getNewDoc(ModelNameEnum.PricingRule, rule).sync();
 
     t.ok(
       await fyo.db.exists(ModelNameEnum.PricingRule, pricingRule.name),
@@ -145,7 +163,7 @@ test(' Coupon Codes: create dummy item, party, pricing rules, coupon codes', asy
     new Date('2022-11-03T09:57:04.528'),
     [
       {
-        item: itemMap.Pen.name,
+        item: itemId[itemMap.Pen.name],
         to: locationMap.LocationOne,
         quantity: 25,
         rate: 500,
@@ -156,7 +174,7 @@ test(' Coupon Codes: create dummy item, party, pricing rules, coupon codes', asy
   await (await stockMovement.sync()).submit();
   t.equal(
     await fyo.db.getStockQuantity(
-      itemMap.Pen.name,
+      itemId[itemMap.Pen.name],
       locationMap.LocationOne,
       undefined,
       undefined
@@ -183,12 +201,12 @@ test(' Coupon Codes: create dummy item, party, pricing rules, coupon codes', asy
 test('disabled coupon codes is not applied', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: '2024-01-20T18:30:00.000Z',
-    party: partyMap.partyOne.name,
+    party: partyId,
     account: partyMap.partyOne.account,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Jacket.name,
+    item: itemId[itemMap.Jacket.name],
     quantity: 5,
     rate: itemMap.Jacket.rate,
   });
@@ -295,11 +313,11 @@ test('apply coupon code', async (t) => {
 
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: '2024-02-10',
-    party: partyMap.partyOne.name,
+    party: partyId,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Jacket.name,
+    item: itemId[itemMap.Jacket.name],
     quantity: 5,
     rate: itemMap.Jacket.rate,
   });
@@ -319,12 +337,12 @@ test('apply coupon code', async (t) => {
 test('Coupon not applied: incorrect items added.', async (t) => {
   const sinv = fyo.doc.getNewDoc(ModelNameEnum.SalesInvoice, {
     date: '2024-02-10',
-    party: partyMap.partyOne.name,
+    party: partyId,
     account: partyMap.partyOne.account,
   }) as SalesInvoice;
 
   await sinv.append('items', {
-    item: itemMap.Cap.name,
+    item: itemId[itemMap.Cap.name],
     quantity: 5,
     rate: itemMap.Cap.rate,
   });

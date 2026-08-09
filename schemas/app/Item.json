@@ -3,6 +3,8 @@
   "label": "Item",
   "isSingle": false,
   "naming": "manual",
+  "titleField": "itemName",
+  "linkDisplayField": "itemName",
   "fields": [
     {
       "fieldname": "image",
@@ -12,6 +14,14 @@
     },
     {
       "fieldname": "name",
+      "label": "ID",
+      "fieldtype": "Data",
+      "hidden": true,
+      "readOnly": true,
+      "section": "Default"
+    },
+    {
+      "fieldname": "itemName",
       "label": "Item Name",
       "fieldtype": "Data",
       "placeholder": "Item Name",
@@ -202,5 +212,5 @@
     "trackItem",
     "uom"
   ],
-  "keywordFields": ["name", "itemType", "for"]
+  "keywordFields": ["itemName", "itemCode", "itemType", "for"]
 }

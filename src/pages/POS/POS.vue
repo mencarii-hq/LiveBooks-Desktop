@@ -619,6 +619,18 @@ export default defineComponent({
       }
     },
 
+    getItemDisplayName(item: POSItem | undefined, itemId?: string) {
+      if (item?.itemName?.trim()) {
+        return item.itemName.trim();
+      }
+      const id = itemId ?? item?.name;
+      const fromCatalog = this.items.find((i) => i.name === id);
+      if (fromCatalog?.itemName?.trim()) {
+        return fromCatalog.itemName.trim();
+      }
+      return id ?? '';
+    },
+
     getItem(name: string) {
       return this.items.find((item) => item.name === name);
     },
@@ -760,6 +772,7 @@ export default defineComponent({
         this.items.push({
           availableQty,
           name: item.name,
+          itemName: item.itemName,
           image: item?.image as string,
           rate: item.rate as Money,
           unit: item.unit as string,
@@ -889,6 +902,7 @@ export default defineComponent({
         }
 
         const itemName = item.name;
+        const itemLabel = this.getItemDisplayName(item, itemName);
 
         if (item.hasBatch) {
           this.selectedItemForBatch = itemName;
@@ -908,7 +922,7 @@ export default defineComponent({
           const availableQty = this.itemQtyMap[itemName]?.availableQty ?? 0;
           if (availableQty <= 0) {
             throw new ValidationError(
-              t`Item ${itemName} is out of stock (quantity is zero)`
+              t`Item ${itemLabel} is out of stock (quantity is zero)`
             );
           }
         }
@@ -1018,7 +1032,7 @@ export default defineComponent({
             const availableQty = this.itemQtyMap[itemName]?.availableQty ?? 0;
             if (currentQty + addQty > availableQty) {
               throw new ValidationError(
-                `Cannot add more than the available quantity for ${itemName}`
+                `Cannot add more than the available quantity for ${itemLabel}`
               );
             }
           }

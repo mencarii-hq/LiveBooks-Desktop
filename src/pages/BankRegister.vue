@@ -72,7 +72,7 @@
           v-if="!bankAccount"
           class="text-sm text-gray-600 dark:text-gray-300 py-4"
         >
-          {{ t`Select a bank account to view the register.` }}
+          {{ t`Select a bank or credit card account to view the register.` }}
         </div>
         <div
           v-else-if="loading"
@@ -240,8 +240,11 @@
 import { DateTime } from 'luxon';
 import { Money } from 'pesa';
 import { ModelNameEnum } from 'models/types';
-import { AccountTypeEnum } from 'models/baseModels/Account/types';
 import { Field } from 'schemas/types';
+import {
+  isCreditCardAccountType,
+  REGISTER_ACCOUNT_TYPES,
+} from 'src/utils/registerAccountTypes';
 import Button from 'src/components/Button.vue';
 import ExportWizard from 'src/components/ExportWizard.vue';
 import FilterDropdown from 'src/components/FilterDropdown.vue';
@@ -332,6 +335,7 @@ export default defineComponent({
       bankAccount: '',
       bankAccounts: [] as AccountOpt[],
       accountNameById: {} as Record<string, string>,
+      accountTypeById: {} as Record<string, string>,
       listFilters: {} as QueryFilter,
       rows: [] as RegisterRow[],
       pageStart: 0,
@@ -356,15 +360,25 @@ export default defineComponent({
     columnRatio(): number[] {
       return COLUMN_RATIO;
     },
+    /** CreditCard register: Charge (credit↑) / Payment (debit↓); bank keeps Payment/Deposit. */
+    isCreditCardRegister(): boolean {
+      return isCreditCardAccountType(this.accountTypeById[this.bankAccount]);
+    },
     headerCols(): { id: ColumnId; label: string; class: string }[] {
+      const outflow = this.isCreditCardRegister
+        ? this.t`Charge`
+        : this.t`Payment`;
+      const inflow = this.isCreditCardRegister
+        ? this.t`Payment`
+        : this.t`Deposit`;
       return [
         { id: 'date', label: this.t`Date`, class: '' },
         { id: 'checkNo', label: this.t`Check No.`, class: '' },
         { id: 'payee', label: this.t`Payee`, class: '' },
         { id: 'category', label: this.t`Category`, class: '' },
         { id: 'memo', label: this.t`Memo`, class: '' },
-        { id: 'payment', label: this.t`Payment`, class: 'justify-end' },
-        { id: 'deposit', label: this.t`Deposit`, class: 'justify-end' },
+        { id: 'payment', label: outflow, class: 'justify-end' },
+        { id: 'deposit', label: inflow, class: 'justify-end' },
         { id: 'balance', label: this.t`Balance`, class: 'justify-end pe-4' },
       ];
     },
@@ -389,11 +403,11 @@ export default defineComponent({
         fieldtype: 'Link',
         target: 'Account',
         fieldname: 'bankAccount',
-        label: this.t`Bank`,
-        placeholder: this.t`Bank`,
+        label: this.t`Account`,
+        placeholder: this.t`Account`,
         filters: {
           isGroup: false,
-          accountType: ['in', [AccountTypeEnum.Bank, AccountTypeEnum.Cash]],
+          accountType: ['in', [...REGISTER_ACCOUNT_TYPES]],
         },
       } as Field;
     },
@@ -610,13 +624,20 @@ export default defineComponent({
       const banks = (await fyo.db.getAll(ModelNameEnum.Account, {
         filters: {
           isGroup: false,
-          accountType: ['in', [AccountTypeEnum.Bank, AccountTypeEnum.Cash]],
+          accountType: ['in', [...REGISTER_ACCOUNT_TYPES]],
         },
-        fields: ['name', 'accountName'],
+        fields: ['name', 'accountName', 'accountType'],
         orderBy: 'accountName',
         order: 'asc',
-      })) as AccountOpt[];
+      })) as (AccountOpt & { accountType?: string })[];
       this.bankAccounts = banks;
+      const typeById: Record<string, string> = {};
+      for (const a of banks) {
+        if (a.accountType) {
+          typeById[a.name] = a.accountType;
+        }
+      }
+      this.accountTypeById = typeById;
 
       const accounts = (await fyo.db.getAll(ModelNameEnum.Account, {
         filters: { isGroup: false },
@@ -629,6 +650,10 @@ export default defineComponent({
         nameById[a.name] = a.accountName || a.name;
       }
       this.accountNameById = nameById;
+    },
+    /** Asset bank/cash: debit − credit. CreditCard liability: credit − debit (owed). */
+    signedBalanceDelta(debit: number, credit: number): number {
+      return this.isCreditCardRegister ? credit - debit : debit - credit;
     },
     applyFilter(filters: QueryFilter) {
       this.listFilters = filters ?? {};
@@ -816,7 +841,8 @@ export default defineComponent({
           }
           const debit = money(ale.debit);
           const credit = money(ale.credit);
-          balance += debit - credit;
+          // Charge (credit) / Payment (debit) columns unchanged; balance sign flips for CC.
+          balance += this.signedBalanceDelta(debit, credit);
           const payInfo =
             ale.referenceType === ModelNameEnum.Payment && ale.referenceName
               ? paymentMap.get(ale.referenceName)
@@ -916,7 +942,10 @@ export default defineComponent({
           ) {
             continue;
           }
-          balance += money(ale.debit) - money(ale.credit);
+          balance += this.signedBalanceDelta(
+            money(ale.debit),
+            money(ale.credit)
+          );
         }
         this.balanceAsOfToday = fyo.pesa(balance);
       } catch {

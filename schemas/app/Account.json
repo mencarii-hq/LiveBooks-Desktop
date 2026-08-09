@@ -75,6 +75,10 @@
           "label": "Cash"
         },
         {
+          "value": "CreditCard",
+          "label": "Credit Card"
+        },
+        {
           "value": "Chargeable",
           "label": "Chargeable"
         },

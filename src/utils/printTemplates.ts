@@ -4,6 +4,7 @@ import { Invoice } from 'models/baseModels/Invoice/Invoice';
 import { ModelNameEnum } from 'models/types';
 import { FieldTypeEnum, Schema, TargetField } from 'schemas/types';
 import { getValueMapFromList } from 'utils/index';
+import { accountDisplayName } from 'utils/accountDisplay';
 import { TemplateFile } from 'utils/types';
 import { showToast } from './interactive';
 import { PrintValues } from './types';
@@ -411,7 +412,15 @@ async function getPrintTemplateDocValues(doc: Doc, fieldnames?: string[]) {
     }
 
     if (!Array.isArray(value)) {
-      values[fieldname] = doc.fyo.format(value, field, doc);
+      if (field.fieldtype === FieldTypeEnum.Link) {
+        values[fieldname] = await resolveLinkDisplayValue(
+          doc.fyo,
+          field,
+          value
+        );
+      } else {
+        values[fieldname] = doc.fyo.format(value, field, doc);
+      }
       continue;
     }
 
@@ -443,6 +452,43 @@ async function getPrintTemplateDocValues(doc: Doc, fieldnames?: string[]) {
     values.links = links;
   }
   return values;
+}
+
+async function resolveLinkDisplayValue(
+  fyo: Fyo,
+  field: TargetField,
+  value: unknown
+): Promise<string> {
+  if (!value) {
+    return '';
+  }
+
+  const target = field.target;
+  if (!target) {
+    return String(value);
+  }
+
+  const schema = fyo.schemaMap[target];
+  const displayField = schema?.linkDisplayField || schema?.titleField || 'name';
+
+  if (displayField === 'name') {
+    return String(value);
+  }
+
+  const row = await fyo.db.get(target, String(value));
+  if (!row) {
+    return String(value);
+  }
+
+  if (target === ModelNameEnum.Account) {
+    return accountDisplayName({
+      name: String(value),
+      accountName: row.accountName as string | null | undefined,
+    });
+  }
+
+  const label = String(row[displayField] ?? '').trim();
+  return label || String(value);
 }
 
 export async function getPathAndMakePDF(

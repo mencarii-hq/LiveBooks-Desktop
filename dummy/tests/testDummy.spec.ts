@@ -13,12 +13,24 @@ test('setupDummyInstance', async () => {
   }, 'setup instance failed');
 });
 
+async function existsByDisplayName(
+  schemaName: 'Item' | 'Party',
+  displayName: string
+) {
+  const field = schemaName === 'Item' ? 'itemName' : 'partyName';
+  const rows = await fyo.db.getAll(schemaName, {
+    filters: { [field]: displayName },
+    fields: ['name'],
+  });
+  return rows.length > 0;
+}
+
 test('purchaseItemParty Existance', async (t) => {
   for (const item in purchaseItemPartyMap) {
-    t.ok(await fyo.db.exists('Item', item), `item exists: ${item}`);
+    t.ok(await existsByDisplayName('Item', item), `item exists: ${item}`);
 
     const party = purchaseItemPartyMap[item];
-    t.ok(await fyo.db.exists('Party', party), `party exists: ${party}`);
+    t.ok(await existsByDisplayName('Party', party), `party exists: ${party}`);
   }
 });
 

@@ -31,6 +31,7 @@ type EnrichedInvoiceRow = InvoiceRowRaw & {
 export abstract class InvoiceAgingReport extends Report {
   loading = false;
   shouldRefresh = false;
+  _partyNameMap: Record<string, string> = {};
 
   asOfDate?: string;
   party?: string;
@@ -61,6 +62,19 @@ export abstract class InvoiceAgingReport extends Report {
   setDefaultFilters(): void {
     if (!this.asOfDate) {
       this.asOfDate = DateTime.now().toISODate();
+    }
+  }
+
+  async _setPartyNameMap() {
+    const parties = await this.fyo.db.getAllRaw('Party', {
+      fields: ['name', 'partyName'],
+    });
+
+    this._partyNameMap = {};
+    for (const party of parties) {
+      const label = String(party.partyName ?? '').trim();
+      this._partyNameMap[party.name as string] =
+        label || (party.name as string);
     }
   }
 
@@ -205,7 +219,7 @@ export abstract class InvoiceAgingReport extends Report {
           raw = seq;
           break;
         case 'party':
-          raw = inv.party;
+          raw = this._partyNameMap[inv.party] ?? inv.party;
           break;
         case 'invoice':
           raw = inv.name;
@@ -246,7 +260,9 @@ export abstract class InvoiceAgingReport extends Report {
   ): ReportRow {
     const cols = this.columns;
     const cells: ReportCell[] = [];
-    const partyLabel = `${t`Total`} — ${partyId}`;
+    const partyLabel = `${t`Total`} — ${
+      this._partyNameMap[partyId] ?? partyId
+    }`;
     for (const col of cols) {
       switch (col.fieldname) {
         case 'idx':
@@ -360,6 +376,7 @@ export abstract class InvoiceAgingReport extends Report {
   async setReportData(): Promise<void> {
     this.loading = true;
     this.setDefaultFilters();
+    await this._setPartyNameMap();
 
     const asOf = this.asOfDate!;
     const zeroStore = this.fyo.pesa(0).store;

@@ -109,26 +109,20 @@ export function getOptionList(
 }
 
 function getRawOptionList(field: Field, doc: Doc | undefined | null) {
+  if (!getIsNullOrUndef(doc)) {
+    const Model = doc.fyo.models[doc.schemaName];
+    const getList = Model?.lists?.[field.fieldname];
+    if (getList !== undefined) {
+      return getList(doc);
+    }
+  }
+
   const options = (field as OptionField).options;
   if (options && options.length > 0) {
-    return (field as OptionField).options;
+    return options;
   }
 
-  if (getIsNullOrUndef(doc)) {
-    return [];
-  }
-
-  const Model = doc.fyo.models[doc.schemaName];
-  if (Model === undefined) {
-    return [];
-  }
-
-  const getList = Model.lists[field.fieldname];
-  if (getList === undefined) {
-    return [];
-  }
-
-  return getList(doc);
+  return [];
 }
 
 export function getEmptyValuesByFieldTypes(

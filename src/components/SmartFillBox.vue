@@ -1,8 +1,20 @@
 <template>
-  <div class="p-4 border-b dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
-    <label class="block text-sm text-gray-700 dark:text-gray-300 mb-2">
-      {{ t`Smart Fill` }}
-    </label>
+  <div
+    class="px-4 py-2 border-b dark:border-gray-800 bg-gray-50 dark:bg-gray-900"
+  >
+    <div class="flex items-center justify-between gap-2 mb-1.5">
+      <label class="text-sm text-gray-700 dark:text-gray-300">
+        {{ t`Smart Fill` }}
+      </label>
+      <div class="flex gap-2 shrink-0">
+        <Button type="primary" @click="applyFill">
+          {{ t`Apply` }}
+        </Button>
+        <Button v-if="snapshot" @click="undoFill">
+          {{ t`Undo fill` }}
+        </Button>
+      </div>
+    </div>
     <textarea
       v-model="inputText"
       class="
@@ -13,24 +25,17 @@
         dark:border-gray-700
         bg-white
         dark:bg-gray-850
-        p-2
+        px-2
+        py-1.5
         text-sm
         custom-scroll custom-scroll-thumb2
       "
-      rows="4"
+      rows="2"
       :placeholder="
         t`Paste a name and address (e.g. from Shopify). We'll fill the fields below.`
       "
       @paste="onPaste"
     />
-    <div class="flex gap-2 mt-2">
-      <Button type="primary" @click="applyFill">
-        {{ t`Apply` }}
-      </Button>
-      <Button v-if="snapshot" @click="undoFill">
-        {{ t`Undo fill` }}
-      </Button>
-    </div>
   </div>
 </template>
 
@@ -49,7 +54,7 @@ import {
 import { defineComponent, PropType } from 'vue';
 
 interface SmartFillSnapshot {
-  name?: DocValue;
+  partyName?: DocValue;
   email?: DocValue;
   phone?: DocValue;
   address?: DocValue;
@@ -143,7 +148,7 @@ export default defineComponent({
     ): Promise<void> {
       const nextSnapshot = this.snapshot ?? (await this.captureSnapshot());
 
-      const values: Record<string, DocValue> = { name: result.name };
+      const values: Record<string, DocValue> = { partyName: result.name };
       if (result.email) {
         values.email = result.email;
       }
@@ -163,7 +168,7 @@ export default defineComponent({
     },
     async captureSnapshot(): Promise<SmartFillSnapshot> {
       const snapshot: SmartFillSnapshot = {
-        name: this.doc.name as DocValue,
+        partyName: this.doc.get('partyName') as DocValue,
         email: this.doc.get('email') as DocValue,
         phone: this.doc.get('phone') as DocValue,
         address: this.doc.get('address') as DocValue,
@@ -309,8 +314,8 @@ export default defineComponent({
         }
 
         const partyValues: Record<string, DocValue> = {};
-        if (snapshot.name !== undefined) {
-          partyValues.name = snapshot.name ?? null;
+        if (snapshot.partyName !== undefined) {
+          partyValues.partyName = snapshot.partyName ?? null;
         }
         partyValues.email = snapshot.email ?? null;
         partyValues.phone = snapshot.phone ?? null;

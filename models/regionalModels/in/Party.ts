@@ -1,7 +1,7 @@
 import { HiddenMap } from 'fyo/model/types';
 import { Party as BaseParty } from 'models/baseModels/Party/Party';
 import { GSTType } from './types';
-import { PartyRole } from 'models/baseModels/Party/types';
+import { isWorkforcePartyRole, PartyRole } from 'models/baseModels/Party/types';
 
 export class Party extends BaseParty {
   gstin?: string;
@@ -9,8 +9,10 @@ export class Party extends BaseParty {
   gstType?: GSTType;
   loyaltyProgram?: string;
 
-  // eslint-disable-next-line @typescript-eslint/require-await
   async beforeSync() {
+    // Must run base UUID PK + partyName assignment before regional GST cleanup.
+    await super.beforeSync();
+
     const gstin = this.get('gstin') as string | undefined;
     const gstType = this.get('gstType') as GSTType;
 
@@ -20,14 +22,24 @@ export class Party extends BaseParty {
   }
 
   hidden: HiddenMap = {
-    gstin: () => (this.gstType as GSTType) !== 'Registered Regular',
+    defaultAccount: () => isWorkforcePartyRole(this.role),
+    gstin: () =>
+      isWorkforcePartyRole(this.role) ||
+      (this.gstType as GSTType) !== 'Registered Regular',
+    gstType: () => isWorkforcePartyRole(this.role),
+    currency: () => isWorkforcePartyRole(this.role),
     loyaltyProgram: () => {
       if (!this.fyo.singles.AccountingSettings?.enableLoyaltyProgram) {
         return true;
       }
-      return this.role === 'Supplier';
+      return this.role === 'Supplier' || isWorkforcePartyRole(this.role);
     },
-    loyaltyPoints: () => !this.loyaltyProgram || this.role === 'Supplier',
-    fromLead: () => !this.fyo.singles.AccountingSettings?.enableLead,
+    loyaltyPoints: () =>
+      !this.loyaltyProgram ||
+      this.role === 'Supplier' ||
+      isWorkforcePartyRole(this.role),
+    fromLead: () =>
+      !this.fyo.singles.AccountingSettings?.enableLead ||
+      isWorkforcePartyRole(this.role),
   };
 }
