@@ -251,6 +251,13 @@ export default defineComponent({
       }
 
       if (Object.keys(addressValues).length) {
+        // Keep prior values so a failed sync doesn't leave unsaved edits that
+        // silently disappear on navigation.
+        const priorValues: Record<string, DocValue> = {};
+        for (const key of Object.keys(addressValues)) {
+          priorValues[key] = addressDoc.get(key) as DocValue;
+        }
+
         // Set country before state so state option lists resolve correctly.
         if (addressValues.country !== undefined) {
           await addressDoc.set('country', addressValues.country);
@@ -258,6 +265,22 @@ export default defineComponent({
         const { country: _country, ...rest } = addressValues;
         if (Object.keys(rest).length) {
           await addressDoc.set(rest);
+        }
+
+        // Without sync() the edited Address is never persisted (create path
+        // syncs; edit path used to drop changes).
+        try {
+          await addressDoc.sync();
+        } catch (error) {
+          if (priorValues.country !== undefined) {
+            await addressDoc.set('country', priorValues.country);
+          }
+          const { country: _prevCountry, ...priorRest } = priorValues;
+          if (Object.keys(priorRest).length) {
+            await addressDoc.set(priorRest);
+          }
+          // runFill toasts this so the user knows the edit was not saved.
+          throw error;
         }
       }
 
@@ -280,6 +303,8 @@ export default defineComponent({
             !snapshot.createdAddressName
           ) {
             await addressDoc.set(snapshot.addressFields);
+            // Fill now persists the Address; undo must persist the restore too.
+            await addressDoc.sync();
           }
         }
 
