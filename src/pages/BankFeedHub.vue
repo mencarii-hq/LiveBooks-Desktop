@@ -282,7 +282,7 @@
                   class="
                     cursor-pointer
                     hover:bg-gray-50
-                    dark:hover:bg-gray-800/80
+                    dark:hover:bg-gray-850
                     border-b
                     dark:border-gray-800
                     last:border-0
@@ -298,7 +298,15 @@
                       : undefined
                   "
                 >
-                  <td class="p-3 text-start font-medium">
+                  <td
+                    class="
+                      p-3
+                      text-start
+                      font-medium
+                      text-gray-900
+                      dark:text-gray-100
+                    "
+                  >
                     {{ row.bankAccountName }}
                     <span
                       v-if="row.archived"
@@ -335,7 +343,9 @@
                     >
                       {{ row.toReviewCount }}
                     </span>
-                    <span v-else class="text-gray-500">0</span>
+                    <span v-else class="text-gray-500 dark:text-gray-400"
+                      >0</span
+                    >
                   </td>
                   <td class="p-3 text-start">
                     {{ row.ledgerAccountLabel ?? t`—` }}

@@ -306,7 +306,7 @@
                     border-t border-gray-100
                     dark:border-gray-800
                     hover:bg-gray-50
-                    dark:hover:bg-gray-800/60
+                    dark:hover:bg-gray-850
                   "
                 >
                   <td class="p-2 text-start">
@@ -397,7 +397,7 @@
                     border-t border-gray-100
                     dark:border-gray-800
                     hover:bg-gray-50
-                    dark:hover:bg-gray-800/60
+                    dark:hover:bg-gray-850
                   "
                 >
                   <td class="p-2 text-start">

@@ -116,7 +116,7 @@
                 class="
                   cursor-pointer
                   hover:bg-gray-50
-                  dark:hover:bg-gray-800/80
+                  dark:hover:bg-gray-850
                   border-b
                   dark:border-gray-800
                   last:border-0
