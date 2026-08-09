@@ -4,18 +4,21 @@
     :class="{
       'window-drag': platform !== 'Windows',
     }"
+    @dblclick="handleWindowDragDoubleClick"
   >
+    <!-- Traffic-light / title-drag strip (must stay drag; nav below is no-drag for scroll) -->
+    <div
+      v-if="platform !== 'Windows'"
+      class="window-drag shrink-0 w-full"
+      :class="platform === 'Mac' && languageDirection === 'ltr' ? 'h-8' : 'h-2'"
+      aria-hidden="true"
+    />
     <!-- Nav must be no-drag + overflow so wheel/trackpad scroll works under app-region:drag -->
     <div
       class="flex-1 min-h-0 overflow-y-auto window-no-drag sidebar-nav-scroll"
     >
       <!-- Brand + company -->
-      <div
-        class=""
-        :class="
-          platform === 'Mac' && languageDirection === 'ltr' ? 'mt-5' : 'mt-3'
-        "
-      >
+      <div class="mt-2">
         <div
           data-testid="switch-company"
           class="
@@ -365,7 +368,11 @@ import { languageDirectionKey, shortcutsKey } from 'src/utils/injectionKeys';
 import { docsPathRef } from 'src/utils/refs';
 import { getSidebarConfig } from 'src/utils/sidebarConfig';
 import { SidebarConfig, SidebarItem, SidebarRoot } from 'src/utils/types';
-import { routeTo, toggleSidebar } from 'src/utils/ui';
+import {
+  handleWindowDragDoubleClick,
+  routeTo,
+  toggleSidebar,
+} from 'src/utils/ui';
 import { openFeedbackSurvey } from 'src/utils/feedbackSurvey';
 import { livebooksDesktopDisplayName } from 'utils/livebooksAppEnv';
 import { REGIONAL_LABELS_CHANGED_EVENT } from 'utils/regional';
@@ -377,6 +384,72 @@ import Modal from './Modal.vue';
 import ShortcutsHelper from './ShortcutsHelper.vue';
 
 const COMPONENT_NAME = 'Sidebar';
+
+function sidebarFilterAllowsValue(
+  filterValue: unknown,
+  value: string
+): boolean {
+  if (filterValue == null) {
+    return false;
+  }
+  if (typeof filterValue === 'string') {
+    return filterValue === value;
+  }
+  if (
+    Array.isArray(filterValue) &&
+    filterValue[0] === 'in' &&
+    Array.isArray(filterValue[1])
+  ) {
+    return (filterValue[1] as string[]).includes(value);
+  }
+  return false;
+}
+
+function matchPartyEditSidebarItem(
+  item: SidebarItem,
+  role: string,
+  referrer: string
+): boolean {
+  if (!sidebarFilterAllowsValue(item.filters?.role, role)) {
+    return false;
+  }
+  if (referrer) {
+    return item.route === referrer;
+  }
+  if (role === 'Customer') {
+    return item.name === 'customers';
+  }
+  if (role === 'Supplier') {
+    return item.name === 'suppliers';
+  }
+  if (role === 'Both') {
+    return item.name === 'party';
+  }
+  return false;
+}
+
+function matchItemEditSidebarItem(
+  item: SidebarItem,
+  forValue: string,
+  referrer: string
+): boolean {
+  if (!sidebarFilterAllowsValue(item.filters?.['for'], forValue)) {
+    return false;
+  }
+  if (referrer) {
+    return item.route === referrer;
+  }
+  if (forValue === 'Sales') {
+    return item.name === 'sales-items';
+  }
+  if (forValue === 'Purchases') {
+    return item.name === 'purchase-items';
+  }
+  if (forValue === 'Both') {
+    return item.name === 'common-items';
+  }
+  return false;
+}
 
 export default defineComponent({
   components: {
@@ -393,6 +466,7 @@ export default defineComponent({
     return {
       languageDirection: inject(languageDirectionKey),
       shortcuts: inject(shortcutsKey),
+      handleWindowDragDoubleClick,
     };
   },
   data() {
@@ -416,6 +490,16 @@ export default defineComponent({
       onDocumentVisibilityBound: null as (() => void) | null,
       onRegionalLabelsChangedBound: null as (() => void) | null,
       unsubscribeLivebooksSubscription: null as (() => void) | null,
+      // Payment name currently being loaded to resolve sidebar highlight.
+      resolvingPaymentHighlight: '',
+      // Party name currently being loaded to resolve sidebar highlight.
+      resolvingPartyHighlight: '',
+      // List path that opened the current Party edit (Customers vs Suppliers vs Common).
+      lastPartyListPath: '',
+      // Item name currently being loaded to resolve sidebar highlight.
+      resolvingItemHighlight: '',
+      // List path that opened the current Item edit (Sales vs Purchase vs Common).
+      lastItemListPath: '',
     } as {
       companyName: string;
       groups: SidebarConfig;
@@ -434,6 +518,11 @@ export default defineComponent({
       onDocumentVisibilityBound: (() => void) | null;
       onRegionalLabelsChangedBound: (() => void) | null;
       unsubscribeLivebooksSubscription: (() => void) | null;
+      resolvingPaymentHighlight: string;
+      resolvingPartyHighlight: string;
+      lastPartyListPath: string;
+      resolvingItemHighlight: string;
+      lastItemListPath: string;
     };
   },
   computed: {
@@ -484,7 +573,25 @@ export default defineComponent({
     this.groups = await getSidebarConfig();
 
     this.setActiveGroup();
-    router.afterEach(() => {
+    router.afterEach((to, from) => {
+      const toPath = to.path;
+      const fromPath = from.path;
+      if (
+        fromPath.startsWith('/list/Party') &&
+        toPath.startsWith('/edit/Party')
+      ) {
+        this.lastPartyListPath = fromPath;
+      } else if (!toPath.startsWith('/edit/Party')) {
+        this.lastPartyListPath = '';
+      }
+      if (
+        fromPath.startsWith('/list/Item') &&
+        toPath.startsWith('/edit/Item')
+      ) {
+        this.lastItemListPath = fromPath;
+      } else if (!toPath.startsWith('/edit/Item')) {
+        this.lastItemListPath = '';
+      }
       this.setActiveGroup();
     });
 
@@ -673,7 +780,15 @@ export default defineComponent({
       const route = item.route;
       const fromBankRegister = query.from === 'bank-register';
 
-      if (currentPath === route || currentPath.startsWith(route + '/')) {
+      // Exact path only for /list/* — `/list/Party` must not match
+      // `/list/Party/Customers` (and the same for Items / Payments siblings).
+      if (currentPath === route) {
+        return true;
+      }
+      if (
+        !route.startsWith('/list/') &&
+        currentPath.startsWith(route + '/')
+      ) {
         return true;
       }
 
@@ -702,6 +817,12 @@ export default defineComponent({
         return true;
       }
 
+      // List views for one schema can have several filtered sidebar entries
+      // (Customers vs Suppliers vs Customers & Suppliers). Path match above
+      // already decided; do not activate every sibling via schemaName alone.
+      if (currentPath.startsWith('/list/')) {
+        return false;
+      }
 
       if (item.schemaName && params.schemaName === item.schemaName) {
         // Payment has two sidebar entries (Receivables vs Payables). Do not
@@ -714,6 +835,53 @@ export default defineComponent({
             return false;
           }
           return this.paymentEditMatchesSidebarItem(item);
+        }
+        // Party has Customers / Suppliers / Common entries. Do not highlight
+        // Receivables first via bare schemaName match.
+        if (
+          item.schemaName === 'Party' &&
+          currentPath.startsWith('/edit/Party')
+        ) {
+          const name = params.name;
+          if (typeof name !== 'string' || !name) {
+            return false;
+          }
+          const cached = this.fyo.doc.docs.get('Party')?.[name] as
+            | { role?: string }
+            | undefined;
+          const role = cached?.role;
+          if (!role) {
+            void this.resolvePartySidebarHighlight(name);
+            return false;
+          }
+          return matchPartyEditSidebarItem(
+            item,
+            role,
+            this.lastPartyListPath
+          );
+        }
+        // Item has Sales / Purchase / Common entries — same shared-schema issue.
+        if (
+          item.schemaName === 'Item' &&
+          currentPath.startsWith('/edit/Item')
+        ) {
+          const name = params.name;
+          if (typeof name !== 'string' || !name) {
+            return false;
+          }
+          const cached = this.fyo.doc.docs.get('Item')?.[name] as
+            | { for?: string }
+            | undefined;
+          const forValue = cached?.for;
+          if (!forValue) {
+            void this.resolveItemSidebarHighlight(name);
+            return false;
+          }
+          return matchItemEditSidebarItem(
+            item,
+            forValue,
+            this.lastItemListPath
+          );
         }
         return true;
       }
@@ -738,6 +906,50 @@ export default defineComponent({
             return false;
           }
           return this.paymentEditMatchesSidebarItem(item);
+        }
+        if (
+          item.schemaName === 'Party' &&
+          currentPath.startsWith('/edit/Party')
+        ) {
+          const name = params.name;
+          if (typeof name !== 'string' || !name) {
+            return false;
+          }
+          const cached = this.fyo.doc.docs.get('Party')?.[name] as
+            | { role?: string }
+            | undefined;
+          const role = cached?.role;
+          if (!role) {
+            void this.resolvePartySidebarHighlight(name);
+            return false;
+          }
+          return matchPartyEditSidebarItem(
+            item,
+            role,
+            this.lastPartyListPath
+          );
+        }
+        if (
+          item.schemaName === 'Item' &&
+          currentPath.startsWith('/edit/Item')
+        ) {
+          const name = params.name;
+          if (typeof name !== 'string' || !name) {
+            return false;
+          }
+          const cached = this.fyo.doc.docs.get('Item')?.[name] as
+            | { for?: string }
+            | undefined;
+          const forValue = cached?.for;
+          if (!forValue) {
+            void this.resolveItemSidebarHighlight(name);
+            return false;
+          }
+          return matchItemEditSidebarItem(
+            item,
+            forValue,
+            this.lastItemListPath
+          );
         }
         return true;
       }
@@ -783,6 +995,42 @@ export default defineComponent({
       } finally {
         if (this.resolvingPaymentHighlight === name) {
           this.resolvingPaymentHighlight = '';
+        }
+      }
+    },
+    async resolvePartySidebarHighlight(name: string) {
+      if (this.resolvingPartyHighlight === name) {
+        return;
+      }
+      this.resolvingPartyHighlight = name;
+      try {
+        await this.fyo.doc.getDoc('Party', name);
+        if (this.$route.params.name === name) {
+          this.setActiveGroup();
+        }
+      } catch {
+        /* leave unhighlighted */
+      } finally {
+        if (this.resolvingPartyHighlight === name) {
+          this.resolvingPartyHighlight = '';
+        }
+      }
+    },
+    async resolveItemSidebarHighlight(name: string) {
+      if (this.resolvingItemHighlight === name) {
+        return;
+      }
+      this.resolvingItemHighlight = name;
+      try {
+        await this.fyo.doc.getDoc('Item', name);
+        if (this.$route.params.name === name) {
+          this.setActiveGroup();
+        }
+      } catch {
+        /* leave unhighlighted */
+      } finally {
+        if (this.resolvingItemHighlight === name) {
+          this.resolvingItemHighlight = '';
         }
       }
     },

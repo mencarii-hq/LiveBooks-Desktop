@@ -23,12 +23,14 @@
       />
     </Transition>
 
+    <!-- Expanding row stays drag so empty chrome can zoom; only controls are no-drag -->
     <div
-      class="flex items-center window-no-drag gap-4 me-auto"
+      class="flex items-center gap-4 me-auto min-w-0"
       :class="platform === 'Mac' && languageDirection === 'rtl' ? 'me-18' : ''"
     >
-      <!-- Nav Group -->
-      <PageHeaderNavGroup />
+      <div class="flex items-center window-no-drag gap-4 shrink-0">
+        <PageHeaderNavGroup />
+      </div>
       <h1
         v-if="title"
         class="
@@ -43,7 +45,7 @@
       </h1>
 
       <!-- Left Slot -->
-      <div class="flex items-stretch window-no-drag gap-4">
+      <div class="flex items-stretch window-no-drag gap-4 shrink-0">
         <slot name="left" />
       </div>
     </div>
