@@ -20,7 +20,8 @@ const SAMPLE_TEXT: Record<string, string> = {
  */
 export function buildCalibrationSample(
   format: CheckFormat,
-  profile: CheckProfile
+  profile: CheckProfile,
+  options: { omitCheckNumber?: boolean } = {}
 ): string {
   const layout = getFormatLayout(format);
   const pageW = profile.pageWidthIn;
@@ -61,7 +62,12 @@ export function buildCalibrationSample(
         slot.originLeftIn + f.leftIn
       );
       const heightIn = f.multiline ? 0.85 : 0.24;
-      const sample = drawText ? SAMPLE_TEXT[f.fieldname] ?? '' : '';
+      const sample =
+        drawText && !(options.omitCheckNumber && f.fieldname === 'checkNumber')
+          ? SAMPLE_TEXT[f.fieldname] ?? ''
+          : '';
+      // Always outline the region (including omitted check number) so offsets
+      // stay calibratable; only the sample text is suppressed for pre-printed stock.
       const content = f.multiline ? sample.replace(/\n/g, '<br>') : sample;
       boxes.push(
         `<div style="position:absolute;top:${pos.topIn.toFixed(

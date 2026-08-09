@@ -75,10 +75,7 @@ function renderField(
     baseTopIn,
     baseLeftIn
   );
-  const content =
-    fieldname === 'address'
-      ? fieldValue(check, 'address')
-      : fieldValue(check, fieldname);
+  const content = fieldValue(check, fieldname);
   if (!content) {
     return '';
   }

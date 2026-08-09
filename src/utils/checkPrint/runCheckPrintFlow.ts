@@ -93,7 +93,7 @@ export async function runCheckPrintFlow(
       ...new Set(
         checks
           .filter((c) => !c.address.trim())
-          .map((c) => String(c.payee || c.name || ''))
+          .map((c) => String(c.payee || c.paymentName || ''))
       ),
     ];
     const names = missing.slice(0, 5).join(', ');
@@ -121,6 +121,7 @@ export async function runCheckPrintFlow(
   const printedOk = await printCheckBatch(checks, format, profile, {
     asPdf: options.asPdf,
     fileName: 'checks',
+    omitCheckNumber: settings.omitCheckNumber,
   });
 
   if (!printedOk) {

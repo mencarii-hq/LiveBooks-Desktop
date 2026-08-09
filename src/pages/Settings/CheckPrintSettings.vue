@@ -22,6 +22,34 @@
       />
     </div>
 
+    <!-- Pre-printed stock: omit check number (#5) -->
+    <div class="mb-4 max-w-md">
+      <label
+        class="
+          inline-flex
+          items-center
+          gap-2
+          text-sm text-gray-700
+          dark:text-gray-300
+          cursor-pointer
+          select-none
+        "
+      >
+        <input
+          type="checkbox"
+          class="accent-green-600"
+          :checked="omitCheckNumber"
+          @change="omitCheckNumber = ($event.target as HTMLInputElement).checked"
+        />
+        <span>{{ t`Don't print check number (pre-printed stock)` }}</span>
+      </label>
+      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+        {{
+          t`Check numbers are still assigned and recorded so they match your physical checks — only printing is skipped.`
+        }}
+      </p>
+    </div>
+
     <template v-if="profile">
       <!-- Page size (Q-H per-format) -->
       <div class="grid grid-cols-2 gap-4 max-w-md mb-6">
@@ -179,6 +207,7 @@ export default defineComponent({
     return {
       format: 'voucher' as CheckFormat,
       profiles: getDefaultProfiles(),
+      omitCheckNumber: true,
       saving: false,
       fieldNames: CHECK_FIELD_NAMES,
     };
@@ -204,6 +233,7 @@ export default defineComponent({
     const settings = await loadCheckSettings(fyo);
     this.format = settings.activeFormat;
     this.profiles = settings.profiles;
+    this.omitCheckNumber = settings.omitCheckNumber;
   },
   methods: {
     onFormatChange(value: string | null) {
@@ -236,8 +266,12 @@ export default defineComponent({
         await saveCheckSettings(fyo, {
           activeFormat: this.format,
           profiles: this.profiles,
+          omitCheckNumber: this.omitCheckNumber,
         });
-        showToast({ type: 'success', message: this.t`Calibration saved` });
+        showToast({
+          type: 'success',
+          message: this.t`Check printing settings saved`,
+        });
       } catch (error) {
         showToast({
           type: 'error',
@@ -251,13 +285,18 @@ export default defineComponent({
       if (!this.profile) {
         return;
       }
-      await printCalibrationSample(this.format, this.profile);
+      await printCalibrationSample(this.format, this.profile, {
+        omitCheckNumber: this.omitCheckNumber,
+      });
     },
     async savePdfSample() {
       if (!this.profile) {
         return;
       }
-      await printCalibrationSample(this.format, this.profile, { asPdf: true });
+      await printCalibrationSample(this.format, this.profile, {
+        asPdf: true,
+        omitCheckNumber: this.omitCheckNumber,
+      });
     },
   },
 });

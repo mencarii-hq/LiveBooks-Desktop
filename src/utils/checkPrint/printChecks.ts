@@ -1,4 +1,5 @@
 import { Fyo, t } from 'fyo';
+import { DateTime } from 'luxon';
 import { Money } from 'pesa';
 import { ModelNameEnum } from 'models/types';
 import { showToast } from 'src/utils/interactive';
@@ -18,6 +19,12 @@ const IN_TO_CM = 2.54;
 export interface CheckSettings {
   activeFormat: CheckFormat;
   profiles: CheckProfiles;
+  /**
+   * Pre-printed check stock: suppress rendering the check number only.
+   * Numbering still assigns/commits referenceId and increments
+   * nextCheckNumber so records keep matching the physical checks.
+   */
+  omitCheckNumber: boolean;
 }
 
 export async function loadCheckSettings(fyo: Fyo): Promise<CheckSettings> {
@@ -25,9 +32,15 @@ export async function loadCheckSettings(fyo: Fyo): Promise<CheckSettings> {
     const doc = await fyo.doc.getDoc(ModelNameEnum.CheckPrintSettings);
     const activeFormat = (doc.activeFormat as CheckFormat) || 'voucher';
     const profiles = parseProfiles(doc.profiles as string | undefined);
-    return { activeFormat, profiles };
+    // Default on for pre-printed stock; only an explicit false turns it off.
+    const omitCheckNumber = doc.omitCheckNumber !== false;
+    return { activeFormat, profiles, omitCheckNumber };
   } catch {
-    return { activeFormat: 'voucher', profiles: getDefaultProfiles() };
+    return {
+      activeFormat: 'voucher',
+      profiles: getDefaultProfiles(),
+      omitCheckNumber: true,
+    };
   }
 }
 
@@ -38,6 +51,7 @@ export async function saveCheckSettings(
   const doc = await fyo.doc.getDoc(ModelNameEnum.CheckPrintSettings);
   await doc.set('activeFormat', settings.activeFormat);
   await doc.set('profiles', serializeProfiles(settings.profiles));
+  await doc.set('omitCheckNumber', settings.omitCheckNumber);
   await doc.sync();
 }
 
@@ -45,13 +59,32 @@ function formatCheckDate(value: unknown): string {
   if (!value) {
     return '';
   }
-  const date = new Date(value as string);
-  if (Number.isNaN(date.valueOf())) {
+  // ISO date-only ("2026-10-01") and Date-at-UTC-midnight must not use
+  // local getDate() on `new Date(iso)` — that prints the prior calendar day
+  // in US timezones.
+  let isoDay: string | null = null;
+  if (value instanceof Date) {
+    if (Number.isNaN(value.valueOf())) {
+      return '';
+    }
+    const utcMidnight =
+      value.getUTCHours() === 0 &&
+      value.getUTCMinutes() === 0 &&
+      value.getUTCSeconds() === 0 &&
+      value.getUTCMilliseconds() === 0;
+    if (utcMidnight) {
+      isoDay = value.toISOString().slice(0, 10);
+    } else {
+      return DateTime.fromJSDate(value).toFormat('MMM d, yyyy');
+    }
+  } else {
+    isoDay = String(value).slice(0, 10);
+  }
+  const dt = DateTime.fromISO(isoDay, { zone: 'local' });
+  if (!dt.isValid) {
     return String(value);
   }
-  return `${date.toLocaleString('default', {
-    month: 'short',
-  })} ${date.getDate()}, ${date.getFullYear()}`;
+  return dt.toFormat('MMM d, yyyy');
 }
 
 async function getPartyAddress(fyo: Fyo, party: string): Promise<string> {
@@ -66,6 +99,10 @@ async function getPartyAddress(fyo: Fyo, party: string): Promise<string> {
     }
     const addressDoc = await fyo.doc.getDoc(ModelNameEnum.Address, addressLink);
     const lines = [
+      // Addressee first so the block works in an envelope window (#6).
+      // Party.name is the only display name field (no separate company/person).
+      // Shrink-to-fit absorbs long names / the extra line.
+      party,
       addressDoc.addressLine1,
       addressDoc.addressLine2,
       [addressDoc.city, addressDoc.state, addressDoc.postalCode]
@@ -145,12 +182,20 @@ export async function printCheckBatch(
   checks: CheckData[],
   format: CheckFormat,
   profile: CheckProfile,
-  options: { asPdf?: boolean; fileName?: string } = {}
+  options: {
+    asPdf?: boolean;
+    fileName?: string;
+    /** Pre-printed stock (#5): render-only omit; numbering is unaffected. */
+    omitCheckNumber?: boolean;
+  } = {}
 ): Promise<boolean> {
   if (!checks.length) {
     return false;
   }
-  const html = buildCheckHtml(checks, format, profile);
+  const renderChecks = options.omitCheckNumber
+    ? checks.map((c) => ({ ...c, checkNumber: '' }))
+    : checks;
+  const html = buildCheckHtml(renderChecks, format, profile);
   return await renderDocument(html, profile, options);
 }
 
@@ -158,9 +203,11 @@ export async function printCheckBatch(
 export async function printCalibrationSample(
   format: CheckFormat,
   profile: CheckProfile,
-  options: { asPdf?: boolean } = {}
+  options: { asPdf?: boolean; omitCheckNumber?: boolean } = {}
 ): Promise<boolean> {
-  const html = buildCalibrationSample(format, profile);
+  const html = buildCalibrationSample(format, profile, {
+    omitCheckNumber: options.omitCheckNumber,
+  });
   return await renderDocument(html, profile, {
     ...options,
     fileName: `check-calibration-${format}`,
@@ -207,7 +254,9 @@ export async function printPaymentAsCheck(
     const checks = await buildCheckDataForPayments(fyo, [paymentName], {
       [paymentName]: existingRef,
     });
-    await printCheckBatch(checks, format, profile);
+    await printCheckBatch(checks, format, profile, {
+      omitCheckNumber: settings.omitCheckNumber,
+    });
     return;
   }
 

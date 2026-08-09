@@ -29,6 +29,13 @@
       "label": "Calibration Profiles",
       "fieldtype": "Text",
       "description": "JSON per-format calibration (page size + X/Y and per-field offsets in 1/100 inch). Managed from the Check Printing settings tab."
+    },
+    {
+      "fieldname": "omitCheckNumber",
+      "label": "Don't Print Check Number",
+      "fieldtype": "Check",
+      "default": true,
+      "description": "For pre-printed check stock. The number is not rendered, but check numbers are still assigned and recorded so they match the physical checks."
     }
   ],
   "quickEditFields": ["activeFormat"]
