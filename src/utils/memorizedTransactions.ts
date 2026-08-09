@@ -669,6 +669,9 @@ export async function maybePromptMemorizedDue(fyo: Fyo): Promise<void> {
             forceError
           );
           await handleErrorWithDialog(error, mt as Doc, true, true);
+          // Payment exists but schedule did not move — do not count as a
+          // successful run (avoids success toast + easy double-post).
+          continue;
         }
       }
       created += 1;
