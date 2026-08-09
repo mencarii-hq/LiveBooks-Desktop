@@ -95,22 +95,27 @@
               />
             </div>
             <Row
+              ref="headerRow"
               class="flex-1 text-gray-700 dark:text-gray-300 h-row-mid"
-              :ratio="[0.9, 1.1, 1.5, 1, 1.4]"
+              :ratio="COLUMN_RATIO"
+              :grid-template-columns="gridTemplate"
               gap="1rem"
             >
-              <div class="cell-header">{{ t`Date` }}</div>
               <div
-                class="cell-header"
-                :title="
-                  t`Numbers are assigned when you print (not saved until you confirm).`
-                "
+                v-for="(col, ci) in headerCols"
+                :key="col.id"
+                class="cell-header relative"
+                :class="col.class"
+                :title="col.title || undefined"
               >
-                {{ t`Check No.` }}
+                {{ col.label }}
+                <ColResizeHandle
+                  v-if="ci < headerCols.length - 1"
+                  :title="t`Drag to resize. Double-click to reset.`"
+                  @start="startColResize(ci, $event)"
+                  @reset="resetColWidths"
+                />
               </div>
-              <div class="cell-header">{{ t`Payee` }}</div>
-              <div class="cell-header ms-auto">{{ t`Amount` }}</div>
-              <div class="cell-header">{{ t`Memo` }}</div>
             </Row>
           </div>
           <p
@@ -172,7 +177,8 @@
                     flex-1
                     h-row-mid
                   "
-                  :ratio="[0.9, 1.1, 1.5, 1, 1.4]"
+                  :ratio="COLUMN_RATIO"
+                  :grid-template-columns="gridTemplate"
                   @click="toggleRow(row.name)"
                 >
                   <div class="cell-body" :title="formatDate(row.date)">
@@ -284,7 +290,17 @@ import Button from 'src/components/Button.vue';
 import Check from 'src/components/Controls/Check.vue';
 import FormControl from 'src/components/Controls/FormControl.vue';
 import PageHeader from 'src/components/PageHeader.vue';
+import ColResizeHandle from 'src/components/ColResizeHandle.vue';
 import Row from 'src/components/Row.vue';
+import {
+  clampColWidth,
+  clearColumnWidths,
+  columnWidthsStorageKey,
+  gridTemplateFromWidths,
+  readColumnWidths,
+  snapshotChildrenWidths,
+  writeColumnWidths,
+} from 'src/utils/columnWidths';
 import { fyo } from 'src/initFyo';
 import { ModelNameEnum } from 'models/types';
 import { AccountTypeEnum } from 'models/baseModels/Account/types';
@@ -320,11 +336,23 @@ type ConfirmItem = CheckAssignment & { payee: string; checked: boolean };
 
 type AccountOpt = { name: string; accountName?: string };
 
+const COLUMN_IDS = ['date', 'checkNo', 'payee', 'amount', 'memo'] as const;
+const COLUMN_RATIO = [0.9, 1.1, 1.5, 1, 1.4];
+const WIDTHS_KEY = columnWidthsStorageKey('list:ChecksToPrint');
+
 export default defineComponent({
   name: 'ChecksToPrint',
-  components: { PageHeader, Button, FormControl, Row, Check },
+  components: { PageHeader, Button, FormControl, Row, Check, ColResizeHandle },
   data() {
     return {
+      COLUMN_RATIO,
+      columnWidths: null as number[] | null,
+      boundColResizeMove: null as ((e: MouseEvent) => void) | null,
+      boundEndColResize: null as (() => void) | null,
+      resizingCol: -1,
+      resizeStartX: 0,
+      resizeStartWidth: 0,
+      resizeMoved: false,
       bankAccount: '' as string,
       bankAccounts: [] as AccountOpt[],
       rows: [] as QueueRow[],
@@ -340,6 +368,27 @@ export default defineComponent({
     };
   },
   computed: {
+    headerCols() {
+      return [
+        { id: 'date', label: this.t`Date`, class: '', title: '' },
+        {
+          id: 'checkNo',
+          label: this.t`Check No.`,
+          class: '',
+          title: this
+            .t`Numbers are assigned when you print (not saved until you confirm).`,
+        },
+        { id: 'payee', label: this.t`Payee`, class: '', title: '' },
+        { id: 'amount', label: this.t`Amount`, class: 'ms-auto', title: '' },
+        { id: 'memo', label: this.t`Memo`, class: '', title: '' },
+      ];
+    },
+    gridTemplate(): string | null {
+      if (!this.columnWidths) {
+        return null;
+      }
+      return gridTemplateFromWidths(this.columnWidths);
+    },
     bankAccountField(): Field {
       return {
         fieldtype: 'AutoComplete',
@@ -375,6 +424,7 @@ export default defineComponent({
     },
   },
   async mounted() {
+    this.columnWidths = readColumnWidths(WIDTHS_KEY, [...COLUMN_IDS]);
     const settings = await loadCheckSettings(fyo);
     this.format = settings.activeFormat;
 
@@ -398,7 +448,73 @@ export default defineComponent({
 
     await this.loadRows();
   },
+  unmounted() {
+    this.endColResize();
+  },
   methods: {
+    startColResize(index: number, event: MouseEvent) {
+      if (!this.columnWidths) {
+        const headerRow = this.$refs.headerRow as
+          | { $el?: HTMLElement }
+          | undefined;
+        const snapped = snapshotChildrenWidths(
+          headerRow?.$el,
+          COLUMN_IDS.length
+        );
+        if (!snapped) {
+          return;
+        }
+        this.columnWidths = snapped;
+      }
+      this.resizingCol = index;
+      this.resizeStartX = event.clientX;
+      this.resizeStartWidth = this.columnWidths[index];
+      this.resizeMoved = false;
+      this.boundColResizeMove = (e: MouseEvent) => this.onColResizeMove(e);
+      this.boundEndColResize = () => this.endColResize();
+      window.addEventListener('mousemove', this.boundColResizeMove);
+      window.addEventListener('mouseup', this.boundEndColResize);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    },
+    onColResizeMove(event: MouseEvent) {
+      if (this.resizingCol < 0 || !this.columnWidths) {
+        return;
+      }
+      const dx = event.clientX - this.resizeStartX;
+      const next = clampColWidth(this.resizeStartWidth + dx);
+      if (next === this.columnWidths[this.resizingCol]) {
+        return;
+      }
+      this.resizeMoved = true;
+      const widths = [...this.columnWidths];
+      widths[this.resizingCol] = next;
+      this.columnWidths = widths;
+    },
+    endColResize() {
+      if (this.resizingCol < 0) {
+        return;
+      }
+      this.resizingCol = -1;
+      window.removeEventListener('mousemove', this.boundColResizeMove);
+      window.removeEventListener('mouseup', this.boundEndColResize);
+      this.boundColResizeMove = null;
+      this.boundEndColResize = null;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      if (!this.resizeMoved || !this.columnWidths) {
+        return;
+      }
+      try {
+        writeColumnWidths(WIDTHS_KEY, [...COLUMN_IDS], this.columnWidths);
+      } catch {
+        /* best-effort */
+      }
+    },
+    resetColWidths() {
+      this.columnWidths = null;
+      clearColumnWidths(WIDTHS_KEY);
+    },
     formatDate(value: string): string {
       if (!value) return '';
       const d = new Date(value);

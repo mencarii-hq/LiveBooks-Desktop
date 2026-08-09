@@ -81,62 +81,16 @@
           {{ t`Loading…` }}
         </div>
         <template v-else>
-          <div class="flex items-center">
-            <div
-              class="
-                w-8
-                text-start
-                me-2
-                text-gray-700
-                dark:text-gray-300
-                h-row
-                flex
-                items-center
-              "
-            >
-              #
-            </div>
-            <Row
-              class="flex-1 text-gray-700 dark:text-gray-300 h-row-mid"
-              :ratio="[0.8, 1.3, 1.1, 1.1, 1.1, 1, 1, 1]"
-              gap="1rem"
-            >
-              <div class="cell-header">{{ t`Date` }}</div>
-              <div class="cell-header">{{ t`Check No.` }}</div>
-              <div class="cell-header">{{ t`Payee` }}</div>
-              <div class="cell-header">{{ t`Category` }}</div>
-              <div class="cell-header">{{ t`Memo` }}</div>
-              <div class="cell-header ms-auto">{{ t`Payment` }}</div>
-              <div class="cell-header ms-auto">{{ t`Deposit` }}</div>
-              <div class="cell-header ms-auto pe-4">{{ t`Balance` }}</div>
-            </Row>
-          </div>
-          <hr class="dark:border-gray-800" />
-
           <div
-            v-if="!rows.length"
-            class="p-4 text-gray-600 dark:text-gray-300 text-sm"
-          >
-            {{ t`No entries yet.` }}
-          </div>
-          <div
-            v-else
             class="
-              overflow-y-auto
-              dark:dark-scroll
+              flex flex-col flex-1
+              min-h-0
+              overflow-x-auto
               custom-scroll custom-scroll-thumb1
-              flex-1
             "
           >
-            <div v-for="(row, i) in rowsSlice" :key="row.key">
-              <div
-                class="
-                  flex
-                  hover:bg-gray-50
-                  dark:hover:bg-gray-850
-                  items-center
-                "
-              >
+            <div class="flex flex-col flex-1 min-h-0" :style="tableWidthStyle">
+              <div class="flex items-center">
                 <div
                   class="
                     w-8
@@ -149,42 +103,113 @@
                     items-center
                   "
                 >
-                  {{ pageStart + i + 1 }}
+                  #
                 </div>
                 <Row
+                  ref="headerRow"
+                  class="flex-1 text-gray-700 dark:text-gray-300 h-row-mid"
+                  :ratio="columnRatio"
+                  :grid-template-columns="gridTemplate"
                   gap="1rem"
-                  class="
-                    cursor-pointer
-                    text-gray-900
-                    dark:text-gray-300
-                    flex-1
-                    h-row-mid
-                  "
-                  :ratio="[0.8, 1.3, 1.1, 1.1, 1.1, 1, 1, 1]"
-                  @click="openRow(row)"
                 >
-                  <div class="cell-body" :title="formatRegisterDate(row.date)">
-                    {{ formatRegisterDate(row.date) }}
-                  </div>
-                  <div class="cell-body tabular-nums">{{ row.checkNo }}</div>
-                  <div class="cell-body">{{ row.payee }}</div>
-                  <div class="cell-body">{{ row.category }}</div>
-                  <div class="cell-body">{{ row.memo }}</div>
-                  <div class="cell-body ms-auto tabular-nums">
-                    {{ row.payment }}
-                  </div>
-                  <div class="cell-body ms-auto tabular-nums">
-                    {{ row.deposit }}
-                  </div>
-                  <div class="cell-body ms-auto tabular-nums pe-4">
-                    {{ row.balance }}
+                  <div
+                    v-for="(col, ci) in headerCols"
+                    :key="col.id"
+                    class="cell-header relative"
+                    :class="col.class"
+                  >
+                    {{ col.label }}
+                    <ColResizeHandle
+                      v-if="ci < headerCols.length - 1"
+                      :title="t`Drag to resize. Double-click to reset.`"
+                      @start="startColResize(ci, $event)"
+                      @reset="resetColWidths"
+                    />
                   </div>
                 </Row>
               </div>
-              <hr
-                v-if="i !== rowsSlice.length - 1"
-                class="dark:border-gray-800"
-              />
+              <hr class="dark:border-gray-800" />
+
+              <div
+                v-if="!rows.length"
+                class="p-4 text-gray-600 dark:text-gray-300 text-sm"
+              >
+                {{ t`No entries yet.` }}
+              </div>
+              <div
+                v-else
+                class="
+                  overflow-y-auto
+                  dark:dark-scroll
+                  custom-scroll custom-scroll-thumb1
+                  flex-1
+                "
+              >
+                <div v-for="(row, i) in rowsSlice" :key="row.key">
+                  <div
+                    class="
+                      flex
+                      hover:bg-gray-50
+                      dark:hover:bg-gray-850
+                      items-center
+                    "
+                  >
+                    <div
+                      class="
+                        w-8
+                        text-start
+                        me-2
+                        text-gray-700
+                        dark:text-gray-300
+                        h-row
+                        flex
+                        items-center
+                      "
+                    >
+                      {{ pageStart + i + 1 }}
+                    </div>
+                    <Row
+                      gap="1rem"
+                      class="
+                        cursor-pointer
+                        text-gray-900
+                        dark:text-gray-300
+                        flex-1
+                        h-row-mid
+                      "
+                      :ratio="columnRatio"
+                      :grid-template-columns="gridTemplate"
+                      @click="openRow(row)"
+                    >
+                      <div
+                        class="cell-body"
+                        :title="formatRegisterDate(row.date)"
+                      >
+                        {{ formatRegisterDate(row.date) }}
+                      </div>
+                      <div class="cell-body tabular-nums">
+                        {{ row.checkNo }}
+                      </div>
+                      <div class="cell-body">{{ row.payee }}</div>
+                      <div class="cell-body">{{ row.category }}</div>
+                      <div class="cell-body">{{ row.memo }}</div>
+                      <div class="cell-body ms-auto tabular-nums">
+                        {{ row.payment }}
+                      </div>
+                      <div class="cell-body ms-auto tabular-nums">
+                        {{ row.deposit }}
+                      </div>
+                      <div class="cell-body ms-auto tabular-nums pe-4">
+                        {{ row.balance }}
+                      </div>
+                    </Row>
+                  </div>
+                  <hr
+                    v-if="i !== rowsSlice.length - 1"
+                    class="dark:border-gray-800"
+                  />
+                </div>
+              </div>
             </div>
           </div>
           <div v-if="rows.length" class="mt-auto flex-shrink-0">
@@ -221,10 +246,22 @@ import FilterDropdown from 'src/components/FilterDropdown.vue';
 import FormControl from 'src/components/Controls/FormControl.vue';
 import Modal from 'src/components/Modal.vue';
 import PageHeader from 'src/components/PageHeader.vue';
+import ColResizeHandle from 'src/components/ColResizeHandle.vue';
 import Paginator from 'src/components/Paginator.vue';
 import Row from 'src/components/Row.vue';
 import { fyo } from 'src/initFyo';
 import { handleErrorWithDialog } from 'src/errorHandling';
+import {
+  clampColWidth,
+  clearColumnWidths,
+  FALLBACK_COL_GAP_PX,
+  gridTemplateFromWidths,
+  measureRowGapPx,
+  minWidthPxFromColumns,
+  readColumnWidths,
+  snapshotChildrenWidths,
+  writeColumnWidths,
+} from 'src/utils/columnWidths';
 import {
   getLastRegisterBankAccount,
   setLastRegisterBankAccount,
@@ -234,6 +271,31 @@ import { QueryFilter } from 'utils/db/types';
 import { defineComponent, toRaw } from 'vue';
 
 type AccountOpt = { name: string; accountName?: string };
+
+/**
+ * #2 — resizable columns. Widths are a device-level UI preference shared by
+ * all bank accounts (the register columns are identical across accounts).
+ * Persisted on drag end only (no writes during drag).
+ * Keeps legacy bankRegister keys so existing saved widths still load.
+ */
+const COL_WIDTHS_KEY = 'bankRegisterColumnWidths:v2';
+const COL_WIDTHS_KEY_LEGACY = 'bankRegisterColumnWidths:v1';
+const COLUMN_IDS = [
+  'date',
+  'checkNo',
+  'payee',
+  'category',
+  'memo',
+  'payment',
+  'deposit',
+  'balance',
+] as const;
+type ColumnId = typeof COLUMN_IDS[number];
+const COLUMN_COUNT = COLUMN_IDS.length;
+const COLUMN_RATIO = [0.8, 1.3, 1.1, 1.1, 1.1, 1, 1, 1];
+/** Fallback when the header is not yet mounted (w-8 + me-2). */
+const FALLBACK_INDEX_COL_PX = 40;
+
 type RegisterRow = {
   key: string;
   date: string;
@@ -253,6 +315,7 @@ export default defineComponent({
     PageHeader,
     Button,
     Row,
+    ColResizeHandle,
     FilterDropdown,
     Modal,
     ExportWizard,
@@ -272,11 +335,50 @@ export default defineComponent({
       loading: false,
       openExportModal: false,
       balanceAsOfToday: null as Money | null,
+      // #2: null = default fr ratios; number[] = user-resized pixel widths.
+      columnWidths: null as number[] | null,
+      boundColResizeMove: null as ((e: MouseEvent) => void) | null,
+      boundEndColResize: null as (() => void) | null,
+      resizingCol: -1,
+      resizeStartX: 0,
+      resizeStartWidth: 0,
+      resizeMoved: false,
     };
   },
   computed: {
     rowsSlice(): RegisterRow[] {
       return this.rows.slice(this.pageStart, this.pageEnd);
+    },
+    columnRatio(): number[] {
+      return COLUMN_RATIO;
+    },
+    headerCols(): { id: ColumnId; label: string; class: string }[] {
+      return [
+        { id: 'date', label: this.t`Date`, class: '' },
+        { id: 'checkNo', label: this.t`Check No.`, class: '' },
+        { id: 'payee', label: this.t`Payee`, class: '' },
+        { id: 'category', label: this.t`Category`, class: '' },
+        { id: 'memo', label: this.t`Memo`, class: '' },
+        { id: 'payment', label: this.t`Payment`, class: 'justify-end' },
+        { id: 'deposit', label: this.t`Deposit`, class: 'justify-end' },
+        { id: 'balance', label: this.t`Balance`, class: 'justify-end pe-4' },
+      ];
+    },
+    gridTemplate(): string | null {
+      if (!this.columnWidths) {
+        return null;
+      }
+      return gridTemplateFromWidths(this.columnWidths);
+    },
+    tableWidthStyle(): Record<string, string> {
+      if (!this.columnWidths) {
+        return {};
+      }
+      // Narrow window: keep the resized widths and scroll horizontally
+      // (header and body share this container so they stay in sync).
+      const { gapPx, indexPx } = this.measureTableChrome();
+      const total = minWidthPxFromColumns(this.columnWidths, gapPx, indexPx);
+      return { minWidth: `${total}px` };
     },
     bankAccountField(): Field {
       return {
@@ -316,6 +418,9 @@ export default defineComponent({
     },
   },
   async mounted() {
+    this.columnWidths = readColumnWidths(COL_WIDTHS_KEY, [...COLUMN_IDS], {
+      legacyKey: COL_WIDTHS_KEY_LEGACY,
+    });
     try {
       await this.restoreBankAndLoad(true);
     } catch (error) {
@@ -323,6 +428,14 @@ export default defineComponent({
       console.error('BankRegister mounted', error);
       await handleErrorWithDialog(error);
     }
+  },
+  unmounted() {
+    this.endColResize();
+  },
+  deactivated() {
+    // keep-alive: unmounted() does not fire, so end any in-flight drag here
+    // to release window listeners and body cursor/user-select.
+    this.endColResize();
   },
   async activated() {
     // keep-alive: remount is skipped — re-apply saved bank and refresh rows
@@ -337,6 +450,100 @@ export default defineComponent({
     setPageIndices({ start, end }: { start: number; end: number }) {
       this.pageStart = start;
       this.pageEnd = end;
+    },
+    measureTableChrome(): { gapPx: number; indexPx: number } {
+      const headerRow = this.$refs.headerRow as
+        | { $el?: HTMLElement }
+        | undefined;
+      const rowEl = headerRow?.$el;
+      if (!rowEl) {
+        return { gapPx: FALLBACK_COL_GAP_PX, indexPx: FALLBACK_INDEX_COL_PX };
+      }
+      const gapPx = measureRowGapPx(rowEl);
+      const indexEl = rowEl.parentElement
+        ?.firstElementChild as HTMLElement | null;
+      let indexPx = FALLBACK_INDEX_COL_PX;
+      if (indexEl && indexEl !== rowEl) {
+        const rect = indexEl.getBoundingClientRect();
+        const ms = getComputedStyle(indexEl);
+        indexPx = Math.round(
+          rect.width +
+            (Number.parseFloat(ms.marginInlineEnd) ||
+              Number.parseFloat(ms.marginRight) ||
+              0)
+        );
+      }
+      return {
+        gapPx,
+        indexPx: indexPx > 0 ? indexPx : FALLBACK_INDEX_COL_PX,
+      };
+    },
+    startColResize(index: number, event: MouseEvent) {
+      // First resize: snapshot the current rendered widths so switching from
+      // fr ratios to px does not jump.
+      if (!this.columnWidths) {
+        const headerRow = this.$refs.headerRow as
+          | { $el?: HTMLElement }
+          | undefined;
+        const snapped = snapshotChildrenWidths(headerRow?.$el, COLUMN_COUNT);
+        if (!snapped) {
+          return;
+        }
+        this.columnWidths = snapped;
+      }
+      this.resizingCol = index;
+      this.resizeStartX = event.clientX;
+      this.resizeStartWidth = this.columnWidths[index];
+      this.resizeMoved = false;
+      this.boundColResizeMove = (e: MouseEvent) => this.onColResizeMove(e);
+      this.boundEndColResize = () => this.endColResize();
+      window.addEventListener('mousemove', this.boundColResizeMove);
+      window.addEventListener('mouseup', this.boundEndColResize);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    },
+    onColResizeMove(event: MouseEvent) {
+      if (this.resizingCol < 0 || !this.columnWidths) {
+        return;
+      }
+      const dx = event.clientX - this.resizeStartX;
+      const next = clampColWidth(this.resizeStartWidth + dx);
+      if (next === this.columnWidths[this.resizingCol]) {
+        return;
+      }
+      this.resizeMoved = true;
+      // Replace the array so both header and body grids recompute.
+      const widths = [...this.columnWidths];
+      widths[this.resizingCol] = next;
+      this.columnWidths = widths;
+    },
+    endColResize() {
+      if (this.resizingCol < 0) {
+        return;
+      }
+      this.resizingCol = -1;
+      window.removeEventListener('mousemove', this.boundColResizeMove);
+      window.removeEventListener('mouseup', this.boundEndColResize);
+      this.boundColResizeMove = null;
+      this.boundEndColResize = null;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      if (!this.resizeMoved || !this.columnWidths) {
+        // Plain click (e.g. first half of a double-click reset): nothing
+        // changed, so don't write widths that a dblclick may be about to clear.
+        return;
+      }
+      // Persist once per drag (no writes while dragging).
+      try {
+        writeColumnWidths(COL_WIDTHS_KEY, [...COLUMN_IDS], this.columnWidths);
+        localStorage.removeItem(COL_WIDTHS_KEY_LEGACY);
+      } catch {
+        /* widths are best-effort */
+      }
+    },
+    resetColWidths() {
+      this.columnWidths = null;
+      clearColumnWidths(COL_WIDTHS_KEY, [COL_WIDTHS_KEY_LEGACY]);
     },
     accountLabel(id?: string) {
       if (!id) return '';

@@ -25,6 +25,7 @@
           :key="c + '-col'"
           :style="getCellStyle(col, c)"
           class="
+            relative
             text-base
             px-3
             flex-shrink-0
@@ -34,6 +35,12 @@
           "
         >
           {{ col.label }}
+          <ColResizeHandle
+            v-if="c < report.columns.length - 1"
+            :title="t`Drag to resize. Double-click to reset.`"
+            @start="startColResize(c, $event)"
+            @reset="resetColWidths"
+          />
         </div>
       </div>
 
@@ -109,14 +116,22 @@
 <script>
 import { Report } from 'reports/Report';
 import { isNumeric } from 'src/utils';
+import {
+  clampColWidth,
+  clearColumnWidths,
+  columnWidthsStorageKey,
+  readColumnWidths,
+  writeColumnWidths,
+} from 'src/utils/columnWidths';
 import { languageDirectionKey } from 'src/utils/injectionKeys';
 import { defineComponent } from 'vue';
+import ColResizeHandle from '../ColResizeHandle.vue';
 import Paginator from '../Paginator.vue';
 import WithScroll from '../WithScroll.vue';
 import { inject } from 'vue';
 
 export default defineComponent({
-  components: { Paginator, WithScroll },
+  components: { Paginator, WithScroll, ColResizeHandle },
   props: {
     report: Report,
   },
@@ -131,6 +146,13 @@ export default defineComponent({
       hconst: 48,
       pageStart: 0,
       pageEnd: 0,
+      columnWidths: null,
+      boundColResizeMove: null,
+      boundEndColResize: null,
+      resizingCol: -1,
+      resizeStartX: 0,
+      resizeStartWidth: 0,
+      resizeMoved: false,
     };
   },
   computed: {
@@ -141,8 +163,94 @@ export default defineComponent({
 
       return this.report.reportData;
     },
+    columnIds() {
+      const cols = this.report?.columns ?? [];
+      return cols.map((c, i) => String(c.fieldname || c.label || `col-${i}`));
+    },
+    widthsStorageKey() {
+      const name = this.report?.reportName || this.report?.title || 'report';
+      return columnWidthsStorageKey(`report:${name}`);
+    },
+  },
+  watch: {
+    columnIds: {
+      handler() {
+        this.loadStoredWidths();
+      },
+      immediate: true,
+    },
+  },
+  unmounted() {
+    this.endColResize();
   },
   methods: {
+    loadStoredWidths() {
+      this.columnWidths = readColumnWidths(
+        this.widthsStorageKey,
+        this.columnIds
+      );
+    },
+    startColResize(index, event) {
+      if (!this.columnWidths) {
+        const cols = this.report?.columns ?? [];
+        this.columnWidths = cols.map((col) => {
+          const width = col.width ?? 1;
+          return clampColWidth(width * this.wconst * 16);
+        });
+      }
+      this.resizingCol = index;
+      this.resizeStartX = event.clientX;
+      this.resizeStartWidth = this.columnWidths[index];
+      this.resizeMoved = false;
+      this.boundColResizeMove = (e) => this.onColResizeMove(e);
+      this.boundEndColResize = () => this.endColResize();
+      window.addEventListener('mousemove', this.boundColResizeMove);
+      window.addEventListener('mouseup', this.boundEndColResize);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    },
+    onColResizeMove(event) {
+      if (this.resizingCol < 0 || !this.columnWidths) {
+        return;
+      }
+      const dx = event.clientX - this.resizeStartX;
+      const next = clampColWidth(this.resizeStartWidth + dx);
+      if (next === this.columnWidths[this.resizingCol]) {
+        return;
+      }
+      this.resizeMoved = true;
+      const widths = [...this.columnWidths];
+      widths[this.resizingCol] = next;
+      this.columnWidths = widths;
+    },
+    endColResize() {
+      if (this.resizingCol < 0) {
+        return;
+      }
+      this.resizingCol = -1;
+      window.removeEventListener('mousemove', this.boundColResizeMove);
+      window.removeEventListener('mouseup', this.boundEndColResize);
+      this.boundColResizeMove = null;
+      this.boundEndColResize = null;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      if (!this.resizeMoved || !this.columnWidths) {
+        return;
+      }
+      try {
+        writeColumnWidths(
+          this.widthsStorageKey,
+          this.columnIds,
+          this.columnWidths
+        );
+      } catch {
+        /* best-effort */
+      }
+    },
+    resetColWidths() {
+      this.columnWidths = null;
+      clearColumnWidths(this.widthsStorageKey);
+    },
     scroll({ scrollLeft }) {
       this.$refs.titlerow.scrollLeft = scrollLeft;
     },
@@ -175,7 +283,11 @@ export default defineComponent({
         align = this.languageDirection === 'rtl' ? 'right' : 'left';
       }
 
-      styles['width'] = `${width * this.wconst}rem`;
+      if (this.columnWidths?.[i] != null) {
+        styles['width'] = `${this.columnWidths[i]}px`;
+      } else {
+        styles['width'] = `${width * this.wconst}rem`;
+      }
       styles['text-align'] = align;
 
       if (cell.bold) {

@@ -1,6 +1,7 @@
 <template>
   <Row
     :ratio="ratio"
+    :grid-template-columns="gridTemplateColumns"
     class="w-full px-2 group items-center h-row-mid"
     :class="readOnly ? '' : 'hover:bg-gray-25 dark:hover:bg-gray-900'"
   >
@@ -120,6 +121,10 @@ export default {
     tableFields: Array,
     size: String,
     ratio: Array,
+    gridTemplateColumns: {
+      type: String,
+      default: null,
+    },
     isNumeric: Function,
     readOnly: Boolean,
     canEditRow: {
