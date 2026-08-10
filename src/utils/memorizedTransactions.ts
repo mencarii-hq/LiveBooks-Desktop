@@ -870,8 +870,16 @@ export async function repairMemorizedTransactionTitles(
 ): Promise<void> {
   try {
     const rows = (await fyo.db.getAllRaw(ModelNameEnum.MemorizedTransaction, {
-      fields: ['name', 'title', 'party'],
-    })) as { name: string; title?: string; party?: string }[];
+      // Include meta so partial updates do not bump `modified` (open forms
+      // would otherwise fail optimistic locking on the next save).
+      fields: ['name', 'title', 'party', 'modified', 'modifiedBy'],
+    })) as {
+      name: string;
+      title?: string;
+      party?: string;
+      modified?: string | Date;
+      modifiedBy?: string;
+    }[];
 
     const broken = rows.filter((r) =>
       isUuidDocId(String(r.title ?? '').trim())
@@ -893,6 +901,8 @@ export async function repairMemorizedTransactionTitles(
       await fyo.db.update(ModelNameEnum.MemorizedTransaction, {
         name: row.name,
         title: label,
+        ...(row.modified != null ? { modified: row.modified } : {}),
+        ...(row.modifiedBy != null ? { modifiedBy: row.modifiedBy } : {}),
       });
     }
   } catch (error) {

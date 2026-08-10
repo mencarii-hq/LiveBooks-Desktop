@@ -80,6 +80,64 @@ export class MemorizedTransaction extends Doc {
     },
   };
 
+  async validate() {
+    await super.validate();
+    this.validateSplits();
+  }
+
+  /**
+   * Mirror Payment.validateSplits so templates fail at save — not later on
+   * Run Now / due posting when createRegisterPayment rejects a single line.
+   */
+  validateSplits() {
+    const splits = this.splits ?? [];
+    if (splits.length === 0) {
+      return;
+    }
+
+    if (splits.length < 2) {
+      throw new ValidationError(
+        t`A split payment needs at least two split lines.`
+      );
+    }
+
+    let total = this.fyo.pesa(0);
+    let grossTotal = this.fyo.pesa(0);
+    for (const split of splits) {
+      if (!split.account) {
+        throw new ValidationError(t`Each split line needs a category account.`);
+      }
+
+      if (!split.amount || split.amount.isZero()) {
+        throw new ValidationError(t`Each split line needs a nonzero amount.`);
+      }
+
+      total = total.add(split.amount);
+      if (!split.amount.isNegative()) {
+        grossTotal = grossTotal.add(split.amount);
+      }
+    }
+
+    if (grossTotal.lte(0)) {
+      throw new ValidationError(
+        t`Split lines need at least one positive amount.`
+      );
+    }
+
+    const amount = this.amount as Money;
+    if (!total.eq(amount)) {
+      throw new ValidationError(
+        t`Split total ${this.fyo.format(
+          total,
+          'Currency'
+        )} must equal the payment amount ${this.fyo.format(
+          amount,
+          'Currency'
+        )}.`
+      );
+    }
+  }
+
   validations: ValidationMap = {
     fromAccount: (value: DocValue) => {
       if (value && this.toAccount && value === this.toAccount) {
