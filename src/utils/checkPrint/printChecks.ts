@@ -3,6 +3,7 @@ import { DateTime } from 'luxon';
 import { Money } from 'pesa';
 import { ModelNameEnum } from 'models/types';
 import { showToast } from 'src/utils/interactive';
+import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
 import { getSavePath, showExportInFolder } from 'src/utils/ui';
 import { amountInWords } from './amountInWords';
 import { buildCheckHtml } from './buildCheckHtml';
@@ -87,7 +88,11 @@ function formatCheckDate(value: unknown): string {
   return dt.toFormat('MMM d, yyyy');
 }
 
-async function getPartyAddress(fyo: Fyo, party: string): Promise<string> {
+async function getPartyAddress(
+  fyo: Fyo,
+  party: string,
+  payeeLabel?: string
+): Promise<string> {
   if (!party) {
     return '';
   }
@@ -98,11 +103,15 @@ async function getPartyAddress(fyo: Fyo, party: string): Promise<string> {
       return '';
     }
     const addressDoc = await fyo.doc.getDoc(ModelNameEnum.Address, addressLink);
+    const displayName =
+      payeeLabel ||
+      (typeof partyDoc.partyName === 'string' && partyDoc.partyName.trim()) ||
+      party;
     const lines = [
       // Addressee first so the block works in an envelope window (#6).
-      // Party.name is the only display name field (no separate company/person).
+      // partyName is the human label; Party.name is the UUID PK.
       // Shrink-to-fit absorbs long names / the extra line.
-      party,
+      displayName,
       addressDoc.addressLine1,
       addressDoc.addressLine2,
       [addressDoc.city, addressDoc.state, addressDoc.postalCode]
@@ -127,18 +136,28 @@ export async function buildCheckDataForPayments(
   paymentNames: string[],
   numbers: Record<string, string> = {}
 ): Promise<CheckData[]> {
+  const payments = await Promise.all(
+    paymentNames.map((name) => fyo.doc.getDoc(ModelNameEnum.Payment, name))
+  );
+  const partyNames = await getPartyNameMap(
+    fyo,
+    payments.map((p) => (p.party as string) || '')
+  );
+
   const checks: CheckData[] = [];
-  for (const name of paymentNames) {
-    const payment = await fyo.doc.getDoc(ModelNameEnum.Payment, name);
+  for (let i = 0; i < paymentNames.length; i++) {
+    const name = paymentNames[i];
+    const payment = payments[i];
     const amountMoney = payment.amount as Money | undefined;
     const amountFloat = amountMoney?.float ?? 0;
     const party = (payment.party as string) || '';
+    const payee = partyLabel(partyNames, party);
     checks.push({
       paymentName: name,
       checkNumber: numbers[name] ?? (payment.referenceId as string) ?? '',
       date: formatCheckDate(payment.date),
-      payee: party,
-      address: await getPartyAddress(fyo, party),
+      payee,
+      address: await getPartyAddress(fyo, party, payee),
       amountNumeric: fyo.format(amountMoney as never, ModelNameEnum.Currency),
       amountWords: amountInWords(amountFloat),
       memo: (payment.memo as string) || '',

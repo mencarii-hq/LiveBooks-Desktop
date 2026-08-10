@@ -340,6 +340,13 @@ async function getSalesPurchaseInvoices(
   salesInvoices: SalesInvoice[]
 ): Promise<PurchaseInvoice[]> {
   const invoices = [] as PurchaseInvoice[];
+  /** Invoice lines store Item UUID PKs; dummy maps are keyed by display name. */
+  const displayNameByItemId = Object.fromEntries(
+    Object.entries(itemIdByDisplayName).map(([displayName, id]) => [
+      id,
+      displayName,
+    ])
+  );
   /**
    * Group all sales invoices by their YYYY-MM.
    */
@@ -368,16 +375,17 @@ async function getSalesPurchaseInvoices(
    */
   for (const { key, date } of dates) {
     /**
-     * Group items by name to get the total quantity used in a month.
+     * Group items by display name to get the total quantity used in a month.
      */
     const itemGrouped = dateGrouped[key].reduce((acc, si) => {
-      for (const item of si.items!) {
-        if (item.item === 'Dry-Cleaning') {
+      for (const row of si.items!) {
+        const displayName = displayNameByItemId[row.item as string];
+        if (!displayName || displayName === 'Dry-Cleaning') {
           continue;
         }
 
-        acc[item.item as string] ??= 0;
-        acc[item.item as string] += item.quantity as number;
+        acc[displayName] ??= 0;
+        acc[displayName] += row.quantity as number;
       }
 
       return acc;
@@ -400,6 +408,9 @@ async function getSalesPurchaseInvoices(
 
     const supplierGrouped = Object.keys(itemGrouped).reduce((acc, item) => {
       const supplier = purchaseItemPartyMap[item];
+      if (!supplier) {
+        return acc;
+      }
       acc[supplier] ??= [];
       acc[supplier].push(item);
 

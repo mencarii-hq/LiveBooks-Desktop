@@ -9,6 +9,7 @@ import {
   resolveDefaultPaymentMethod,
 } from 'src/utils/memorizedTransactions';
 import type { RegisterSplitLine } from 'src/utils/memorizedTransactions';
+import { getPartyNameMap } from 'src/utils/partyNames';
 
 /**
  * Memo written on generated payroll payments. It doubles as the marker the
@@ -171,20 +172,6 @@ function toIsoDate(value: unknown): string {
     return DateTime.fromJSDate(value).toISODate() ?? '';
   }
   return String(value ?? '').slice(0, 10);
-}
-
-async function getPartyNameMap(
-  fyo: Fyo,
-  partyIds: string[]
-): Promise<Map<string, string>> {
-  if (!partyIds.length) {
-    return new Map();
-  }
-  const parties = (await fyo.db.getAll(ModelNameEnum.Party, {
-    fields: ['name', 'partyName'],
-    filters: { name: ['in', partyIds] },
-  })) as { name: string; partyName?: string }[];
-  return new Map(parties.map((p) => [p.name, p.partyName?.trim() || p.name]));
 }
 
 /**

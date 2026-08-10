@@ -196,7 +196,9 @@
                     {{ row.checkNoPreview || '—' }}
                   </div>
                   <div class="cell-body gap-1">
-                    <span class="truncate min-w-0">{{ row.party || '—' }}</span>
+                    <span class="truncate min-w-0">{{
+                      row.partyName || '—'
+                    }}</span>
                     <button
                       v-if="row.party"
                       type="button"
@@ -316,6 +318,7 @@ import {
 } from 'src/utils/checkPrint/numbering';
 import { CheckFormat } from 'src/utils/checkPrint/types';
 import { loadCheckSettings } from 'src/utils/checkPrint/printChecks';
+import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
 import { getFormRoute, openSettings, routeTo } from 'src/utils/ui';
 import { handleErrorWithDialog } from 'src/errorHandling';
 import { showDialog, showToast } from 'src/utils/interactive';
@@ -323,7 +326,10 @@ import { showDialog, showToast } from 'src/utils/interactive';
 type QueueRow = {
   name: string;
   date: string;
+  /** Party UUID — used for openPayee routing. */
   party: string;
+  /** Display label (`partyName`). */
+  partyName: string;
   memo: string;
   amount: number;
   amountDisplay: string;
@@ -615,6 +621,7 @@ export default defineComponent({
             name: p.name,
             date: p.date ? String(p.date) : '',
             party: p.party || '',
+            partyName: '',
             memo: p.memo || '',
             amount: amountMoney.float,
             amountDisplay: fyo.format(amountMoney as never, 'Currency'),
@@ -665,6 +672,7 @@ export default defineComponent({
               name: p.name,
               date: p.date ? String(p.date) : '',
               party: p.party || '',
+              partyName: '',
               memo: p.memo || '',
               amount: amountMoney.float,
               amountDisplay: fyo.format(amountMoney as never, 'Currency'),
@@ -680,6 +688,14 @@ export default defineComponent({
             const sameBank = rows.filter((r) => r.bankAccount === bank);
             rows.splice(0, rows.length, ...sameBank);
           }
+        }
+
+        const partyNames = await getPartyNameMap(
+          fyo,
+          rows.map((r) => r.party)
+        );
+        for (const r of rows) {
+          r.partyName = partyLabel(partyNames, r.party);
         }
 
         this.rows = rows;
@@ -767,7 +783,7 @@ export default defineComponent({
           }));
         const payeeByName: Record<string, string> = {};
         for (const r of this.rows) {
-          payeeByName[r.name] = r.party;
+          payeeByName[r.name] = r.partyName || r.party;
         }
 
         await runCheckPrintFlow(fyo, items, {

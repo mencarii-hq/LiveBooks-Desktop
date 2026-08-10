@@ -70,6 +70,7 @@
 import { DateTime } from 'luxon';
 import { ModelNameEnum } from 'models/types';
 import { fyo } from 'src/initFyo';
+import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
 import { safeParseFloat } from 'utils/index';
 import { routeTo } from 'src/utils/ui';
 import { defineComponent } from 'vue';
@@ -111,10 +112,14 @@ export default defineComponent({
       });
 
       const now = DateTime.utc();
+      const partyNames = await getPartyNameMap(
+        fyo,
+        raw.map((r) => r.party as string)
+      );
       this.overdueList = raw
         .map((r) => ({
           name: r.name as string,
-          party: r.party as string,
+          party: partyLabel(partyNames, r.party as string),
           date: r.date as string,
           outstandingAmount: safeParseFloat(r.outstandingAmount),
           daysOverdue: Math.max(

@@ -6,6 +6,7 @@ import type { MemorizedTransaction } from 'models/baseModels/MemorizedTransactio
 import type { Payment } from 'models/baseModels/Payment/Payment';
 import { showDialog, showToast } from 'src/utils/interactive';
 import { handleErrorWithDialog } from 'src/errorHandling';
+import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
 import { routeTo } from 'src/utils/ui';
 
 /**
@@ -356,9 +357,11 @@ export async function memorizePayment(
     return;
   }
 
+  const partyId = String(payment.party);
+  const partyNames = await getPartyNameMap(fyo, [partyId]);
   const doc = fyo.doc.getNewDoc(ModelNameEnum.MemorizedTransaction, {
-    title: payment.party,
-    party: payment.party,
+    title: partyLabel(partyNames, partyId),
+    party: partyId,
     paymentType,
     fromAccount: payment.account as string,
     toAccount: payment.paymentAccount as string,
@@ -578,7 +581,7 @@ export async function getDueMemorized(
         'paymentMethod',
       ],
     });
-    const dueNames = (
+    const candidates = (
       rows as {
         name: string;
         nextDueDate?: string;
@@ -586,27 +589,40 @@ export async function getDueMemorized(
         title?: string;
         party?: string;
       }[]
-    )
-      .filter((r) => {
-        if (!r.nextDueDate) {
-          return false;
-        }
-        // #7: prompt `remindDaysBefore` days ahead of the due date.
-        const lead = Math.max(0, Math.floor(Number(r.remindDaysBefore) || 0));
-        const promptFrom = DateTime.fromISO(
-          String(r.nextDueDate).slice(0, 10)
-        ).minus({ days: lead });
-        return promptFrom.isValid && promptFrom.toISODate()! <= today;
-      })
+    ).filter((r) => {
+      if (!r.nextDueDate) {
+        return false;
+      }
+      // #7: prompt `remindDaysBefore` days ahead of the due date.
+      const lead = Math.max(0, Math.floor(Number(r.remindDaysBefore) || 0));
+      const promptFrom = DateTime.fromISO(
+        String(r.nextDueDate).slice(0, 10)
+      ).minus({ days: lead });
+      return promptFrom.isValid && promptFrom.toISODate()! <= today;
+    });
+
+    const partyNames = await getPartyNameMap(
+      fyo,
+      candidates.map((r) => String(r.party || ''))
+    );
+    const displayLabel = (r: { title?: string; party?: string }) => {
+      const title = String(r.title || '').trim();
+      const party = String(r.party || '').trim();
+      // Write Entry stores a human title; payment-memorize used to store the UUID.
+      if (title && title !== party) {
+        return title;
+      }
+      return partyLabel(partyNames, party) || title;
+    };
+
+    const dueNames = candidates
       .sort((a, b) => {
         const da = String(a.nextDueDate ?? '').slice(0, 10);
         const db = String(b.nextDueDate ?? '').slice(0, 10);
         if (da !== db) {
           return da < db ? -1 : 1;
         }
-        const la = String(a.title || a.party || '');
-        const lb = String(b.title || b.party || '');
-        return la.localeCompare(lb);
+        return displayLabel(a).localeCompare(displayLabel(b));
       })
       .map((r) => r.name);
 
@@ -684,15 +700,27 @@ export async function maybePromptMemorizedDue(fyo: Fyo): Promise<void> {
       return;
     }
 
+    const partyNames = await getPartyNameMap(
+      fyo,
+      due.map((d) => String(d.party || ''))
+    );
+    const displayLabel = (d: MemorizedTransaction) => {
+      const title = String(d.title || '').trim();
+      const party = String(d.party || '').trim();
+      if (title && title !== party) {
+        return title;
+      }
+      return partyLabel(partyNames, party) || title;
+    };
+
     // Array detail → one <p> per line in Dialog (string \n collapses in CSS).
     const lines = due.map((d) => {
       const amt = fyo.format(d.amount as never, 'Currency');
       const dueDate = String(d.nextDueDate ?? '').slice(0, 10);
-      const label = String(d.title || d.party || '');
-      return `${label} — ${amt} (${dueDate})`;
+      return `${displayLabel(d)} — ${amt} (${dueDate})`;
     });
 
-    const firstLabel = String(due[0].title || due[0].party || '');
+    const firstLabel = displayLabel(due[0]);
     const buttons =
       due.length === 1
         ? [

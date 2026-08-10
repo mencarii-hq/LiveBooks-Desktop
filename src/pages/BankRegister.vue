@@ -271,6 +271,7 @@ import {
   getLastRegisterBankAccount,
   setLastRegisterBankAccount,
 } from 'src/utils/registerBankAccount';
+import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
 import { routeTo } from 'src/utils/ui';
 import { QueryFilter } from 'utils/db/types';
 import { defineComponent, toRaw } from 'vue';
@@ -829,6 +830,16 @@ export default defineComponent({
           }
         }
 
+        const partyIds = [
+          ...new Set(
+            [
+              ...[...paymentMap.values()].map((p) => p.party),
+              ...ales.map((a) => a.party || ''),
+            ].filter(Boolean)
+          ),
+        ];
+        const partyNames = await getPartyNameMap(fyo, partyIds);
+
         let balance = 0;
         const rows: RegisterRow[] = [];
         for (const ale of ales) {
@@ -847,11 +858,12 @@ export default defineComponent({
             ale.referenceType === ModelNameEnum.Payment && ale.referenceName
               ? paymentMap.get(ale.referenceName)
               : undefined;
+          const partyId = payInfo?.party || ale.party || '';
           rows.push({
             key: ale.name,
             date: this.normalizeRegisterDate(ale.date),
             checkNo: payInfo?.checkNo || '',
-            payee: payInfo?.party || ale.party || '',
+            payee: partyLabel(partyNames, partyId),
             category: payInfo?.category || '',
             categoryTitle: payInfo?.categoryTitle || '',
             memo: payInfo?.memo || '',
