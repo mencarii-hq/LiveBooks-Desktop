@@ -15,6 +15,7 @@ import {
   TargetField,
 } from 'schemas/types';
 import { getIsNullOrUndef, getMapFromList, getRandomString } from 'utils';
+import { isUuidDocId } from 'utils/ids';
 import { markRaw, reactive, ref, toRaw } from 'vue';
 import type { Ref } from 'vue';
 import { isPesa } from '../utils/index';
@@ -807,18 +808,95 @@ export class Doc extends Observable<DocValue | Doc[]> {
     const dbModified = (dbValues.modified as Date)?.toISOString();
 
     if (dbValues && docModified !== dbModified) {
-      const titleKey =
-        this.schema.linkDisplayField || this.schema.titleField || 'name';
-      const titleValue = this.get(titleKey) ?? dbValues[titleKey];
-      const displayName =
-        typeof titleValue === 'string' && titleValue.trim()
-          ? titleValue.trim()
-          : this.name;
+      const schemaLabel = this._getConflictSchemaLabel(dbValues);
+      const displayName = await this._getConflictDisplayName(dbValues);
       throw new ConflictError(
         this.fyo
-          .t`${this.schema.label} ${displayName} has been modified after loading please reload entry.`
+          .t`${schemaLabel} ${displayName} has been modified after loading please reload entry.`
       );
     }
+  }
+
+  /** Role-aware type label for Party conflicts (Employee vs Customers & Suppliers). */
+  _getConflictSchemaLabel(dbValues: DocValueMap): string {
+    if (this.schemaName === 'Party') {
+      const role = (this.get('role') ?? dbValues.role) as string | undefined;
+      if (role === 'Employee' || role === 'Contractor') {
+        return this.fyo.t`Employee`;
+      }
+      if (role === 'Customer') {
+        return this.fyo.t`Customer`;
+      }
+      if (role === 'Supplier') {
+        return this.fyo.t`Supplier`;
+      }
+    }
+    return this.schema.label;
+  }
+
+  /**
+   * Prefer a human title over UUID PKs. When titleField is a Link (e.g. Pay
+   * Setup → Party), resolve the target's linkDisplayField/titleField.
+   */
+  async _getConflictDisplayName(dbValues: DocValueMap): Promise<string> {
+    const titleKey =
+      this.schema.linkDisplayField || this.schema.titleField || 'name';
+    const raw = this.get(titleKey) ?? dbValues[titleKey];
+    const titleValue = typeof raw === 'string' ? raw.trim() : '';
+
+    if (titleValue) {
+      const linkedLabel = await this._resolveLinkDisplayLabel(
+        titleKey,
+        titleValue
+      );
+      if (linkedLabel) {
+        return linkedLabel;
+      }
+      if (!isUuidDocId(titleValue)) {
+        return titleValue;
+      }
+    }
+
+    return this.name!;
+  }
+
+  async _resolveLinkDisplayLabel(
+    fieldname: string,
+    linkValue: string
+  ): Promise<string> {
+    const field = this.fieldMap[fieldname];
+    if (
+      !field ||
+      field.fieldtype !== FieldTypeEnum.Link ||
+      !('target' in field) ||
+      !field.target
+    ) {
+      return '';
+    }
+
+    const targetSchema = this.fyo.schemaMap[field.target];
+    if (!targetSchema) {
+      return '';
+    }
+
+    const displayField =
+      targetSchema.linkDisplayField || targetSchema.titleField || 'name';
+
+    try {
+      const linked = await this.fyo.db.get(field.target, linkValue);
+      const label = linked?.[displayField];
+      if (
+        typeof label === 'string' &&
+        label.trim() &&
+        !isUuidDocId(label.trim())
+      ) {
+        return label.trim();
+      }
+    } catch {
+      // Linked row missing — caller falls back.
+    }
+
+    return '';
   }
 
   async runFormulas() {

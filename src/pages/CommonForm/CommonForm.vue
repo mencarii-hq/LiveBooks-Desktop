@@ -565,6 +565,7 @@ export default defineComponent({
 
     await this.setDoc();
     this.replacePathAfterSync();
+    this.bindMemorizedListRedirect();
     this.updateGroupedFields();
     if (this.groupedFields) {
       this.activeTab = [...this.groupedFields.keys()][0];
@@ -574,6 +575,7 @@ export default defineComponent({
   activated(): void {
     this.useFullWidth = !!this.fyo.singles.Misc?.useFullWidth;
     docsPathRef.value = docsPathMap[this.schemaName] ?? '';
+    this.bindMemorizedListRedirect();
     this.shortcuts?.pmod.set(this.context, ['KeyP'], () => {
       if (!this.canPrint) {
         return;
@@ -590,12 +592,50 @@ export default defineComponent({
     });
   },
   deactivated(): void {
+    this.unbindMemorizedListRedirect();
     docsPathRef.value = '';
     this.showLinks = false;
     this.row = null;
   },
   methods: {
     routeTo,
+    bindMemorizedListRedirect() {
+      if (
+        this.schemaName !== ModelNameEnum.MemorizedTransaction ||
+        !this.hasDoc
+      ) {
+        return;
+      }
+      // Stable listener so on/off share one reference (and satisfy unbound-method).
+      const handler: () => unknown = () => this.redirectMemorizedToList();
+      const prev = this._redirectMemorizedAfterSync as
+        | (() => unknown)
+        | undefined;
+      if (prev) {
+        this.doc.off('afterSync', prev);
+      }
+      this._redirectMemorizedAfterSync = handler;
+      this.doc.on('afterSync', handler);
+    },
+    unbindMemorizedListRedirect() {
+      if (
+        this.schemaName !== ModelNameEnum.MemorizedTransaction ||
+        !this.hasDoc
+      ) {
+        return;
+      }
+      const prev = this._redirectMemorizedAfterSync as
+        | (() => unknown)
+        | undefined;
+      if (!prev) {
+        return;
+      }
+      this.doc.off('afterSync', prev);
+      this._redirectMemorizedAfterSync = undefined;
+    },
+    async redirectMemorizedToList() {
+      await routeTo(`/list/${ModelNameEnum.MemorizedTransaction}`);
+    },
     async printCheckWithFormat(
       format: 'voucher' | 'threePerPage' | 'ledgerStub'
     ) {
@@ -647,6 +687,10 @@ export default defineComponent({
       );
     },
     replacePathAfterSync() {
+      // Recurring templates return to the list after save instead.
+      if (this.schemaName === ModelNameEnum.MemorizedTransaction) {
+        return;
+      }
       if (!this.hasDoc || this.doc.inserted) {
         return;
       }

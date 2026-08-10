@@ -106,8 +106,10 @@ export class Party extends Doc {
     const role = this.role as PartyRole;
     let outstandingAmount = this.fyo.pesa(0);
 
+    // Employees/contractors are paid via payroll / register — not AR/AP.
+    // Skip the no-op setAndSync(0): a stale cached Party (e.g. still open on
+    // the employee form) would fail optimistic locking and abort Pay Run.
     if (isWorkforcePartyRole(role)) {
-      await this.setAndSync({ outstandingAmount });
       return;
     }
 

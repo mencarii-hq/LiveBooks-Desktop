@@ -165,7 +165,8 @@
       "fieldtype": "Table",
       "target": "PaymentSplit",
       "required": false,
-      "hidden": true
+      "section": "Splits",
+      "description": "Category split lines. When present, these replace the single category account at posting."
     },
     {
       "fieldname": "attachment",

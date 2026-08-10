@@ -511,6 +511,13 @@ export default defineComponent({
         orderBy.unshift('date');
       }
 
+      if (this.schemaName === 'MemorizedTransaction') {
+        const { repairMemorizedTransactionTitles } = await import(
+          'src/utils/memorizedTransactions'
+        );
+        await repairMemorizedTransactionTitles(fyo);
+      }
+
       const tableData = await fyo.db.getAll(this.schemaName, {
         fields: ['*'],
         filters: filters as QueryFilter,
@@ -564,6 +571,19 @@ export default defineComponent({
           const label = partyLabel(partyNames, id);
           row[f.fieldname] =
             label && !isUuidDocId(label) ? label : isUuidDocId(id) ? '' : id;
+        }
+        // MemorizedTransaction.title was sometimes saved as Party.id (UUID).
+        const rawTitle = d.title;
+        if (
+          this.schemaName === 'MemorizedTransaction' &&
+          typeof rawTitle === 'string' &&
+          isUuidDocId(rawTitle)
+        ) {
+          const partyId = typeof d.party === 'string' ? d.party : '';
+          const titleLabel = partyLabel(partyNames, partyId);
+          if (titleLabel) {
+            row.title = titleLabel;
+          }
         }
         return row;
       }) as RenderData[];

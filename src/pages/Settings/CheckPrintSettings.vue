@@ -187,14 +187,38 @@ const NudgeControl = defineComponent({
     bump(delta: number) {
       this.$emit('change', (Number(this.value) || 0) + delta);
     },
+    onInput(event: Event) {
+      const raw = (event.target as HTMLInputElement).value;
+      if (raw === '' || raw === '-') {
+        return;
+      }
+      const next = Number(raw);
+      if (!Number.isFinite(next)) {
+        return;
+      }
+      this.$emit('change', Math.trunc(next));
+    },
+    onBlur(event: Event) {
+      const raw = (event.target as HTMLInputElement).value;
+      const next = Number(raw);
+      this.$emit('change', Number.isFinite(next) ? Math.trunc(next) : 0);
+    },
   },
   template: `
     <div class="flex flex-col">
       <span class="text-xs text-gray-600 dark:text-gray-400 mb-1">{{ label }}</span>
       <div class="flex items-center gap-2">
-        <button class="px-2 py-0.5 border rounded text-sm" @click="bump(-1)">-</button>
-        <span class="w-10 text-center text-sm tabular-nums">{{ value }}</span>
-        <button class="px-2 py-0.5 border rounded text-sm" @click="bump(1)">+</button>
+        <button type="button" class="px-2 py-0.5 border rounded text-sm" @click="bump(-1)">-</button>
+        <input
+          type="number"
+          step="1"
+          :value="value"
+          class="w-16 text-center text-sm tabular-nums border rounded px-1 py-0.5 bg-gray-25 dark:bg-gray-850 dark:text-gray-25"
+          @input="onInput"
+          @blur="onBlur"
+          @keydown.enter="($event.target).blur()"
+        />
+        <button type="button" class="px-2 py-0.5 border rounded text-sm" @click="bump(1)">+</button>
       </div>
     </div>
   `,

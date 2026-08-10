@@ -93,6 +93,7 @@ import {
 import { getSavePath } from './utils/ui';
 import {
   maybePromptMemorizedDue,
+  repairMemorizedTransactionTitles,
   startMemorizedDueRolloverCheck,
 } from './utils/memorizedTransactions';
 import {
@@ -287,7 +288,9 @@ export default defineComponent({
         void fyo.telemetry.maybeSendFirstCompanyCreatePing();
       });
       runWhenIdle(() => {
-        void maybePromptMemorizedDue(fyo);
+        void repairMemorizedTransactionTitles(fyo).then(() =>
+          maybePromptMemorizedDue(fyo)
+        );
         startMemorizedDueRolloverCheck(fyo);
       });
     },

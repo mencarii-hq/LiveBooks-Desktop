@@ -38,6 +38,7 @@
           @change="onPaymentMethodChange"
         />
         <FormControl
+          v-if="canQueue"
           :border="true"
           size="small"
           :show-label="true"
@@ -129,7 +130,6 @@
                   dark:hover:bg-gray-850
                   items-center
                 "
-                :class="{ 'opacity-50': !row.ready }"
               >
                 <div
                   class="w-8 flex justify-end me-2 items-center min-h-row-mid"
@@ -151,8 +151,8 @@
                   class="flex-1 min-h-row-mid items-center"
                   :class="
                     row.ready
-                      ? 'text-gray-900 dark:text-gray-300'
-                      : 'text-gray-500 dark:text-gray-500'
+                      ? 'text-gray-900 dark:text-gray-100'
+                      : 'text-gray-500 dark:text-gray-400'
                   "
                   :ratio="COLUMN_RATIO"
                   :grid-template-columns="gridTemplate"
@@ -165,7 +165,11 @@
                     <button
                       v-else
                       type="button"
-                      class="underline text-start"
+                      class="
+                        underline
+                        text-start text-gray-700
+                        dark:text-gray-200
+                      "
                       @click="openEmployee(row.party)"
                     >
                       {{ t`Set up pay` }}
@@ -185,7 +189,9 @@
                       class="w-20"
                       @change="(v) => onHoursChange(row.party, v)"
                     />
-                    <span v-else class="text-gray-400">—</span>
+                    <span v-else class="text-gray-400 dark:text-gray-500"
+                      >—</span
+                    >
                   </div>
                   <div class="cell-body tabular-nums">
                     {{
@@ -372,6 +378,8 @@ export default defineComponent({
     const bankAccount = ref('');
     const paymentMethod = ref('');
     const printLater = ref(true);
+    /** Q-AF: Print Later only applies to Check methods. */
+    const canQueue = ref(false);
     const lastCreated = ref<string[]>([]);
     const lastQueued = ref(false);
 
@@ -594,11 +602,17 @@ export default defineComponent({
       hours.value = { ...hours.value, [party]: Number.isFinite(n) ? n : 0 };
     }
 
+    async function syncQueueEligibility(method: string) {
+      const check = !!(method && (await isCheckMethod(fyo, method)));
+      canQueue.value = check;
+      // Auto-on for Check; clear when switching away so Print Later cannot
+      // look armed while createRegisterPayment silently skips the queue.
+      printLater.value = check;
+    }
+
     async function onPaymentMethodChange(v: string) {
       paymentMethod.value = v;
-      if (v && (await isCheckMethod(fyo, v))) {
-        printLater.value = true;
-      }
+      await syncQueueEligibility(v);
     }
 
     async function loadEmployees() {
@@ -726,15 +740,14 @@ export default defineComponent({
           payDate: payDate.value,
           bankAccount: bankAccount.value,
           paymentMethod: paymentMethod.value || undefined,
-          printLater: printLater.value,
+          // Only honor Print Later when the selected method can actually queue.
+          printLater: canQueue.value && printLater.value,
           lines,
         });
         lastCreated.value = payments.map((p) => String(p.name));
-        // Q-AF: only Pay + Check payments queue — mirror that here so the
-        // Checks to Print link only shows when something was actually queued.
-        lastQueued.value =
-          printLater.value &&
-          (await isCheckMethod(fyo, paymentMethod.value || ''));
+        // Drive the link from what was actually persisted, not form state
+        // (empty method falls back inside the generator; form can diverge).
+        lastQueued.value = payments.some((p) => !!p.printLater);
         showToast({
           type: 'success',
           message:
@@ -765,9 +778,7 @@ export default defineComponent({
     onMounted(async () => {
       columnWidths.value = readColumnWidths(WIDTHS_KEY, [...COLUMN_IDS]);
       paymentMethod.value = await resolveDefaultPaymentMethod(fyo);
-      if (await isCheckMethod(fyo, paymentMethod.value)) {
-        printLater.value = true;
-      }
+      await syncQueueEligibility(paymentMethod.value);
       await loadEmployees();
     });
 
@@ -796,6 +807,7 @@ export default defineComponent({
       bankAccount,
       paymentMethod,
       printLater,
+      canQueue,
       lastCreated,
       lastQueued,
       payDateField,

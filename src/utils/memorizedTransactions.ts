@@ -7,7 +7,7 @@ import type { Payment } from 'models/baseModels/Payment/Payment';
 import { showDialog, showToast } from 'src/utils/interactive';
 import { handleErrorWithDialog } from 'src/errorHandling';
 import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
-import { routeTo } from 'src/utils/ui';
+import { getFormRoute, routeTo } from 'src/utils/ui';
 import { isUuidDocId } from 'utils/ids';
 
 /**
@@ -402,7 +402,9 @@ export async function memorizePayment(
     type: 'success',
     message: t`Recurring transaction saved`,
   });
-  await routeTo(`/edit/MemorizedTransaction/${String(doc.name)}`);
+  await routeTo(
+    getFormRoute(ModelNameEnum.MemorizedTransaction, String(doc.name))
+  );
 }
 
 export async function memorizeRegisterFields(
@@ -419,7 +421,22 @@ export async function memorizeRegisterFields(
     return false;
   }
 
-  const partyId = await ensurePartyExists(fyo, fields.party);
+  // Prefer explicit partyId (Link stores Party.name UUID). Never use the
+  // UUID as the template title — resolve the display partyName instead.
+  const partyId =
+    fields.partyId || (await ensurePartyExists(fyo, fields.party));
+  const partyNames = await getPartyNameMap(fyo, [partyId]);
+  const title =
+    partyLabel(partyNames, partyId) ||
+    (!isUuidDocId(fields.party.trim()) ? fields.party.trim() : '');
+  if (!title) {
+    await showDialog({
+      title: t`Cannot save recurring template`,
+      detail: t`Payee and amount are required.`,
+      type: 'error',
+    });
+    return false;
+  }
 
   // #8: with splits, the first positive split's account stands in for the
   // single category account (same convention as createRegisterPayment).
@@ -434,7 +451,7 @@ export async function memorizeRegisterFields(
     fields.paymentType === 'Pay' ? categoryAccount : fields.bankAccount;
 
   const doc = fyo.doc.getNewDoc(ModelNameEnum.MemorizedTransaction, {
-    title: fields.party,
+    title,
     party: partyId,
     paymentType: fields.paymentType,
     fromAccount: account,
@@ -463,7 +480,9 @@ export async function memorizeRegisterFields(
       type: 'success',
       message: t`Recurring template saved — no payment posted`,
     });
-    await routeTo(`/edit/MemorizedTransaction/${String(doc.name)}`);
+    await routeTo(
+      getFormRoute(ModelNameEnum.MemorizedTransaction, String(doc.name))
+    );
   }
   // When openEditor is false, caller posts a payment too and owns the toast.
   return true;
@@ -839,6 +858,47 @@ export async function maybePromptMemorizedDue(fyo: Fyo): Promise<void> {
     // Prompt is best-effort; do not block desk load.
     // eslint-disable-next-line no-console
     console.error('maybePromptMemorizedDue failed', error);
+  }
+}
+
+/**
+ * Older Write Entry → Schedule paths stored Party.id (UUID) as `title`.
+ * Rewrite those to the payee's display name so list/form Name is readable.
+ */
+export async function repairMemorizedTransactionTitles(
+  fyo: Fyo
+): Promise<void> {
+  try {
+    const rows = (await fyo.db.getAllRaw(ModelNameEnum.MemorizedTransaction, {
+      fields: ['name', 'title', 'party'],
+    })) as { name: string; title?: string; party?: string }[];
+
+    const broken = rows.filter((r) =>
+      isUuidDocId(String(r.title ?? '').trim())
+    );
+    if (!broken.length) {
+      return;
+    }
+
+    const partyIds = broken
+      .map((r) => String(r.party ?? '').trim())
+      .filter(Boolean);
+    const partyNames = await getPartyNameMap(fyo, partyIds);
+
+    for (const row of broken) {
+      const label = partyLabel(partyNames, String(row.party ?? ''));
+      if (!label) {
+        continue;
+      }
+      await fyo.db.update(ModelNameEnum.MemorizedTransaction, {
+        name: row.name,
+        title: label,
+      });
+    }
+  } catch (error) {
+    // Best-effort; do not block desk load.
+    // eslint-disable-next-line no-console
+    console.error('repairMemorizedTransactionTitles failed', error);
   }
 }
 

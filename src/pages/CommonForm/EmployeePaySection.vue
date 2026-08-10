@@ -66,7 +66,6 @@ const PAY_FIELDNAMES = [
 type PreSyncDoc = Doc & {
   _preSync: () => Promise<void>;
   _setBaseMetaValues: () => void;
-  _updateModifiedMetaValues: () => void;
   _touchDirtyChildModifiedMeta: () => void;
 };
 
@@ -171,13 +170,15 @@ export default defineComponent({
       await this.linkProfileParty();
       // _preSync validates required meta (Created/Modified/…). Those are
       // normally stamped in Doc._insert/_update before _preSync — stamp here
-      // too so this early validate path does not false-fail.
+      // for new docs only. Do NOT bump `modified` on existing profiles: that
+      // would make Doc._update's optimistic lock (_validateDbNotModified) fail
+      // when afterSync later calls profile.sync().
       const profile = this.profile as PreSyncDoc;
       if (profile.notInserted) {
         profile._setBaseMetaValues();
-      } else {
-        profile._updateModifiedMetaValues();
       }
+      // Child rows still need Modified for mandatory checks; parent `modified`
+      // must stay as loaded until profile.sync() → _update().
       profile._touchDirtyChildModifiedMeta();
       await profile._preSync();
     },

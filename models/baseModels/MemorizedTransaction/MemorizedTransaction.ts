@@ -13,6 +13,7 @@ import { DateTime } from 'luxon';
 import { Money } from 'pesa';
 import { PaymentSplit } from '../PaymentSplit/PaymentSplit';
 import { QueryFilter } from 'utils/db/types';
+import { isUuidDocId } from 'utils/ids';
 
 export type MemorizedFrequency =
   | 'Daily'
@@ -48,11 +49,31 @@ export class MemorizedTransaction extends Doc {
   };
 
   // Backfill required title for rows created before the field existed.
+  // Never copy a Party.id (UUID) into title — Link fields store ids, not labels.
   formulas: FormulaMap = {
     title: {
-      formula: () => {
-        if (!this.title) {
-          return this.party;
+      formula: async () => {
+        if (this.title && !isUuidDocId(String(this.title))) {
+          return;
+        }
+        const party = String(this.party ?? '');
+        if (!party) {
+          return;
+        }
+        if (!isUuidDocId(party)) {
+          return party;
+        }
+        try {
+          const rows = (await this.fyo.db.getAllRaw('Party', {
+            filters: { name: party },
+            fields: ['partyName'],
+          })) as { partyName?: string }[];
+          const label = String(rows[0]?.partyName ?? '').trim();
+          if (label && !isUuidDocId(label)) {
+            return label;
+          }
+        } catch {
+          /* best-effort backfill */
         }
       },
       dependsOn: ['party'],

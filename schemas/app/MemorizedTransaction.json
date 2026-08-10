@@ -120,7 +120,8 @@
       "fieldtype": "Table",
       "target": "PaymentSplit",
       "required": false,
-      "hidden": true
+      "section": "Splits",
+      "description": "Optional. Two or more category lines replace To Account when this recurring runs. Amounts are signed; negatives are withholdings."
     }
   ],
   "quickEditFields": [
