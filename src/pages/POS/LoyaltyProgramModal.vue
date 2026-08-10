@@ -70,6 +70,7 @@
 
 <script lang="ts">
 import Button from 'src/components/Button.vue';
+import { isUuidDocId } from 'utils/ids';
 import Modal from 'src/components/Modal.vue';
 import { SalesInvoice } from 'models/baseModels/SalesInvoice/SalesInvoice';
 import { defineComponent, inject } from 'vue';
@@ -147,10 +148,12 @@ export default defineComponent({
           this.sinvDoc.loyaltyPoints = newValue;
         } else {
           throw new Error(
-            `${
-              (partyData.partyName as string)?.trim() ||
-              (this.sinvDoc.party as string)
-            } only has ${this.loyaltyPoints} points`
+            `${(() => {
+              const n = (partyData.partyName as string)?.trim() || '';
+              if (n && !isUuidDocId(n)) return n;
+              const id = this.sinvDoc.party as string;
+              return id && !isUuidDocId(id) ? id : 'Customer';
+            })()} only has ${this.loyaltyPoints} points`
           );
         }
 

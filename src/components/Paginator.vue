@@ -29,12 +29,22 @@
         "
         @click="() => setPageNo(Math.max(1, pageNo - 1))"
       />
-      <div class="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded">
+      <div
+        class="
+          flex
+          gap-1
+          items-center
+          bg-gray-100
+          dark:bg-gray-700
+          rounded
+          px-1
+        "
+      >
         <input
           type="number"
           class="
             w-7
-            text-start
+            text-center
             outline-none
             bg-transparent
             focus:text-gray-900
@@ -47,7 +57,7 @@
           @input="(e) => setPageNo(e.target.value)"
         />
         <p class="text-gray-600">/</p>
-        <p class="w-7">
+        <p class="w-7 text-center">
           {{ maxPages }}
         </p>
       </div>

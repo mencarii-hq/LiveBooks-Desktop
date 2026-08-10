@@ -320,13 +320,13 @@
                       @change="toggleChecked(row.name)"
                     />
                   </td>
-                  <td class="p-2 whitespace-nowrap tabular-nums">
+                  <td class="p-2 break-words tabular-nums">
                     {{ formatDateDMY(row.date) }}
                   </td>
                   <td class="p-2 text-gray-600 dark:text-gray-300">
                     {{ row.referenceShort || t`—` }}
                   </td>
-                  <td class="p-2">{{ row.payee || t`—` }}</td>
+                  <td class="p-2 break-words">{{ row.payee || t`—` }}</td>
                   <td class="p-2 text-start tabular-nums">
                     {{ formatOutAmount(row.signed) }}
                   </td>
@@ -411,10 +411,10 @@
                       @change="toggleChecked(row.name)"
                     />
                   </td>
-                  <td class="p-2 whitespace-nowrap tabular-nums">
+                  <td class="p-2 break-words tabular-nums">
                     {{ formatDateDMY(row.date) }}
                   </td>
-                  <td class="p-2">{{ row.payee || t`—` }}</td>
+                  <td class="p-2 break-words">{{ row.payee || t`—` }}</td>
                   <td
                     class="
                       p-2

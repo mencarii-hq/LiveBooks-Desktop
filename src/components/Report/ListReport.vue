@@ -16,7 +16,7 @@
           px-4
         "
         :style="{
-          height: `${hconst}px`,
+          minHeight: `${hconst}px`,
           paddingRight: 'calc(var(--w-scrollbar) + 1rem)',
         }"
       >
@@ -29,9 +29,9 @@
             text-base
             px-3
             flex-shrink-0
-            overflow-x-auto
-            whitespace-nowrap
-            no-scrollbar
+            break-words
+            whitespace-normal
+            py-1.5
           "
         >
           {{ col.label }}
@@ -55,7 +55,7 @@
             v-if="!row.folded"
             class="flex items-center w-max px-4"
             :style="{
-              height: `${hconst}px`,
+              minHeight: `${hconst}px`,
               minWidth: `calc(var(--w-desk) - var(--w-scrollbar))`,
             }"
             :class="[
@@ -75,9 +75,9 @@
                 text-base
                 px-3
                 flex-shrink-0
-                overflow-x-auto
-                whitespace-nowrap
-                no-scrollbar
+                break-words
+                whitespace-normal
+                py-1.5
               "
               :class="[getCellColorClass(cell)]"
             >
@@ -115,7 +115,6 @@
 </template>
 <script>
 import { Report } from 'reports/Report';
-import { isNumeric } from 'src/utils';
 import {
   clampColWidth,
   clearColumnWidths,
@@ -304,10 +303,6 @@ export default defineComponent({
         } else {
           styles['padding-left'] = '0px';
         }
-      }
-
-      if (!cell.align && isNumeric(cell.fieldtype)) {
-        styles['text-align'] = 'right';
       }
 
       if (i === this.report.columns.length - 1) {

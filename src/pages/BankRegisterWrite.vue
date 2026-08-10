@@ -2,10 +2,16 @@
   <div class="flex flex-col overflow-y-hidden h-full">
     <PageHeader :title="t`Write Entry`">
       <Button :disabled="saving" @click="memorizeCurrent">
-        {{ t`Save as recurring…` }}
+        {{ t`Schedule only…` }}
       </Button>
       <Button type="primary" :disabled="saving" @click="submitEntry">
-        {{ saving ? t`Saving…` : t`Save entry` }}
+        {{
+          saving
+            ? t`Saving…`
+            : form.alsoRecurring
+            ? t`Post + schedule`
+            : t`Post to register`
+        }}
       </Button>
     </PageHeader>
 
@@ -233,13 +239,13 @@
               type="checkbox"
               class="h-4 w-4"
             />
-            {{ t`Also save as a recurring template` }}
+            {{ t`With this entry, also create a recurring schedule` }}
           </label>
         </div>
 
         <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
           {{
-            t`Save entry posts to the Check Register. Save as recurring stores a schedule only (no payment) — run it later from Recurring Transactions.`
+            t`Post to register adds this payment now. Schedule only creates a template with no payment. Check “also create a recurring schedule” to do both — run schedules later from Recurring Transactions.`
           }}
         </p>
       </div>
@@ -271,6 +277,7 @@ import {
   getLastRegisterBankAccount,
   setLastRegisterBankAccount,
 } from 'src/utils/registerBankAccount';
+import { isUuidDocId } from 'utils/ids';
 import { defineComponent } from 'vue';
 
 type AccountOpt = { name: string; accountName?: string };
@@ -691,9 +698,13 @@ export default defineComponent({
       }
       this.saving = true;
       try {
+        const payee = this.form.party.trim();
         const fields = {
           date: this.form.date,
-          party: this.form.party.trim(),
+          party: payee,
+          // Link control stores Party.name (UUID) — pass as partyId so we
+          // never create a Party whose partyName is a UUID.
+          partyId: isUuidDocId(payee) ? payee : undefined,
           categoryAccount: this.splitEnabled ? '' : this.form.categoryAccount,
           bankAccount: this.bankAccount,
           amount: this.form.amount,
@@ -763,14 +774,14 @@ export default defineComponent({
         }
       }
       const proceed = (await showDialog({
-        title: this.t`Save as recurring template?`,
+        title: this.t`Schedule only?`,
         detail: this
-          .t`This stores a reusable schedule under Recurring Transactions. It does not post a payment to the Check Register. To post now and also schedule, use Save entry with “Also save as a recurring template” checked.`,
+          .t`This creates a reusable schedule under Recurring Transactions. It does not post a payment to the Check Register. To post now and also schedule, use Post to register with “also create a recurring schedule” checked.`,
         type: 'info',
         buttons: [
           { label: this.t`Cancel`, action: () => false, isEscape: true },
           {
-            label: this.t`Save template only`,
+            label: this.t`Schedule only`,
             action: () => true,
             isPrimary: true,
           },
@@ -780,9 +791,11 @@ export default defineComponent({
         return;
       }
       try {
+        const payee = this.form.party.trim();
         await memorizeRegisterFields(fyo, {
           date: this.form.date,
-          party: this.form.party.trim(),
+          party: payee,
+          partyId: isUuidDocId(payee) ? payee : undefined,
           categoryAccount: this.splitEnabled ? '' : this.form.categoryAccount,
           bankAccount: this.bankAccount,
           amount: this.form.amount,

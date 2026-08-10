@@ -50,26 +50,26 @@
           </div>
           <Row
             ref="headerRow"
-            class="flex-1 text-gray-700 dark:text-gray-300 h-row-mid"
+            class="flex-1 text-gray-700 dark:text-gray-300 min-h-row-mid"
             :column-count="columns.length"
             :grid-template-columns="gridTemplate"
-            gap="1rem"
+            gap="0.5rem"
           >
             <div
               v-for="(column, i) in columns"
               :key="column.label"
               class="
                 relative
-                overflow-x-auto
-                no-scrollbar
-                whitespace-nowrap
-                h-row
                 items-center
+                justify-start
+                text-start
                 flex
-                min-w-0
+                min-w-0 min-h-row-mid
+                py-1.5
+                pe-3
+                break-words
               "
               :class="{
-                'ms-auto': isNumeric(column.fieldtype),
                 'pe-4': i === columns.length - 1 && !showRunNow,
               }"
             >
@@ -135,13 +135,13 @@
               </div>
 
               <Row
-                gap="1rem"
+                gap="0.5rem"
                 class="
                   cursor-pointer
                   text-gray-900
                   dark:text-gray-300
                   flex-1
-                  h-row-mid
+                  min-h-row-mid
                 "
                 :column-count="columns.length"
                 :grid-template-columns="gridTemplate"
@@ -151,7 +151,6 @@
                   v-for="(column, c) in columns"
                   :key="column.label || column.fieldname"
                   :class="{
-                    'text-start': isNumeric(column.fieldtype),
                     'pe-4': c === columns.length - 1 && !showRunNow,
                   }"
                   :row="(row as RenderData)"
@@ -199,6 +198,9 @@ import Check from 'src/components/Controls/Check.vue';
 import Paginator from 'src/components/Paginator.vue';
 import Row from 'src/components/Row.vue';
 import { fyo } from 'src/initFyo';
+import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
+import { FieldTypeEnum } from 'schemas/types';
+import { isUuidDocId } from 'utils/ids';
 import { isNumeric } from 'src/utils';
 import {
   clampColWidth,
@@ -529,10 +531,42 @@ export default defineComponent({
         );
       }
 
-      this.data = filteredData.map((d) => ({
-        ...d,
-        schema: fyo.schemaMap[this.schemaName],
-      })) as RenderData[];
+      const schema = fyo.schemaMap[this.schemaName];
+      const partyLinkFields = (schema?.fields ?? []).filter(
+        (f) =>
+          f.fieldtype === FieldTypeEnum.Link &&
+          f.target === 'Party' &&
+          !f.computed
+      );
+      const partyIds = [
+        ...new Set(
+          filteredData.flatMap((d) =>
+            partyLinkFields
+              .map((f) => d[f.fieldname])
+              .filter((v): v is string => typeof v === 'string' && !!v)
+          )
+        ),
+      ];
+      const partyNames = partyIds.length
+        ? await getPartyNameMap(fyo, partyIds)
+        : new Map<string, string>();
+
+      this.data = filteredData.map((d) => {
+        const row: Record<string, unknown> = {
+          ...d,
+          schema,
+        };
+        for (const f of partyLinkFields) {
+          const id = row[f.fieldname];
+          if (typeof id !== 'string' || !id) {
+            continue;
+          }
+          const label = partyLabel(partyNames, id);
+          row[f.fieldname] =
+            label && !isUuidDocId(label) ? label : isUuidDocId(id) ? '' : id;
+        }
+        return row;
+      }) as RenderData[];
       this.$emit('updatedData', filters);
     },
     toggleItemSelection(itemName: string) {

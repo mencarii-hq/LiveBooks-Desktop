@@ -5,7 +5,7 @@
 
 export const MIN_COL_PX = 60;
 export const MAX_COL_PX = 600;
-export const FALLBACK_COL_GAP_PX = 16;
+export const FALLBACK_COL_GAP_PX = 8;
 
 export function clampColWidth(w: number): number {
   return Math.min(MAX_COL_PX, Math.max(MIN_COL_PX, Math.round(w)));

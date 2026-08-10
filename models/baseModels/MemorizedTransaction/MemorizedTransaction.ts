@@ -3,6 +3,7 @@ import { Doc } from 'fyo/model/doc';
 import { DocValue } from 'fyo/core/types';
 import {
   DefaultMap,
+  FiltersMap,
   FormulaMap,
   ListViewSettings,
   ValidationMap,
@@ -11,6 +12,7 @@ import { ValidationError } from 'fyo/utils/errors';
 import { DateTime } from 'luxon';
 import { Money } from 'pesa';
 import { PaymentSplit } from '../PaymentSplit/PaymentSplit';
+import { QueryFilter } from 'utils/db/types';
 
 export type MemorizedFrequency =
   | 'Daily'
@@ -106,6 +108,23 @@ export class MemorizedTransaction extends Doc {
       throw new ValidationError(
         t`Next Due Date must be at least tomorrow (same-day scheduling is not allowed).`
       );
+    },
+  };
+
+  static filters: FiltersMap = {
+    party: (doc: Doc) => {
+      const paymentType = (doc as MemorizedTransaction).paymentType;
+      if (paymentType === 'Pay') {
+        return {
+          role: ['in', ['Supplier', 'Both', 'Employee', 'Contractor']],
+        } as QueryFilter;
+      }
+
+      if (paymentType === 'Receive') {
+        return { role: ['in', ['Customer', 'Both']] } as QueryFilter;
+      }
+
+      return {};
     },
   };
 

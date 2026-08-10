@@ -16,9 +16,7 @@
       v-for="df in tableFields"
       :key="df.fieldname"
       class="text-lg flex m-2"
-      :class="{
-      'ms-auto': isNumeric(df as Field),
-    }"
+      :class="'text-start break-words'"
     >
       {{ df.label }}
     </div>
@@ -61,12 +59,10 @@ import Link from 'src/components/Controls/Link.vue';
 import Row from 'src/components/Row.vue';
 import RowEditForm from 'src/pages/CommonForm/RowEditForm.vue';
 import ModernPOSSelectedItemRow from './ModernPOSSelectedItemRow.vue';
-import { isNumeric } from 'src/utils';
 import { t } from 'fyo';
 import { inject, defineComponent, PropType } from 'vue';
 import { SalesInvoiceItem } from 'models/baseModels/SalesInvoiceItem/SalesInvoiceItem';
 import { SalesInvoice } from 'models/baseModels/SalesInvoice/SalesInvoice';
-import { Field } from 'schemas/types';
 
 export default defineComponent({
   name: 'ModernPOSSelectedItemTable',
@@ -153,7 +149,6 @@ export default defineComponent({
     selectedItemRow(row: SalesInvoiceItem, field: string) {
       this.$emit('selectedRow', row, field);
     },
-    isNumeric,
   },
 });
 </script>

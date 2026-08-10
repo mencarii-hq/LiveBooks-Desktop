@@ -36,6 +36,7 @@
             fieldtype: 'Link',
             target: 'Party',
             label: t`Customer`,
+            filters: { role: ['in', ['Customer', 'Both']] },
           }"
           :value="ItemEnquiry.customer"
           :border="true"

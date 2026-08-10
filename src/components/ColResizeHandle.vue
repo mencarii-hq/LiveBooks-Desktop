@@ -27,7 +27,7 @@ export default defineComponent({
   position: absolute;
   top: 0;
   right: 0;
-  width: 0.625rem;
+  width: 0.75rem;
   height: 100%;
   cursor: col-resize;
   flex-shrink: 0;
@@ -36,14 +36,15 @@ export default defineComponent({
 .col-resize-handle::after {
   content: '';
   position: absolute;
-  top: 20%;
-  bottom: 20%;
+  top: 0.5rem;
+  bottom: 0.5rem;
   left: 50%;
   width: 2px;
   border-radius: 1px;
-  background: transparent;
+  transform: translateX(-50%);
+  background: rgba(156, 163, 175, 0.75); /* gray-400 */
 }
 .col-resize-handle:hover::after {
-  background: rgba(107, 114, 128, 0.5); /* gray-500/50 */
+  background: rgba(107, 114, 128, 1); /* gray-500 */
 }
 </style>

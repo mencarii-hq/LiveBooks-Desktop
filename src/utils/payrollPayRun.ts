@@ -9,7 +9,7 @@ import {
   resolveDefaultPaymentMethod,
 } from 'src/utils/memorizedTransactions';
 import type { RegisterSplitLine } from 'src/utils/memorizedTransactions';
-import { getPartyNameMap } from 'src/utils/partyNames';
+import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
 
 /**
  * Memo written on generated payroll payments. It doubles as the marker the
@@ -234,7 +234,7 @@ export async function generatePayRunPayments(
       profiles.map((p) => String(p.profile.party || '')).filter(Boolean)
     ),
   ]);
-  const displayName = (partyId: string) => partyNames.get(partyId) || partyId;
+  const displayName = (partyId: string) => partyLabel(partyNames, partyId);
 
   const computedLines: PayRunComputedLine[] = [];
   const problems: string[] = [];

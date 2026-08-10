@@ -5,6 +5,8 @@ import { fyo } from 'src/initFyo';
 import { fuzzyMatch } from 'src/utils';
 import { getCreateFiltersFromListViewFilters } from 'src/utils/misc';
 import { accountDisplayName } from 'utils/accountDisplay';
+import { isUuidDocId } from 'utils/ids';
+import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
 import { markRaw } from 'vue';
 import AutoComplete from './AutoComplete.vue';
 
@@ -61,14 +63,28 @@ export default {
           return;
         }
 
-        if (!linkDisplayField) {
-          return (this.linkValue = value);
+        if (target === 'Party' && value) {
+          const map = await getPartyNameMap(fyo, [value]);
+          const label = partyLabel(map, value);
+          this.linkValue = isUuidDocId(label) ? '' : label;
+          return;
         }
 
-        this.linkValue = linkDoc?.get(linkDisplayField) ?? value ?? '';
+        if (!linkDisplayField) {
+          return (this.linkValue = isUuidDocId(value) ? '' : value || '');
+        }
+
+        const display = linkDoc?.get(linkDisplayField);
+        if (display != null && display !== '' && !isUuidDocId(display)) {
+          this.linkValue = display;
+        } else if (isUuidDocId(value)) {
+          this.linkValue = '';
+        } else {
+          this.linkValue = display ?? value ?? '';
+        }
       } catch {
         // Missing / partial link targets are expected while typing.
-        this.linkValue = value || '';
+        this.linkValue = isUuidDocId(value) ? '' : value || '';
       }
     },
     getTargetSchemaName() {
@@ -93,6 +109,7 @@ export default {
           schema.linkDisplayField,
           this.df.groupBy,
           ...(schemaName === 'Account' ? ['accountName'] : []),
+          ...(schemaName === 'Party' ? ['partyName'] : []),
         ]),
       ].filter(Boolean);
 
@@ -100,6 +117,26 @@ export default {
         filters,
         fields,
       });
+
+      if (schemaName === 'Party') {
+        const map = await getPartyNameMap(
+          fyo,
+          results.map((r) => r.name).filter(Boolean)
+        );
+        return (this.results = results
+          .map((r) => {
+            const label = partyLabel(map, r.name);
+            if (!label || isUuidDocId(label)) {
+              return null;
+            }
+            const option = { label, value: r.name };
+            if (this.df.groupBy) {
+              option.group = r[this.df.groupBy];
+            }
+            return option;
+          })
+          .filter(Boolean));
+      }
 
       return (this.results = results
         .map((r) => {

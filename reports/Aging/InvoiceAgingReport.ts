@@ -14,6 +14,7 @@ import {
 import { ColumnField, ReportCell, ReportData, ReportRow } from 'reports/types';
 import { Field, FieldTypeEnum, RawValue } from 'schemas/types';
 import { QueryFilter } from 'utils/db/types';
+import { getPartyNameMap } from 'src/utils/partyNames';
 
 type InvoiceRowRaw = {
   name: string;
@@ -67,14 +68,13 @@ export abstract class InvoiceAgingReport extends Report {
 
   async _setPartyNameMap() {
     const parties = await this.fyo.db.getAllRaw('Party', {
-      fields: ['name', 'partyName'],
+      fields: ['name'],
     });
-
+    const ids = parties.map((p) => String(p.name ?? '')).filter(Boolean);
+    const map = await getPartyNameMap(this.fyo, ids);
     this._partyNameMap = {};
-    for (const party of parties) {
-      const label = String(party.partyName ?? '').trim();
-      this._partyNameMap[party.name as string] =
-        label || (party.name as string);
+    for (const id of ids) {
+      this._partyNameMap[id] = map.get(id) ?? '';
     }
   }
 
@@ -92,6 +92,10 @@ export abstract class InvoiceAgingReport extends Report {
         label: this.partyFilterLabel,
         fieldname: 'party',
         placeholder: this.partyFilterLabel,
+        filters:
+          this.invoiceSchema === ModelNameEnum.SalesInvoice
+            ? { role: ['in', ['Customer', 'Both']] }
+            : { role: ['in', ['Supplier', 'Both']] },
       },
     ];
   }
@@ -219,7 +223,7 @@ export abstract class InvoiceAgingReport extends Report {
           raw = seq;
           break;
         case 'party':
-          raw = this._partyNameMap[inv.party] ?? inv.party;
+          raw = this._partyNameMap[inv.party] ?? '';
           break;
         case 'invoice':
           raw = inv.name;
@@ -260,9 +264,7 @@ export abstract class InvoiceAgingReport extends Report {
   ): ReportRow {
     const cols = this.columns;
     const cells: ReportCell[] = [];
-    const partyLabel = `${t`Total`} — ${
-      this._partyNameMap[partyId] ?? partyId
-    }`;
+    const partyLabel = `${t`Total`} — ${this._partyNameMap[partyId] || ''}`;
     for (const col of cols) {
       switch (col.fieldname) {
         case 'idx':

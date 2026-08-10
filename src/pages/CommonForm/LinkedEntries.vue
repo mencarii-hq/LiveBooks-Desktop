@@ -212,6 +212,8 @@ import { getLinkedEntries } from 'src/utils/doc';
 import { shortcutsKey } from 'src/utils/injectionKeys';
 import { getFormRoute, routeTo } from 'src/utils/ui';
 import { accountDisplayName } from 'utils/accountDisplay';
+import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
+import { isUuidDocId } from 'utils/ids';
 import { isUuidDocId } from 'utils/ids';
 import { PropType, defineComponent, inject } from 'vue';
 
@@ -318,7 +320,23 @@ export default defineComponent({
         const displayField =
           schema?.linkDisplayField || schema?.titleField || 'name';
 
-        if (displayField === 'name' && target !== ModelNameEnum.Account) {
+        if (
+          displayField === 'name' &&
+          target !== ModelNameEnum.Account &&
+          target !== ModelNameEnum.Party
+        ) {
+          continue;
+        }
+
+        if (target === ModelNameEnum.Party) {
+          const map = await getPartyNameMap(this.fyo, ids);
+          for (const detail of details) {
+            const id = detail[field];
+            if (typeof id === 'string' && id) {
+              const label = partyLabel(map, id);
+              detail[field] = label && !isUuidDocId(label) ? label : '';
+            }
+          }
           continue;
         }
 

@@ -63,7 +63,12 @@ const PAY_FIELDNAMES = [
   'disabled',
 ] as const;
 
-type PreSyncDoc = Doc & { _preSync: () => Promise<void> };
+type PreSyncDoc = Doc & {
+  _preSync: () => Promise<void>;
+  _setBaseMetaValues: () => void;
+  _updateModifiedMetaValues: () => void;
+  _touchDirtyChildModifiedMeta: () => void;
+};
 
 export default defineComponent({
   name: 'EmployeePaySection',
@@ -164,7 +169,17 @@ export default defineComponent({
       }
 
       await this.linkProfileParty();
-      await (this.profile as PreSyncDoc)._preSync();
+      // _preSync validates required meta (Created/Modified/…). Those are
+      // normally stamped in Doc._insert/_update before _preSync — stamp here
+      // too so this early validate path does not false-fail.
+      const profile = this.profile as PreSyncDoc;
+      if (profile.notInserted) {
+        profile._setBaseMetaValues();
+      } else {
+        profile._updateModifiedMetaValues();
+      }
+      profile._touchDirtyChildModifiedMeta();
+      await profile._preSync();
     },
     /**
      * Persist pay after Party succeeds. On create, roll Party back if pay

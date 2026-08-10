@@ -185,6 +185,10 @@ html.desk-sidebar-resizing * {
   height: var(--h-row-mid);
 }
 
+.min-h-row-mid {
+  min-height: var(--h-row-mid);
+}
+
 .h-row-large {
   height: var(--h-row-large);
 }

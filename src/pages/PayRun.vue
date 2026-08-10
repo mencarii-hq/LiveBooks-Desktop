@@ -54,7 +54,7 @@
         </div>
         <template v-else>
           <div class="flex items-center">
-            <div class="w-8 flex justify-end me-2 items-center h-row-mid">
+            <div class="w-8 flex justify-end me-2 items-center min-h-row-mid">
               <Check
                 :df="{
                   fieldtype: 'Check',
@@ -68,29 +68,25 @@
               />
             </div>
             <Row
-              class="flex-1 text-gray-700 dark:text-gray-300 h-row-mid"
+              ref="headerRow"
+              class="flex-1 text-gray-700 dark:text-gray-300 min-h-row-mid"
               :ratio="COLUMN_RATIO"
-              gap="1rem"
+              :grid-template-columns="gridTemplate"
+              gap="0.5rem"
             >
               <div
                 v-for="(col, i) in headerCols"
-                :key="col.label"
-                class="
-                  relative
-                  overflow-x-auto
-                  no-scrollbar
-                  whitespace-nowrap
-                  h-row
-                  items-center
-                  flex
-                  min-w-0
-                "
-                :class="{
-                  'ms-auto': col.numeric,
-                  'pe-4': i === headerCols.length - 1,
-                }"
+                :key="col.id"
+                class="cell-header relative"
+                :class="{ 'pe-4': i === headerCols.length - 1 }"
               >
                 {{ col.label }}
+                <ColResizeHandle
+                  v-if="i < headerCols.length - 1"
+                  :title="t`Drag to resize. Double-click to reset.`"
+                  @start="startColResize(i, $event)"
+                  @reset="resetColWidths"
+                />
               </div>
             </Row>
           </div>
@@ -135,7 +131,9 @@
                 "
                 :class="{ 'opacity-50': !row.ready }"
               >
-                <div class="w-8 flex justify-end me-2 items-center h-row-mid">
+                <div
+                  class="w-8 flex justify-end me-2 items-center min-h-row-mid"
+                >
                   <Check
                     v-if="row.ready"
                     :df="{
@@ -149,42 +147,20 @@
                   />
                 </div>
                 <Row
-                  gap="1rem"
-                  class="flex-1 h-row-mid items-center"
+                  gap="0.5rem"
+                  class="flex-1 min-h-row-mid items-center"
                   :class="
                     row.ready
                       ? 'text-gray-900 dark:text-gray-300'
                       : 'text-gray-500 dark:text-gray-500'
                   "
                   :ratio="COLUMN_RATIO"
+                  :grid-template-columns="gridTemplate"
                 >
-                  <div
-                    class="
-                      truncate
-                      overflow-x-auto
-                      no-scrollbar
-                      whitespace-nowrap
-                      h-row
-                      items-center
-                      flex
-                      min-w-0
-                    "
-                    :title="row.partyName"
-                  >
+                  <div class="cell-body" :title="row.partyName">
                     {{ row.partyName }}
                   </div>
-                  <div
-                    class="
-                      truncate
-                      overflow-x-auto
-                      no-scrollbar
-                      whitespace-nowrap
-                      h-row
-                      items-center
-                      flex
-                      min-w-0
-                    "
-                  >
+                  <div class="cell-body">
                     <template v-if="row.ready">{{ row.payType }}</template>
                     <button
                       v-else
@@ -195,23 +171,10 @@
                       {{ t`Set up pay` }}
                     </button>
                   </div>
-                  <div
-                    class="
-                      truncate
-                      tabular-nums
-                      ms-auto
-                      overflow-x-auto
-                      no-scrollbar
-                      whitespace-nowrap
-                      h-row
-                      items-center
-                      flex
-                      min-w-0
-                    "
-                  >
+                  <div class="cell-body tabular-nums">
                     {{ row.ready ? formatCurrency(row.rate) : '—' }}
                   </div>
-                  <div class="h-row items-center flex min-w-0 ms-auto">
+                  <div class="cell-body">
                     <FormControl
                       v-if="row.ready && row.payType === 'Hourly'"
                       :border="true"
@@ -224,40 +187,14 @@
                     />
                     <span v-else class="text-gray-400">—</span>
                   </div>
-                  <div
-                    class="
-                      truncate
-                      tabular-nums
-                      ms-auto
-                      overflow-x-auto
-                      no-scrollbar
-                      whitespace-nowrap
-                      h-row
-                      items-center
-                      flex
-                      min-w-0
-                    "
-                  >
+                  <div class="cell-body tabular-nums">
                     {{
                       row.ready && rowStates[row.party]?.line
                         ? formatCurrency(rowStates[row.party].line!.gross)
                         : '—'
                     }}
                   </div>
-                  <div
-                    class="
-                      truncate
-                      tabular-nums
-                      ms-auto
-                      overflow-x-auto
-                      no-scrollbar
-                      whitespace-nowrap
-                      h-row
-                      items-center
-                      flex
-                      min-w-0
-                    "
-                  >
+                  <div class="cell-body tabular-nums">
                     {{
                       row.ready && rowStates[row.party]?.line
                         ? formatCurrency(
@@ -266,21 +203,7 @@
                         : '—'
                     }}
                   </div>
-                  <div
-                    class="
-                      truncate
-                      tabular-nums
-                      ms-auto
-                      pe-4
-                      overflow-x-auto
-                      no-scrollbar
-                      whitespace-nowrap
-                      h-row
-                      items-center
-                      flex
-                      min-w-0
-                    "
-                  >
+                  <div class="cell-body tabular-nums pe-4">
                     {{
                       row.ready && rowStates[row.party]?.line
                         ? formatCurrency(rowStates[row.party].line!.net)
@@ -305,61 +228,31 @@
           <div v-if="rows.length && selected.length" class="flex items-center">
             <div class="w-8 me-2"></div>
             <Row
-              gap="1rem"
+              gap="0.5rem"
               class="
                 flex-1
-                h-row-mid
+                min-h-row-mid
                 items-center
                 font-semibold
                 text-gray-900
                 dark:text-gray-200
               "
               :ratio="COLUMN_RATIO"
+              :grid-template-columns="gridTemplate"
             >
-              <div class="truncate h-row items-center flex min-w-0">
+              <div class="cell-body">
                 {{ t`Total (${String(selected.length)} selected)` }}
               </div>
               <div></div>
               <div></div>
               <div></div>
-              <div
-                class="
-                  truncate
-                  tabular-nums
-                  ms-auto
-                  h-row
-                  items-center
-                  flex
-                  min-w-0
-                "
-              >
+              <div class="cell-body tabular-nums">
                 {{ totals ? formatCurrency(totals.gross) : '—' }}
               </div>
-              <div
-                class="
-                  truncate
-                  tabular-nums
-                  ms-auto
-                  h-row
-                  items-center
-                  flex
-                  min-w-0
-                "
-              >
+              <div class="cell-body tabular-nums">
                 {{ totals ? formatCurrency(totals.deductionTotal) : '—' }}
               </div>
-              <div
-                class="
-                  truncate
-                  tabular-nums
-                  ms-auto
-                  pe-4
-                  h-row
-                  items-center
-                  flex
-                  min-w-0
-                "
-              >
+              <div class="cell-body tabular-nums pe-4">
                 {{ totals ? formatCurrency(totals.net) : '—' }}
               </div>
             </Row>
@@ -390,7 +283,15 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, onActivated, onMounted, ref } from 'vue';
+import {
+  computed,
+  defineComponent,
+  onActivated,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  type ComponentPublicInstance,
+} from 'vue';
 import { t } from 'fyo';
 import { DateTime } from 'luxon';
 import { ModelNameEnum } from 'models/types';
@@ -400,7 +301,9 @@ import PageHeader from 'src/components/PageHeader.vue';
 import FormControl from 'src/components/Controls/FormControl.vue';
 import Check from 'src/components/Controls/Check.vue';
 import Row from 'src/components/Row.vue';
+import ColResizeHandle from 'src/components/ColResizeHandle.vue';
 import { fyo } from 'src/initFyo';
+import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
 import { showToast } from 'src/utils/interactive';
 import { handleErrorWithDialog } from 'src/errorHandling';
 import { getFormRoute, routeTo } from 'src/utils/ui';
@@ -417,6 +320,15 @@ import {
   resolveDefaultPaymentMethod,
 } from 'src/utils/memorizedTransactions';
 import type { Field } from 'schemas/types';
+import {
+  clampColWidth,
+  clearColumnWidths,
+  columnWidthsStorageKey,
+  gridTemplateFromWidths,
+  readColumnWidths,
+  snapshotChildrenWidths,
+  writeColumnWidths,
+} from 'src/utils/columnWidths';
 
 type EmployeeRow = {
   /** Row key = party name */
@@ -435,11 +347,21 @@ type RowState = {
   error?: string;
 };
 
+const COLUMN_IDS = [
+  'employee',
+  'payType',
+  'rate',
+  'hours',
+  'gross',
+  'deductions',
+  'net',
+] as const;
 const COLUMN_RATIO = [1.4, 0.7, 0.8, 0.7, 0.8, 0.8, 0.8];
+const WIDTHS_KEY = columnWidthsStorageKey('list:PayRun');
 
 export default defineComponent({
   name: 'PayRun',
-  components: { Button, PageHeader, FormControl, Check, Row },
+  components: { Button, PageHeader, FormControl, Check, Row, ColResizeHandle },
   setup() {
     const loading = ref(true);
     const busy = ref(false);
@@ -491,14 +413,96 @@ export default defineComponent({
     } as Field;
 
     const headerCols = [
-      { label: t`Employee`, numeric: false },
-      { label: t`Pay Type`, numeric: false },
-      { label: t`Rate`, numeric: true },
-      { label: t`Hours`, numeric: true },
-      { label: t`Gross`, numeric: true },
-      { label: t`Deductions`, numeric: true },
-      { label: t`Net`, numeric: true },
+      { id: 'employee', label: t`Employee` },
+      { id: 'payType', label: t`Pay Type` },
+      { id: 'rate', label: t`Rate` },
+      { id: 'hours', label: t`Hours` },
+      { id: 'gross', label: t`Gross` },
+      { id: 'deductions', label: t`Deductions` },
+      { id: 'net', label: t`Net` },
     ];
+
+    const headerRow = ref<ComponentPublicInstance | null>(null);
+    const columnWidths = ref<number[] | null>(null);
+    const resizingCol = ref(-1);
+    const resizeStartX = ref(0);
+    const resizeStartWidth = ref(0);
+    const resizeMoved = ref(false);
+    let boundColResizeMove: ((e: MouseEvent) => void) | null = null;
+    let boundEndColResize: (() => void) | null = null;
+
+    const gridTemplate = computed(() => {
+      if (!columnWidths.value) {
+        return null;
+      }
+      return gridTemplateFromWidths(columnWidths.value);
+    });
+
+    function startColResize(index: number, event: MouseEvent) {
+      if (!columnWidths.value) {
+        const el = headerRow.value?.$el as HTMLElement | undefined;
+        const snapped = snapshotChildrenWidths(el, COLUMN_IDS.length);
+        if (!snapped) {
+          return;
+        }
+        columnWidths.value = snapped;
+      }
+      resizingCol.value = index;
+      resizeStartX.value = event.clientX;
+      resizeStartWidth.value = columnWidths.value[index];
+      resizeMoved.value = false;
+      boundColResizeMove = (e: MouseEvent) => onColResizeMove(e);
+      boundEndColResize = () => endColResize();
+      window.addEventListener('mousemove', boundColResizeMove);
+      window.addEventListener('mouseup', boundEndColResize);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    function onColResizeMove(event: MouseEvent) {
+      if (resizingCol.value < 0 || !columnWidths.value) {
+        return;
+      }
+      const dx = event.clientX - resizeStartX.value;
+      const next = clampColWidth(resizeStartWidth.value + dx);
+      if (next === columnWidths.value[resizingCol.value]) {
+        return;
+      }
+      resizeMoved.value = true;
+      const widths = [...columnWidths.value];
+      widths[resizingCol.value] = next;
+      columnWidths.value = widths;
+    }
+
+    function endColResize() {
+      if (resizingCol.value < 0) {
+        return;
+      }
+      resizingCol.value = -1;
+      if (boundColResizeMove) {
+        window.removeEventListener('mousemove', boundColResizeMove);
+      }
+      if (boundEndColResize) {
+        window.removeEventListener('mouseup', boundEndColResize);
+      }
+      boundColResizeMove = null;
+      boundEndColResize = null;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      if (!resizeMoved.value || !columnWidths.value) {
+        return;
+      }
+      try {
+        writeColumnWidths(WIDTHS_KEY, [...COLUMN_IDS], columnWidths.value);
+      } catch {
+        /* best-effort */
+      }
+    }
+
+    function resetColWidths() {
+      columnWidths.value = null;
+      clearColumnWidths(WIDTHS_KEY);
+    }
 
     const readyRows = computed(() => rows.value.filter((r) => r.ready));
 
@@ -669,12 +673,16 @@ export default defineComponent({
           deductionsByProfile.set(row.parent, list);
         }
 
+        const partyNameMap = await getPartyNameMap(
+          fyo,
+          parties.map((p) => p.name)
+        );
         const built: EmployeeRow[] = parties.map((p) => {
           const profile = profileByParty.get(p.name);
           const ready = !!profile && !profile.disabled;
           return {
             party: p.name,
-            partyName: p.partyName || p.name,
+            partyName: partyLabel(partyNameMap, p.name),
             ready,
             profileName: profile?.name,
             payType:
@@ -755,6 +763,7 @@ export default defineComponent({
     }
 
     onMounted(async () => {
+      columnWidths.value = readColumnWidths(WIDTHS_KEY, [...COLUMN_IDS]);
       paymentMethod.value = await resolveDefaultPaymentMethod(fyo);
       if (await isCheckMethod(fyo, paymentMethod.value)) {
         printLater.value = true;
@@ -766,9 +775,17 @@ export default defineComponent({
       void loadEmployees();
     });
 
+    onBeforeUnmount(() => {
+      endColResize();
+    });
+
     return {
       t,
       COLUMN_RATIO,
+      headerRow,
+      gridTemplate,
+      startColResize,
+      resetColWidths,
       loading,
       busy,
       rows,
@@ -804,3 +821,31 @@ export default defineComponent({
   },
 });
 </script>
+
+<style scoped>
+.cell-header,
+.cell-body {
+  min-height: var(--h-row-mid);
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+}
+.cell-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  justify-content: flex-start;
+  text-align: start;
+  padding-inline-end: 0.75rem;
+}
+.cell-body {
+  justify-content: flex-start;
+  text-align: start;
+}
+</style>

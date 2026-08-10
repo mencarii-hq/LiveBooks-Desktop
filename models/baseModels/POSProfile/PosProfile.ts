@@ -18,5 +18,6 @@ export class POSProfile extends Doc {
 
   static filters: FiltersMap = {
     posPrintTemplate: () => ({ type: ModelNameEnum.SalesInvoice }),
+    posCustomer: () => ({ role: ['in', ['Customer', 'Both']] }),
   };
 }

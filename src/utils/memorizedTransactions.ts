@@ -8,6 +8,7 @@ import { showDialog, showToast } from 'src/utils/interactive';
 import { handleErrorWithDialog } from 'src/errorHandling';
 import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
 import { routeTo } from 'src/utils/ui';
+import { isUuidDocId } from 'utils/ids';
 
 /**
  * #7 — day-scoped snooze. Dismissing "These are due" silences that exact due
@@ -306,12 +307,25 @@ async function ensurePartyExists(fyo: Fyo, partyName: string): Promise<string> {
   const parties = (await fyo.db.getAll(ModelNameEnum.Party, {
     fields: ['name', 'partyName'],
   })) as { name: string; partyName?: string }[];
+
+  // Link fields store Party.name (UUID). Never treat that as a display name
+  // or create a new Party whose partyName is a UUID.
+  const byId = parties.find((party) => party.name === trimmed);
+  if (byId) {
+    return byId.name;
+  }
+
   const normalized = trimmed.toLowerCase();
   const match = parties.find(
     (party) => party.partyName?.trim().toLowerCase() === normalized
   );
   if (match) {
     return match.name;
+  }
+
+  // Refuse to persist a UUID as partyName (would show as payee UUID in UI).
+  if (isUuidDocId(trimmed)) {
+    throw new Error(t`Payee not found.`);
   }
 
   const party = fyo.doc.getNewDoc(ModelNameEnum.Party, {

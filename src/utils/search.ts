@@ -605,6 +605,13 @@ export class Search {
         options.orderBy = 'modified';
       }
 
+      // Party schema label is "Customers & Suppliers"; exclude workforce roles.
+      if (searchable.schemaName === ModelNameEnum.Party) {
+        options.filters = {
+          role: ['in', ['Customer', 'Supplier', 'Both']],
+        };
+      }
+
       const maps = await this.fyo.db.getAllRaw(searchable.schemaName, options);
       this._setKeywords(maps, searchable);
       this.searchables[searchable.schemaName].needsUpdate = false;

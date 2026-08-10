@@ -249,10 +249,12 @@
           </thead>
           <tbody>
             <tr v-for="line in manualLinesForReview" :key="manualLineKey(line)">
-              <td class="p-2 border-b dark:border-gray-800 whitespace-nowrap">
+              <td class="p-2 border-b dark:border-gray-800 break-words">
                 {{ line.date || '—' }}
               </td>
-              <td class="p-2 border-b dark:border-gray-800 max-w-md">
+              <td
+                class="p-2 border-b dark:border-gray-800 max-w-md break-words"
+              >
                 {{ line.description || '—' }}
               </td>
               <td class="p-2 border-b dark:border-gray-800 text-xs">
@@ -364,10 +366,10 @@
           </thead>
           <tbody>
             <tr v-for="line in manualLinesReviewed" :key="manualLineKey(line)">
-              <td class="p-2 border-b dark:border-gray-800 whitespace-nowrap">
+              <td class="p-2 border-b dark:border-gray-800 break-words">
                 {{ line.date || '—' }}
               </td>
-              <td class="p-2 border-b dark:border-gray-800">
+              <td class="p-2 border-b dark:border-gray-800 break-words">
                 {{ line.description || '—' }}
               </td>
               <td
@@ -440,10 +442,12 @@
               :key="manualLineKey(line)"
               class="text-gray-500 dark:text-gray-500"
             >
-              <td class="p-2 border-b whitespace-nowrap">
+              <td class="p-2 border-b break-words">
                 {{ line.date || '—' }}
               </td>
-              <td class="p-2 border-b">{{ line.description || '—' }}</td>
+              <td class="p-2 border-b break-words">
+                {{ line.description || '—' }}
+              </td>
               <td class="p-2 border-b text-start tabular-nums">
                 {{ manualAmountLabel(line) }}
               </td>

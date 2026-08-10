@@ -23,6 +23,7 @@ import POS from 'src/pages/POS/POS.vue';
 import type { HistoryState } from 'vue-router';
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
 import { historyState } from './utils/refs';
+import { routeFilters } from './utils/filters';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -64,6 +65,19 @@ const routes: RouteRecordRaw[] = [
         const filterString = route.query.filters;
         if (typeof filterString === 'string') {
           Object.assign(filters, JSON.parse(filterString));
+        } else if (schemaName === 'Party') {
+          // Bare /list/Party* without ?filters= must not show Employee/Contractor
+          // in customer/supplier lists.
+          const title = String(pageTitle);
+          if (title === 'Customers') {
+            Object.assign(filters, routeFilters.Customers);
+          } else if (title === 'Suppliers') {
+            Object.assign(filters, routeFilters.Suppliers);
+          } else if (title === 'Employees') {
+            Object.assign(filters, routeFilters.Employees);
+          } else {
+            Object.assign(filters, routeFilters.Party);
+          }
         }
 
         return {

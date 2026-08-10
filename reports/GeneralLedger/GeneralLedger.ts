@@ -13,6 +13,7 @@ import { Field, FieldTypeEnum } from 'schemas/types';
 import { accountDisplayName } from 'utils/accountDisplay';
 import { QueryFilter } from 'utils/db/types';
 import { isUsCaCompany } from 'utils/regional';
+import { getPartyNameMap } from 'src/utils/partyNames';
 
 type ReferenceType =
   | ModelNameEnum.SalesInvoice
@@ -43,14 +44,13 @@ export class GeneralLedger extends LedgerReport {
 
   async _setPartyNameMap() {
     const parties = await this.fyo.db.getAllRaw('Party', {
-      fields: ['name', 'partyName'],
+      fields: ['name'],
     });
-
+    const ids = parties.map((p) => String(p.name ?? '')).filter(Boolean);
+    const map = await getPartyNameMap(this.fyo, ids);
     this._partyNameMap = {};
-    for (const party of parties) {
-      const label = String(party.partyName ?? '').trim();
-      this._partyNameMap[party.name as string] =
-        label || (party.name as string);
+    for (const id of ids) {
+      this._partyNameMap[id] = map.get(id) ?? '';
     }
   }
 
@@ -185,7 +185,7 @@ export class GeneralLedger extends LedgerReport {
       }
 
       if (fieldname === 'party' && rawValue != null) {
-        value = this._partyNameMap[String(rawValue)] ?? value;
+        value = this._partyNameMap[String(rawValue)] ?? '';
       }
 
       row.cells.push({

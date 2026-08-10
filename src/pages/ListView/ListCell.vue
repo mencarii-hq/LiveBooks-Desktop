@@ -1,6 +1,10 @@
 <template>
-  <div class="flex items-center truncate" :class="cellClass">
-    <span v-if="!customRenderer" class="truncate">{{ columnValue }}</span>
+  <div class="flex items-center justify-start text-start min-w-0 py-1.5">
+    <span
+      v-if="!customRenderer"
+      class="break-words whitespace-normal min-w-0 text-start"
+      >{{ columnValue }}</span
+    >
     <component :is="(customRenderer as {})" v-else />
   </div>
 </template>
@@ -8,7 +12,6 @@
 import { ColumnConfig, RenderData } from 'fyo/model/types';
 import { Field } from 'schemas/types';
 import { fyo } from 'src/initFyo';
-import { isNumeric } from 'src/utils';
 import { defineComponent, PropType } from 'vue';
 
 type Column = ColumnConfig | Field;
@@ -47,9 +50,6 @@ export default defineComponent({
       }
 
       return render(this.row);
-    },
-    cellClass() {
-      return isNumeric(this.column.fieldtype) ? 'justify-end' : '';
     },
   },
   mounted() {

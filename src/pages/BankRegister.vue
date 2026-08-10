@@ -107,10 +107,10 @@
                 </div>
                 <Row
                   ref="headerRow"
-                  class="flex-1 text-gray-700 dark:text-gray-300 h-row-mid"
+                  class="flex-1 text-gray-700 dark:text-gray-300 min-h-row-mid"
                   :ratio="columnRatio"
                   :grid-template-columns="gridTemplate"
-                  gap="1rem"
+                  gap="0.5rem"
                 >
                   <div
                     v-for="(col, ci) in headerCols"
@@ -169,13 +169,13 @@
                       {{ pageStart + i + 1 }}
                     </div>
                     <Row
-                      gap="1rem"
+                      gap="0.5rem"
                       class="
                         cursor-pointer
                         text-gray-900
                         dark:text-gray-300
                         flex-1
-                        h-row-mid
+                        min-h-row-mid
                       "
                       :ratio="columnRatio"
                       :grid-template-columns="gridTemplate"
@@ -195,13 +195,13 @@
                         {{ row.category }}
                       </div>
                       <div class="cell-body">{{ row.memo }}</div>
-                      <div class="cell-body ms-auto tabular-nums">
+                      <div class="cell-body tabular-nums">
                         {{ row.payment }}
                       </div>
-                      <div class="cell-body ms-auto tabular-nums">
+                      <div class="cell-body tabular-nums">
                         {{ row.deposit }}
                       </div>
-                      <div class="cell-body ms-auto tabular-nums pe-4">
+                      <div class="cell-body tabular-nums pe-4">
                         {{ row.balance }}
                       </div>
                     </Row>
@@ -378,9 +378,9 @@ export default defineComponent({
         { id: 'payee', label: this.t`Payee`, class: '' },
         { id: 'category', label: this.t`Category`, class: '' },
         { id: 'memo', label: this.t`Memo`, class: '' },
-        { id: 'payment', label: outflow, class: 'justify-end' },
-        { id: 'deposit', label: inflow, class: 'justify-end' },
-        { id: 'balance', label: this.t`Balance`, class: 'justify-end pe-4' },
+        { id: 'payment', label: outflow, class: '' },
+        { id: 'deposit', label: inflow, class: '' },
+        { id: 'balance', label: this.t`Balance`, class: 'pe-4' },
       ];
     },
     gridTemplate(): string | null {
@@ -971,15 +971,25 @@ export default defineComponent({
 <style scoped>
 .cell-header,
 .cell-body {
-  overflow-x: auto;
-  white-space: nowrap;
-  height: var(--h-row);
+  min-height: var(--h-row-mid);
   display: flex;
   align-items: center;
   min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+}
+.cell-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  justify-content: flex-start;
+  text-align: start;
+  padding-inline-end: 0.75rem;
 }
 .cell-body {
-  text-overflow: ellipsis;
-  overflow: hidden;
+  justify-content: flex-start;
+  text-align: start;
 }
 </style>

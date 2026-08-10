@@ -19,9 +19,7 @@
       v-for="df in tableFields"
       :key="df.fieldname"
       class="items-center text-lg flex px-2 py-2"
-      :class="{
-      'ms-auto': isNumeric(df as Field),
-    }"
+      :class="'text-start break-words'"
       :style="{
         height: ``,
       }"
@@ -72,12 +70,10 @@ import Link from 'src/components/Controls/Link.vue';
 import Row from 'src/components/Row.vue';
 import RowEditForm from 'src/pages/CommonForm/RowEditForm.vue';
 import SelectedItemRow from './SelectedItemRow.vue';
-import { isNumeric } from 'src/utils';
 import { inject } from 'vue';
 import { defineComponent, PropType } from 'vue';
 import { SalesInvoiceItem } from 'models/baseModels/SalesInvoiceItem/SalesInvoiceItem';
 import { SalesInvoice } from 'models/baseModels/SalesInvoice/SalesInvoice';
-import { Field } from 'schemas/types';
 
 export default defineComponent({
   name: 'SelectedItemTable',
@@ -167,7 +163,6 @@ export default defineComponent({
     selectedItemRow(row: SalesInvoiceItem) {
       this.$emit('selectedRow', row);
     },
-    isNumeric,
   },
 });
 </script>

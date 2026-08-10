@@ -73,6 +73,8 @@
 
 <script lang="ts">
 import { fyo } from 'src/initFyo';
+import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
+import { isUuidDocId } from 'utils/ids';
 import { getDatesAndPeriodList } from 'src/utils/misc';
 import { defineComponent } from 'vue';
 import BaseDashboardChart from './BaseDashboardChart.vue';
@@ -103,10 +105,21 @@ export default defineComponent({
   methods: {
     async setData() {
       const { fromDate, toDate } = getDatesAndPeriodList(this.period);
-      this.customers = await fyo.db.getTopCustomers(
+      const rows = await fyo.db.getTopCustomers(
         fromDate.toISO(),
         toDate.toISO()
       );
+      const map = await getPartyNameMap(
+        fyo,
+        rows.map((r) => r.party).filter(Boolean)
+      );
+      this.customers = rows.map((r) => {
+        const label = partyLabel(map, r.party);
+        return {
+          ...r,
+          party: label && !isUuidDocId(label) ? label : '',
+        };
+      });
     },
     barWidth(total: number): number {
       return Math.round((total / (this.maxTotal || 1)) * 100);

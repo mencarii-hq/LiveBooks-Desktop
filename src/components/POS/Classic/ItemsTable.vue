@@ -18,9 +18,7 @@
       v-for="df in tableFields"
       :key="df.fieldname"
       class="flex items-center px-2 py-2 text-lg"
-      :class="{
-        'ms-auto': isNumeric(df as Field),
-      }"
+      :class="'text-start break-words'"
       :style="{
         height: ``,
       }"
@@ -43,7 +41,7 @@
         dark:border-gray-800
         flex
         group
-        h-row-mid
+        min-h-row-mid
         hover:bg-gray-25
         dark:bg-gray-890
         items-center
@@ -69,7 +67,6 @@
 <script lang="ts">
 import FormControl from 'src/components/Controls/FormControl.vue';
 import Row from 'src/components/Row.vue';
-import { isNumeric } from 'src/utils';
 import { defineComponent } from 'vue';
 import { Field } from 'schemas/types';
 import { POSItem } from '../types';
@@ -137,7 +134,6 @@ export default defineComponent({
       this.$emit('addItem', value);
       this.$emit('updateValues');
     },
-    isNumeric,
   },
 });
 </script>

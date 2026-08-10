@@ -13,7 +13,8 @@ export const routeFilters = {
   Suppliers: { role: ['in', ['Supplier', 'Both']] },
   Customers: { role: ['in', ['Customer', 'Both']] },
   Employees: { role: ['in', ['Employee', 'Contractor']] },
-  Party: { role: 'Both' },
+  // Customers & Suppliers list — exclude workforce roles.
+  Party: { role: ['in', ['Customer', 'Supplier', 'Both']] },
 };
 
 export const createFilters = {

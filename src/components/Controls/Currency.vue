@@ -6,7 +6,6 @@
     <input
       v-show="showInput"
       ref="input"
-      class="text-end"
       :class="[inputClasses, containerClasses]"
       :type="inputType"
       :value="round(value)"
@@ -19,7 +18,7 @@
     />
     <div
       v-show="!showInput"
-      class="whitespace-nowrap overflow-x-auto no-scrollbar text-end"
+      class="whitespace-nowrap overflow-x-auto no-scrollbar"
       :class="[inputClasses, containerClasses]"
       tabindex="0"
       @click="activateInput"

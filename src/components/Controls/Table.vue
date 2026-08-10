@@ -1,62 +1,78 @@
 <template>
-  <div v-if="tableFields?.length">
+  <div v-if="tableFields?.length" class="text-base">
     <div v-if="showLabel" class="text-gray-600 dark:text-gray-300 text-sm mb-1">
       {{ df.label }}
     </div>
 
     <div
       :class="border ? 'border dark:border-gray-800 rounded-md' : ''"
-      class="overflow-x-auto custom-scroll custom-scroll-thumb1"
+      class="overflow-x-auto custom-scroll custom-scroll-thumb1 px-4"
     >
       <div :style="tableWidthStyle">
-        <!-- Title Row -->
-        <Row
-          ref="headerRow"
-          :ratio="ratio"
-          :grid-template-columns="gridTemplate"
-          class="
-            border-b
-            dark:border-gray-800
-            px-2
-            text-gray-600
-            dark:text-gray-300
-            w-full
-            items-center
-          "
-        >
-          <div class="relative flex items-center ps-2 min-w-0">
-            #
-            <ColResizeHandle
-              :title="t`Drag to resize. Double-click to reset.`"
-              @start="startColResize(0, $event)"
-              @reset="resetColWidths"
-            />
-          </div>
+        <!-- Title Row — same chrome as List.vue -->
+        <div class="flex items-center">
           <div
-            v-for="(fieldDf, fi) in tableFields"
-            :key="fieldDf.fieldname"
-            class="relative flex px-2 h-row-mid min-w-0"
-            :class="[
-              fieldDf.sub_label
-                ? 'flex-col items-center text-center'
-                : isNumeric(fieldDf)
-                ? 'justify-end items-center'
-                : 'items-center',
-            ]"
+            class="
+              w-8
+              shrink-0
+              text-start
+              me-2
+              text-gray-700
+              dark:text-gray-300
+              min-h-row-mid
+              flex
+              items-center
+            "
           >
-            <span>{{ fieldDf.label }}</span>
-            <p v-if="fieldDf.sub_label" class="text-xs">
-              {{ fieldDf.sub_label }}
-            </p>
-            <ColResizeHandle
-              v-if="fi < tableFields.length - 1 || canEditRow"
-              :title="t`Drag to resize. Double-click to reset.`"
-              @start="startColResize(fi + 1, $event)"
-              @reset="resetColWidths"
-            />
+            #
           </div>
-          <div v-if="canEditRow" class="min-w-0" />
-        </Row>
+          <Row
+            ref="headerRow"
+            :ratio="ratio"
+            :grid-template-columns="gridTemplate"
+            gap="0.5rem"
+            class="
+              flex-1
+              text-gray-700
+              dark:text-gray-300
+              min-h-row-mid
+              border-b
+              dark:border-gray-800
+            "
+          >
+            <div
+              v-for="(fieldDf, fi) in tableFields"
+              :key="fieldDf.fieldname"
+              class="
+                relative
+                items-center
+                justify-start
+                text-start
+                flex
+                min-w-0 min-h-row-mid
+                py-1.5
+                pe-3
+                break-words
+              "
+              :class="[
+                fieldDf.sub_label ? 'flex-col' : '',
+                { 'pe-4': fi === tableFields.length - 1 && !canEditRow },
+              ]"
+            >
+              <span class="w-full">{{ fieldDf.label }}</span>
+              <p v-if="fieldDf.sub_label" class="text-xs w-full">
+                {{ fieldDf.sub_label }}
+              </p>
+              <ColResizeHandle
+                v-if="fi < tableFields.length - 1"
+                :title="t`Drag to resize. Double-click to reset.`"
+                @start="startColResize(fi, $event)"
+                @reset="resetColWidths"
+              />
+            </div>
+            <div v-if="canEditRow" class="min-w-0" />
+          </Row>
+        </div>
 
         <!-- Data Rows -->
         <div
@@ -73,6 +89,7 @@
             "
             v-bind="{ row, tableFields, size, ratio, isNumeric }"
             :grid-template-columns="gridTemplate"
+            gap="0.5rem"
             :read-only="isReadOnly"
             :can-edit-row="canEditRow"
             @remove="removeRow(row)"
@@ -81,17 +98,14 @@
         </div>
 
         <!-- Add Row and Row Count -->
-        <Row
+        <div
           v-if="!isReadOnly"
-          :ratio="ratio"
-          :grid-template-columns="gridTemplate"
           class="
+            flex
+            items-center
             text-gray-500
             cursor-pointer
-            px-2
-            w-full
-            h-row-mid
-            items-center
+            min-h-row-mid
             focus:outline-none focus:ring-1 focus:ring-blue-500
           "
           :class="value.length > 0 ? 'border-t dark:border-gray-800' : ''"
@@ -99,13 +113,10 @@
           @click="addRow"
           @keydown.enter="addRow"
         >
-          <div class="flex items-center ps-1">
+          <div class="w-8 shrink-0 me-2 flex items-center justify-start">
             <feather-icon name="plus" class="w-4 h-4 text-gray-500" />
           </div>
-          <div
-            class="flex justify-between px-2"
-            :style="`grid-column: 2 / ${ratio.length + 1}`"
-          >
+          <div class="flex flex-1 justify-between items-center pe-4">
             <p>
               {{ t`Add Row` }}
             </p>
@@ -115,12 +126,12 @@
                 maxRowsBeforeOverflow &&
                 value.length > maxRowsBeforeOverflow
               "
-              class="text-start px-2"
+              class="text-start"
             >
               {{ t`${value.length} rows` }}
             </p>
           </div>
-        </Row>
+        </div>
       </div>
     </div>
   </div>
@@ -190,41 +201,58 @@ export default {
       return this.df.edit;
     },
     ratio() {
-      const ratio = [0.3].concat(this.tableFields.map(() => 1));
+      const fieldRatios = this.tableFields.map((f) => {
+        if (f.fieldtype === 'Select') {
+          return 0.9;
+        }
+        if (f.fieldtype === 'DynamicLink' || f.fieldtype === 'Link') {
+          return 1.3;
+        }
+        if (this.isNumeric(f)) {
+          return 0.9;
+        }
+        if (f.fieldtype === 'Text' || f.fieldname === 'description') {
+          return 1.4;
+        }
+        return 1;
+      });
 
       if (this.canEditRow) {
-        return ratio.concat(0.3);
+        return fieldRatios.concat(0.35);
       }
 
-      return ratio;
+      return fieldRatios;
     },
     tableFields() {
       const fields = fyo.schemaMap[this.df.target].tableFields ?? [];
       return fields.map((fieldname) => fyo.getField(this.df.target, fieldname));
     },
     columnIds() {
-      const ids = ['__index'].concat(this.tableFields.map((f) => f.fieldname));
+      // Index sits outside the grid (same as List) — not part of resize widths.
+      const ids = this.tableFields.map((f) => f.fieldname);
       if (this.canEditRow) {
         ids.push('__edit');
       }
       return ids;
     },
     widthsStorageKey() {
-      return columnWidthsStorageKey(`table:${this.df.target}`);
+      // v3: index column removed from persisted width keys
+      return columnWidthsStorageKey(`table:${this.df.target}`, 'v3');
     },
     gridTemplate() {
       if (!this.columnWidths) {
         return null;
       }
       return gridTemplateFromWidths(this.columnWidths, {
-        lastAbsorbs: !this.canEditRow,
+        lastAbsorbs: false,
       });
     },
     tableWidthStyle() {
       if (!this.columnWidths) {
         return {};
       }
-      const total = minWidthPxFromColumns(this.columnWidths, 0, 16);
+      // w-8 (2rem) + me-2 (0.5rem) index gutter ≈ 40px
+      const total = minWidthPxFromColumns(this.columnWidths, 8, 40);
       return { minWidth: `${total}px` };
     },
   },
@@ -346,9 +374,19 @@ export default {
       });
     },
 
+    getRowEl(index) {
+      const row = this.$refs?.['table-row']?.[index];
+      const el = row?.$el;
+      // Vue 3 multi-root (e.g. template comment + div): $el may be a comment node
+      if (el?.nodeType === Node.ELEMENT_NODE) {
+        return el;
+      }
+      return el?.nextElementSibling ?? null;
+    },
+
     scrollToRow(index) {
-      const row = this.$refs['table-row'][index];
-      row && row.$el.scrollIntoView({ block: 'nearest' });
+      const el = this.getRowEl(index);
+      el?.scrollIntoView?.({ block: 'nearest' });
     },
 
     setMaxHeight() {
@@ -361,7 +399,7 @@ export default {
         return (this.maxHeight = '');
       }
 
-      const rowHeight = this.$refs?.['table-row']?.[0]?.$el.offsetHeight;
+      const rowHeight = this.getRowEl(0)?.offsetHeight;
       if (rowHeight === undefined) {
         return (this.maxHeight = '');
       }

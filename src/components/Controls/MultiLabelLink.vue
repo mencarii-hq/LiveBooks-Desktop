@@ -4,6 +4,8 @@ import Badge from 'src/components/Badge.vue';
 import { fyo } from 'src/initFyo';
 import { fuzzyMatch } from 'src/utils';
 import { getCreateFiltersFromListViewFilters } from 'src/utils/misc';
+import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
+import { isUuidDocId } from 'utils/ids';
 import { markRaw } from 'vue';
 import AutoComplete from './AutoComplete.vue';
 
@@ -48,12 +50,20 @@ export default {
       const { fieldname, target } = this.df ?? {};
       const linkDisplayField = fyo.schemaMap[target ?? '']?.linkDisplayField;
 
+      if (target === 'Party' && value) {
+        const map = await getPartyNameMap(fyo, [value]);
+        const label = partyLabel(map, value);
+        this.linkValue = isUuidDocId(label) ? '' : label;
+        return;
+      }
+
       if (!linkDisplayField) {
-        return (this.linkValue = value);
+        return (this.linkValue = isUuidDocId(value) ? '' : value || '');
       }
 
       const linkDoc = await this.doc?.loadAndGetLink(fieldname);
-      this.linkValue = linkDoc?.get(linkDisplayField) ?? '';
+      const display = linkDoc?.get(linkDisplayField) ?? '';
+      this.linkValue = isUuidDocId(display) ? '' : display;
     },
     getTargetSchemaName() {
       return this.df.target;
@@ -78,6 +88,7 @@ export default {
           this.secondaryLink,
           schema.titleField,
           this.df.groupBy,
+          ...(schemaName === 'Party' ? ['partyName'] : []),
         ]),
       ].filter(Boolean);
 
@@ -85,6 +96,35 @@ export default {
         filters,
         fields,
       });
+
+      if (schemaName === 'Party') {
+        const map = await getPartyNameMap(
+          fyo,
+          results.map((r) => r.name).filter(Boolean)
+        );
+        return (this.results = results
+          .map((r) => {
+            const nameLabel = partyLabel(map, r.name);
+            if (!nameLabel || isUuidDocId(nameLabel)) {
+              return null;
+            }
+            const secondary = r[this.secondaryLink];
+            const secondaryOk =
+              secondary && this.showSecondaryLink && !isUuidDocId(secondary);
+            const option = {
+              label: secondaryOk
+                ? `${nameLabel}  ` + `  ${secondary}`
+                : nameLabel,
+              value: r.name,
+              value2: secondary,
+            };
+            if (this.df.groupBy) {
+              option.group = r[this.df.groupBy];
+            }
+            return option;
+          })
+          .filter(Boolean));
+      }
 
       return (this.results = results
         .map((r) => {

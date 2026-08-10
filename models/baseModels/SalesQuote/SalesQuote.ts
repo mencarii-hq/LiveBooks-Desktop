@@ -58,6 +58,10 @@ export class SalesQuote extends Invoice {
   }
 
   static filters: FiltersMap = {
+    // Keep Invoice.party role filter; a full replace would let Employee/Contractor through.
+    party: () => ({
+      role: ['in', ['Customer', 'Both']],
+    }),
     numberSeries: (doc: Doc) => ({ referenceType: doc.schemaName }),
   };
 

@@ -82,7 +82,7 @@
         </div>
         <template v-else>
           <div class="flex items-center">
-            <div class="w-8 flex justify-end me-2 items-center h-row-mid">
+            <div class="w-8 flex justify-end me-2 items-center min-h-row-mid">
               <Check
                 :df="{
                   fieldtype: 'Check',
@@ -96,10 +96,10 @@
             </div>
             <Row
               ref="headerRow"
-              class="flex-1 text-gray-700 dark:text-gray-300 h-row-mid"
+              class="flex-1 text-gray-700 dark:text-gray-300 min-h-row-mid"
               :ratio="COLUMN_RATIO"
               :grid-template-columns="gridTemplate"
-              gap="1rem"
+              gap="0.5rem"
             >
               <div
                 v-for="(col, ci) in headerCols"
@@ -156,7 +156,9 @@
                   items-center
                 "
               >
-                <div class="w-8 flex justify-end me-2 items-center h-row-mid">
+                <div
+                  class="w-8 flex justify-end me-2 items-center min-h-row-mid"
+                >
                   <Check
                     :df="{
                       fieldtype: 'Check',
@@ -169,13 +171,13 @@
                   />
                 </div>
                 <Row
-                  gap="1rem"
+                  gap="0.5rem"
                   class="
                     cursor-pointer
                     text-gray-900
                     dark:text-gray-300
                     flex-1
-                    h-row-mid
+                    min-h-row-mid
                   "
                   :ratio="COLUMN_RATIO"
                   :grid-template-columns="gridTemplate"
@@ -217,7 +219,7 @@
                       <feather-icon name="external-link" class="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <div class="cell-body ms-auto tabular-nums">
+                  <div class="cell-body tabular-nums">
                     {{ row.amountDisplay }}
                   </div>
                   <div class="cell-body">{{ row.memo }}</div>
@@ -385,7 +387,7 @@ export default defineComponent({
             .t`Numbers are assigned when you print (not saved until you confirm).`,
         },
         { id: 'payee', label: this.t`Payee`, class: '', title: '' },
-        { id: 'amount', label: this.t`Amount`, class: 'ms-auto', title: '' },
+        { id: 'amount', label: this.t`Amount`, class: '', title: '' },
         { id: 'memo', label: this.t`Memo`, class: '', title: '' },
       ];
     },
@@ -783,7 +785,7 @@ export default defineComponent({
           }));
         const payeeByName: Record<string, string> = {};
         for (const r of this.rows) {
-          payeeByName[r.name] = r.partyName || r.party;
+          payeeByName[r.name] = r.partyName || '';
         }
 
         await runCheckPrintFlow(fyo, items, {
@@ -844,21 +846,27 @@ export default defineComponent({
 <style scoped>
 .cell-header,
 .cell-body {
-  overflow-x: auto;
-  white-space: nowrap;
-  height: var(--h-row-mid);
+  min-height: var(--h-row-mid);
   display: flex;
   align-items: center;
   min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
 }
 .cell-header {
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.02em;
+  justify-content: flex-start;
+  text-align: start;
+  padding-inline-end: 0.75rem;
 }
 .cell-body {
-  text-overflow: ellipsis;
-  overflow: hidden;
+  justify-content: flex-start;
+  text-align: start;
 }
 </style>
