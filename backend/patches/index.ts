@@ -71,7 +71,16 @@ export default [
     priority: 150,
   },
   {
+    // Original Part 3 migration (Credit Cards group + Credit Card Entry refs).
     name: 'migrateManualCreditCards',
+    version: '1.0.4',
+    patch: migrateManualCreditCards,
+  },
+  {
+    // Widen pass: also convert Bank+Liability under Current Liabilities /
+    // Liabilities parents ($0 manual CCs with no JE). Same execute is
+    // idempotent; new PatchRun name so already-migrated books re-run.
+    name: 'migrateManualCreditCardsWidenParents',
     version: '1.0.4',
     patch: migrateManualCreditCards,
   },

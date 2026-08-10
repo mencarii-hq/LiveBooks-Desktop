@@ -18,6 +18,7 @@ export type BankCoaAccount = {
   name: string;
   accountName?: string;
   rootType?: string;
+  accountType?: string;
   disabled?: boolean;
 };
 
@@ -140,7 +141,7 @@ export function isManualBankAccount(
 
 export async function loadAllBankCoaAccounts(): Promise<BankCoaAccount[]> {
   return (await fyo.db.getAll(ModelNameEnum.Account, {
-    fields: ['name', 'accountName', 'rootType', 'disabled'],
+    fields: ['name', 'accountName', 'rootType', 'accountType', 'disabled'],
     filters: {
       accountType: ['in', [...FEED_AND_RECONCILE_ACCOUNT_TYPES]],
       isGroup: false,
@@ -152,7 +153,7 @@ export async function loadAllBankCoaAccounts(): Promise<BankCoaAccount[]> {
 /** Archived (disabled) bank/CC leaf accounts — for restore UI on Bank Feed Hub Manual tab. */
 export async function loadArchivedBankCoaAccounts(): Promise<BankCoaAccount[]> {
   const rows = (await fyo.db.getAll(ModelNameEnum.Account, {
-    fields: ['name', 'accountName', 'rootType', 'disabled'],
+    fields: ['name', 'accountName', 'rootType', 'accountType', 'disabled'],
     filters: {
       accountType: ['in', [...FEED_AND_RECONCILE_ACCOUNT_TYPES]],
       isGroup: false,

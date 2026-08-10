@@ -159,7 +159,14 @@ export default defineComponent({
     async setHasData() {
       const accounts = await fyo.db.getAllRaw('Account', {
         filters: {
-          accountType: ['in', [AccountTypeEnum.Cash, AccountTypeEnum.Bank]],
+          accountType: [
+            'in',
+            [
+              AccountTypeEnum.Cash,
+              AccountTypeEnum.Bank,
+              AccountTypeEnum.CreditCard,
+            ],
+          ],
         },
       });
       const accountNames = accounts.map((a) => a.name as string);

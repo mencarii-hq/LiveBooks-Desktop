@@ -776,6 +776,21 @@ export class Payment extends Transactional {
           return accountsMap[AccountTypeEnum.Cash]?.[0] ?? null;
         }
 
+        // Preserve CreditCard on edit — register CC charges set account
+        // programmatically; party/method changes must not rewrite to Bank[0].
+        // Only CreditCard is preserved (not Bank/Cash) so payment-method
+        // defaults still apply for normal bank payments.
+        const currentAccount = this.account;
+        if (
+          typeof currentAccount === 'string' &&
+          currentAccount &&
+          (accountsMap[AccountTypeEnum.CreditCard] ?? []).includes(
+            currentAccount
+          )
+        ) {
+          return currentAccount;
+        }
+
         return accountsMap[AccountTypeEnum.Bank]?.[0] ?? null;
       },
       dependsOn: ['paymentMethod', 'paymentType', 'party'],
@@ -804,6 +819,18 @@ export class Payment extends Transactional {
 
         if (paymentMethodDoc.type === 'Cash') {
           return accountsMap[AccountTypeEnum.Cash]?.[0] ?? null;
+        }
+
+        // Preserve CreditCard on Receive edit (CC register Payment=Receive).
+        const currentPaymentAccount = this.paymentAccount;
+        if (
+          typeof currentPaymentAccount === 'string' &&
+          currentPaymentAccount &&
+          (accountsMap[AccountTypeEnum.CreditCard] ?? []).includes(
+            currentPaymentAccount
+          )
+        ) {
+          return currentPaymentAccount;
         }
 
         return accountsMap[AccountTypeEnum.Bank]?.[0] ?? null;
@@ -984,9 +1011,9 @@ export class Payment extends Transactional {
         return { accountType: 'Payable', isGroup: false };
       }
 
-      // Receive deposit side: Bank/Cash only. CreditCard is a liability —
-      // customer receipts must not debit a card (register CC payments set
-      // paymentAccount programmatically via createRegisterPayment).
+      // Receive deposit side picker: Bank/Cash only so customer receipts cannot
+      // debit a liability. Register CC Payment=Receive keeps paymentAccount via
+      // createRegisterPayment + CreditCard-preserving formula above.
       if (paymentMethod.name === 'Cash') {
         return { accountType: 'Cash', isGroup: false };
       } else {

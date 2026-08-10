@@ -294,26 +294,19 @@ export default defineComponent({
         });
         return;
       }
-      // Plaid credit accounts belong on CreditCard ledger accounts so
-      // registers and reconcile treat them as liabilities.
+      // Plaid credit accounts must map to CreditCard (liability) ledger
+      // accounts so registers and reconcile treat them correctly.
       const chosen = this.chartAccounts.find((a) => a.name === chart);
       if (
         isPlaidCreditAccount(this.linked?.type, this.linked?.subtype) &&
         chosen &&
         chosen.accountType !== AccountTypeEnum.CreditCard
       ) {
-        const proceed = (await showDialog({
-          type: 'warning',
-          title: t`Map credit card to a bank account?`,
-          detail: t`"${this.accountLabel}" is a credit card at your bank, but the selected ledger account is not a credit card account. Registers and balances will treat it as a bank asset. Continue anyway?`,
-          buttons: [
-            { label: t`Cancel`, action: () => false, isEscape: true },
-            { label: t`Map anyway`, action: () => true, isPrimary: true },
-          ],
-        })) as boolean;
-        if (!proceed) {
-          return;
-        }
+        showToast({
+          type: 'error',
+          message: t`"${this.accountLabel}" is a credit card. Map it to a Credit Card ledger account, not a bank account.`,
+        });
+        return;
       }
       this.saveBusy = true;
       try {

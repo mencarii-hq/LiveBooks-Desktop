@@ -20,6 +20,7 @@ import { DatabaseManager } from '../database/manager';
  */
 const CREDIT_CARDS_LABEL = 'Credit Cards';
 const CURRENT_LIABILITIES_LABEL = 'Current Liabilities';
+const LIABILITIES_LABEL = 'Liabilities';
 const CREDIT_CARD_ENTRY_TYPE = 'Credit Card Entry';
 
 /** Deterministic id matching createCOA for English standardCOA labels. */
@@ -104,11 +105,12 @@ async function execute(dm: DatabaseManager) {
 
   const outbox: OutboxMutation[] = [];
 
-  // 1. Manual CC accounts → CreditCard (idempotent). Only convert leaf
+  // 1. Manual CC accounts → CreditCard (idempotent). Convert leaf
   // Bank+Liability accounts the manual credit-card flow could have created:
-  // parented under a "Credit Cards" group, or referenced by a Credit Card
-  // Entry journal entry. Other Bank-typed liabilities (e.g. a bank overdraft
-  // account) must keep their type.
+  // parented under Credit Cards / Current Liabilities / Liabilities (create
+  // fallbacks), or referenced by a Credit Card Entry journal entry. Other
+  // Bank-typed liabilities (e.g. a bank overdraft under a custom parent)
+  // keep their type.
   const candidates = (await knex('Account')
     .select('name', 'parentAccount')
     .where({
@@ -127,6 +129,18 @@ async function execute(dm: DatabaseManager) {
           .orWhere({ name: creditCardsGroupSystemId() });
       })) as { name: string }[];
     const ccGroupNames = new Set(ccGroups.map((g) => g.name));
+
+    // manualBankAccountCreate parent fallbacks when Credit Cards is missing.
+    const liabilityParents = (await knex('Account')
+      .select('name')
+      .where({ isGroup: true })
+      .andWhere(function () {
+        void this.where({ accountName: CURRENT_LIABILITIES_LABEL })
+          .orWhere({ name: CURRENT_LIABILITIES_LABEL })
+          .orWhere({ accountName: LIABILITIES_LABEL })
+          .orWhere({ name: LIABILITIES_LABEL });
+      })) as { name: string }[];
+    const liabilityParentNames = new Set(liabilityParents.map((g) => g.name));
 
     const ccEntryAccounts = new Set<string>();
     if (
@@ -147,7 +161,9 @@ async function execute(dm: DatabaseManager) {
     const converted = candidates
       .filter(
         (a) =>
-          (a.parentAccount != null && ccGroupNames.has(a.parentAccount)) ||
+          (a.parentAccount != null &&
+            (ccGroupNames.has(a.parentAccount) ||
+              liabilityParentNames.has(a.parentAccount))) ||
           ccEntryAccounts.has(a.name)
       )
       .map((a) => a.name);

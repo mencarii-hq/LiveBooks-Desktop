@@ -649,6 +649,7 @@ export default defineComponent({
         name: string;
         accountName?: string;
         rootType?: string;
+        accountType?: string;
       }[],
       manualBankAccounts: [] as BankCoaAccount[],
       archivedManualBankAccounts: [] as BankCoaAccount[],
@@ -690,18 +691,32 @@ export default defineComponent({
     },
     ledgerByName(): Record<
       string,
-      { rootType?: string; accountName?: string }
+      { rootType?: string; accountName?: string; accountType?: string }
     > {
-      const out: Record<string, { rootType?: string; accountName?: string }> =
-        {};
+      const out: Record<
+        string,
+        { rootType?: string; accountName?: string; accountType?: string }
+      > = {};
       for (const a of this.chartBankAccounts) {
-        out[a.name] = { rootType: a.rootType, accountName: a.accountName };
+        out[a.name] = {
+          rootType: a.rootType,
+          accountName: a.accountName,
+          accountType: a.accountType,
+        };
       }
       for (const a of this.manualBankAccounts) {
-        out[a.name] = { rootType: a.rootType, accountName: a.accountName };
+        out[a.name] = {
+          rootType: a.rootType,
+          accountName: a.accountName,
+          accountType: a.accountType,
+        };
       }
       for (const a of this.archivedManualBankAccounts) {
-        out[a.name] = { rootType: a.rootType, accountName: a.accountName };
+        out[a.name] = {
+          rootType: a.rootType,
+          accountName: a.accountName,
+          accountType: a.accountType,
+        };
       }
       return out;
     },
@@ -1054,7 +1069,7 @@ export default defineComponent({
       try {
         this.plaidMapsFlat = await loadPlaidAccountMaps();
         const rows = (await fyo.db.getAll(ModelNameEnum.Account, {
-          fields: ['name', 'accountName', 'rootType'],
+          fields: ['name', 'accountName', 'rootType', 'accountType'],
           filters: {
             accountType: [
               'in',
@@ -1067,6 +1082,7 @@ export default defineComponent({
           name: string;
           accountName?: string;
           rootType?: string;
+          accountType?: string;
         }[];
         this.chartBankAccounts = rows;
         const totals = await fyo.db.getTotalCreditAndDebit();
@@ -1392,7 +1408,7 @@ export default defineComponent({
     },
     async loadChartBankAccountsForMaps() {
       this.chartBankAccounts = (await fyo.db.getAll(ModelNameEnum.Account, {
-        fields: ['name', 'accountName', 'rootType'],
+        fields: ['name', 'accountName', 'rootType', 'accountType'],
         filters: {
           accountType: [
             'in',
@@ -1405,6 +1421,7 @@ export default defineComponent({
         name: string;
         accountName?: string;
         rootType?: string;
+        accountType?: string;
       }[];
     },
     async hydrateMappingsForItem(itemId: string) {
@@ -1507,19 +1524,19 @@ export default defineComponent({
         });
         return;
       }
-      // Plaid credit accounts belong on CreditCard (liability) ledger
-      // accounts; warn when the mapping would treat one as a bank asset.
+      // Plaid credit accounts must map to CreditCard ledger accounts.
       if (
         isPlaidCreditAccount(acc.type, acc.subtype) &&
-        this.ledgerByName[chart]?.rootType !== 'Liability'
+        this.ledgerByName[chart]?.accountType !== AccountTypeEnum.CreditCard
       ) {
         showToast({
-          type: 'warning',
+          type: 'error',
           message: t`${this.labelForPlaid(
             acc
-          )} is a credit card; the selected ledger account will treat it as a bank asset.`,
+          )} is a credit card. Map it to a Credit Card ledger account, not a bank account.`,
           duration: 'long',
         });
+        return;
       }
       const conflicting = (await fyo.db.getAll(
         ModelNameEnum.PlaidBankAccountMap,

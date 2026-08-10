@@ -44,7 +44,9 @@
         </div>
         <p class="text-sm text-gray-600 dark:text-gray-300">
           {{
-            t`Enter your statement details, then match withdrawals to Money out and deposits to Money in—the same layout as most bank PDFs.`
+            isLiabilityAccount
+              ? t`Enter your statement details, then match purchases to Charges and payments to Payments—the same layout as most credit card PDFs.`
+              : t`Enter your statement details, then match withdrawals to Money out and deposits to Money in—the same layout as most bank PDFs.`
           }}
         </p>
 
@@ -272,11 +274,13 @@
               "
             >
               <h2 class="text-sm font-medium dark:text-gray-100">
-                {{ t`Money out` }}
+                {{ isLiabilityAccount ? t`Charges` : t`Money out` }}
               </h2>
               <p class="text-xs text-gray-500 dark:text-gray-300 mt-0.5">
                 {{
-                  t`Withdrawals and expenses (match the withdrawals column on your statement).`
+                  isLiabilityAccount
+                    ? t`Purchases and fees (match the charges column on your statement).`
+                    : t`Withdrawals and expenses (match the withdrawals column on your statement).`
                 }}
               </p>
             </div>
@@ -328,7 +332,7 @@
                   </td>
                   <td class="p-2 break-words">{{ row.payee || t`—` }}</td>
                   <td class="p-2 text-start tabular-nums">
-                    {{ formatOutAmount(row.signed) }}
+                    {{ formatOutAmount(row.columnSigned) }}
                   </td>
                 </tr>
                 <tr v-if="!moneyOutEntries.length && !loadingEntries">
@@ -336,7 +340,11 @@
                     colspan="5"
                     class="p-3 text-sm text-gray-500 dark:text-gray-300"
                   >
-                    {{ t`No withdrawals in this period.` }}
+                    {{
+                      isLiabilityAccount
+                        ? t`No charges in this period.`
+                        : t`No withdrawals in this period.`
+                    }}
                   </td>
                 </tr>
               </tbody>
@@ -364,11 +372,13 @@
               "
             >
               <h2 class="text-sm font-medium dark:text-gray-100">
-                {{ t`Money in` }}
+                {{ isLiabilityAccount ? t`Payments` : t`Money in` }}
               </h2>
               <p class="text-xs text-gray-500 dark:text-gray-300 mt-0.5">
                 {{
-                  t`Deposits and income (match the deposits column on your statement).`
+                  isLiabilityAccount
+                    ? t`Payments and credits (match the payments column on your statement).`
+                    : t`Deposits and income (match the deposits column on your statement).`
                 }}
               </p>
             </div>
@@ -425,7 +435,7 @@
                       font-medium
                     "
                   >
-                    {{ formatInAmount(row.signed) }}
+                    {{ formatInAmount(row.columnSigned) }}
                   </td>
                 </tr>
                 <tr v-if="!moneyInEntries.length && !loadingEntries">
@@ -433,7 +443,11 @@
                     colspan="4"
                     class="p-3 text-sm text-gray-500 dark:text-gray-300"
                   >
-                    {{ t`No deposits in this period.` }}
+                    {{
+                      isLiabilityAccount
+                        ? t`No payments in this period.`
+                        : t`No deposits in this period.`
+                    }}
                   </td>
                 </tr>
               </tbody>
@@ -606,7 +620,10 @@ type EntryRow = {
   date: string;
   payee: string;
   referenceShort: string;
+  /** Liability: credit − debit (owed ↑). Asset: debit − credit. Used for cleared balance. */
   signed: number;
+  /** For Money in/out columns: negated on liability so charges bucket as outflows. */
+  columnSigned: number;
   isBankEntry: boolean;
   cleared: boolean;
 };
@@ -739,13 +756,13 @@ export default defineComponent({
     },
     moneyOutEntries(): EntryRow[] {
       return this.entries
-        .filter((e) => e.signed <= 0)
+        .filter((e) => e.columnSigned <= 0)
         .slice()
         .sort(sortEntryRows);
     },
     moneyInEntries(): EntryRow[] {
       return this.entries
-        .filter((e) => e.signed > 0)
+        .filter((e) => e.columnSigned > 0)
         .slice()
         .sort(sortEntryRows);
     },
@@ -908,13 +925,13 @@ export default defineComponent({
       }
     },
     async loadEntries() {
-      if (!this.accountTitle) {
+      if (!this.accountName) {
         return;
       }
       this.loadingEntries = true;
       try {
         const filters: Record<string, unknown> = {
-          account: this.accountTitle,
+          account: this.accountName,
           reverted: false,
         };
         if (this.statementEndingDate) {
@@ -986,6 +1003,8 @@ export default defineComponent({
 
         const rows: EntryRow[] = open.map((a) => {
           const signed = isLiability ? a.credit - a.debit : a.debit - a.credit;
+          // Liability charges (signed > 0) must appear under Charges / Money out.
+          const columnSigned = isLiability ? -signed : signed;
           const je = jeMap[a.referenceName];
           const payee =
             je?.userRemark?.toString().trim() ||
@@ -999,6 +1018,7 @@ export default defineComponent({
             payee,
             referenceShort,
             signed,
+            columnSigned,
             // Opening-balance JEs auto-clear: banks post 'Bank Entry',
             // credit cards post 'Credit Card Entry'.
             isBankEntry:
