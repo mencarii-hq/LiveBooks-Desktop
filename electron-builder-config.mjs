@@ -3,6 +3,7 @@ import './build/scripts/loadLocalEnv.mjs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import {
+  FROZEN_ARTIFACT_SLUG,
   FROZEN_BUNDLE_ID,
   FROZEN_PRODUCT_NAME,
 } from './build/signingIdentity.mjs';
@@ -43,8 +44,11 @@ const macArches = resolveMacArches();
 const liveBooksConfig = {
   productName: FROZEN_PRODUCT_NAME,
   appId: FROZEN_BUNDLE_ID,
+  // Prefer FROZEN_ARTIFACT_SLUG over ${productName}: spaces in productName
+  // become '.' on Windows artifacts and '-' elsewhere, breaking GitHub
+  // auto-update asset names vs latest.yml / prior installs.
   protocols: [{ name: 'LiveBooks Cloud handoff', schemes: ['livebooks'] }],
-  artifactName: '${productName}-v${version}-${os}-${arch}.${ext}',
+  artifactName: `${FROZEN_ARTIFACT_SLUG}-v\${version}-\${os}-\${arch}.\${ext}`,
   asarUnpack: '**/*.node',
   // ASAR Integrity — enable when ready for release hardening.
   // Requires Electron >=22 + electron-builder >=24. Validates the ASAR archive
@@ -78,7 +82,7 @@ const liveBooksConfig = {
   },
   mac: {
     type: 'distribution',
-    artifactName: '${productName}-v${version}-mac-${arch}.${ext}',
+    artifactName: `${FROZEN_ARTIFACT_SLUG}-v\${version}-mac-\${arch}.\${ext}`,
     category: 'public.app-category.finance',
     icon: 'build/LiveBooks.icns',
     target: [
@@ -122,7 +126,7 @@ const liveBooksConfig = {
           },
         }
       : {}),
-    artifactName: '${productName}-v${version}-windows-${arch}.${ext}',
+    artifactName: `${FROZEN_ARTIFACT_SLUG}-v\${version}-windows-\${arch}.\${ext}`,
     // MVP: omit signExts so only exe/installer are signed (eb 26 dropped signDlls).
     // Later: signExts: ['.dll'] to harden (more Azure signatures per release).
     icon: 'build/icon.ico',
@@ -145,7 +149,7 @@ const liveBooksConfig = {
   },
   linux: {
     icon: 'build/icons',
-    artifactName: '${productName}-v${version}-linux-${arch}.${ext}',
+    artifactName: `${FROZEN_ARTIFACT_SLUG}-v\${version}-linux-\${arch}.\${ext}`,
     category: 'Finance',
     publish: ['github'],
     target: [

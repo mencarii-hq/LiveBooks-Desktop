@@ -24,6 +24,14 @@ export const FROZEN_BUNDLE_ID = 'io.livebooks.desktop';
 export const FROZEN_PRODUCT_NAME = 'LiveBooks Desktop';
 
 /**
+ * Filename slug for GitHub release artifacts (`artifactName`).
+ * Must not contain spaces: electron-builder sanitizes spaces to `.` on
+ * Windows and `-` on mac/linux, which breaks auto-update asset matching.
+ * Keep this hyphenated and stable across platforms.
+ */
+export const FROZEN_ARTIFACT_SLUG = 'LiveBooks-Desktop';
+
+/**
  * GitHub-published macOS notarization team id. Filled in from CI secret
  * `APPLE_TEAM_ID` at build time. We assert in the publish workflow that
  * the secret is present; the team id itself isn't a secret (it ships in

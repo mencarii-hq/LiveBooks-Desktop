@@ -44,6 +44,14 @@ test('frozen signing identity: build + runtime mirrors agree', (t) => {
     );
   }
 
+  const artifactSlug = readConstant(buildSource, 'FROZEN_ARTIFACT_SLUG');
+  t.equal(
+    artifactSlug,
+    'LiveBooks-Desktop',
+    'FROZEN_ARTIFACT_SLUG stays hyphenated (no spaces/dots)'
+  );
+  t.ok(!/\s/.test(artifactSlug), 'FROZEN_ARTIFACT_SLUG has no whitespace');
+
   t.end();
 });
 
@@ -65,6 +73,14 @@ test('frozen signing identity: electron-builder config uses the source of truth'
   t.ok(
     /appId:\s*FROZEN_BUNDLE_ID\b/.test(builderConfig),
     'electron-builder-config.mjs uses FROZEN_BUNDLE_ID for appId'
+  );
+  t.ok(
+    /FROZEN_ARTIFACT_SLUG/.test(builderConfig),
+    'electron-builder-config.mjs references FROZEN_ARTIFACT_SLUG'
+  );
+  t.ok(
+    !/artifactName:\s*'\$\{productName\}/.test(builderConfig),
+    'artifactName must not use ${productName} (Windows space→dot sanitization)'
   );
 
   t.end();
