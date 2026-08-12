@@ -1027,6 +1027,7 @@ export default defineComponent({
             cleared: clearedByName.get(a.name) === true,
           };
         });
+        const previousNames = new Set(this.entries.map((e) => e.name));
         this.entries = rows;
 
         if (!this.draftRestoreApplied) {
@@ -1042,7 +1043,10 @@ export default defineComponent({
           for (const r of rows) {
             if (this.checked[r.name]) {
               next[r.name] = true;
-            } else if (r.isBankEntry || r.cleared) {
+            } else if (
+              !previousNames.has(r.name) &&
+              (r.isBankEntry || r.cleared)
+            ) {
               next[r.name] = true;
             }
           }
