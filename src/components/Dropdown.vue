@@ -6,7 +6,7 @@
     :fit-reference="fitReference"
   >
     <template #target>
-      <div v-on-outside-click="() => (isShown = false)" class="h-full">
+      <div v-on-outside-click="onOutsideClick" class="h-full">
         <slot
           :toggle-dropdown="toggleDropdown"
           :highlight-item-up="highlightItemUp"
@@ -93,7 +93,8 @@
                   d.group ? 'ps-5' : '',
                 ]"
                 @mouseenter="highlightedIndex = index"
-                @mousedown.prevent="selectItem(d)"
+                @mousedown.prevent.stop="commitItem(d)"
+                @click.prevent.stop="toggleDropdown(false)"
               >
                 <component :is="d.component" v-if="d.component" />
                 <template v-else>{{ d.label }}</template>
@@ -176,6 +177,17 @@ export default defineComponent({
     },
   },
   methods: {
+    onOutsideClick(e?: Event): void {
+      const target = e?.target;
+      if (
+        target instanceof Element &&
+        typeof target.closest === 'function' &&
+        target.closest('.popover-container')
+      ) {
+        return;
+      }
+      this.isShown = false;
+    },
     getEmptyMessage(): string {
       const { schemaName, fieldname } = this.df ?? {};
       if (!schemaName || !fieldname || !this.doc) {
@@ -192,18 +204,22 @@ export default defineComponent({
 
       return emptyMessage;
     },
-    async selectItem(d?: DropdownItem): Promise<void> {
-      if (!d || !d?.action) {
+    async commitItem(d?: DropdownItem): Promise<void> {
+      if (!d?.action) {
         return;
       }
-
-      this.toggleDropdown(false);
-
+      // Commit on mousedown; close on click. Closing here hid the menu
+      // before mouseup, so the same click hit the input and reopened it
+      // (typed category/payee needed 2–3 clicks).
       if (this.doc) {
         await d.action(this.doc, this.$router);
       } else {
         await d.action();
       }
+    },
+    async selectItem(d?: DropdownItem): Promise<void> {
+      await this.commitItem(d);
+      this.toggleDropdown(false);
     },
     toggleDropdown(flag?: boolean): void {
       if (typeof flag !== 'boolean') {

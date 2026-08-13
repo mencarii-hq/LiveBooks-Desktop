@@ -137,7 +137,7 @@
         v-if="activeTab === checkPrintingTab"
         class="overflow-auto custom-scroll custom-scroll-thumb1"
       >
-        <CheckPrintSettings />
+        <CheckPrintSettings ref="checkPrintSettings" />
       </div>
 
       <!-- Tab Bar -->
@@ -432,6 +432,16 @@ export default defineComponent({
       this.update();
     },
     async sync(): Promise<void> {
+      if (this.activeTab === CHECK_PRINTING_TAB) {
+        const checkPrint = this.$refs.checkPrintSettings as
+          | { save?: () => Promise<void> }
+          | undefined;
+        if (checkPrint?.save) {
+          await checkPrint.save();
+        }
+        return;
+      }
+
       const syncableDocs = this.settingsDocNames()
         .map((name) => this.fyo.singles[name])
         .filter((doc) => doc?.canSave) as Doc[];

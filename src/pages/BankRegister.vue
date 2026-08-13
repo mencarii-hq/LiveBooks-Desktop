@@ -1,7 +1,11 @@
 <template>
   <div class="flex flex-col overflow-y-hidden h-full">
-    <PageHeader :title="t`Check Register`">
-      <Button :icon="false" @click="goChecksToPrint">
+    <PageHeader :title="registerTitle">
+      <Button
+        v-if="!isCreditCardRegister"
+        :icon="false"
+        @click="goChecksToPrint"
+      >
         {{ t`Checks to Print` }}
       </Button>
       <Button ref="exportButton" :icon="false" @click="openExportModal = true">
@@ -238,7 +242,7 @@
       <ExportWizard
         class="w-form"
         :schema-name="ModelNameEnum.AccountingLedgerEntry"
-        :title="t`Check Register`"
+        :title="registerTitle"
         :list-filters="exportFilters"
       />
     </Modal>
@@ -380,6 +384,11 @@ export default defineComponent({
     /** CreditCard register: Charge (credit↑) / Payment (debit↓); bank keeps Payment/Deposit. */
     isCreditCardRegister(): boolean {
       return isCreditCardAccountType(this.accountTypeById[this.bankAccount]);
+    },
+    registerTitle(): string {
+      return this.isCreditCardRegister
+        ? this.t`Credit Card Register`
+        : this.t`Check Register`;
     },
     headerCols(): { id: ColumnId; label: string; class: string }[] {
       const outflow = this.isCreditCardRegister

@@ -336,11 +336,18 @@ export default defineComponent({
     // Q-AF: only Pay + Check entries can be queued for batch printing.
     canQueue(): boolean {
       return (
-        this.selectedMethodType === 'Check' && this.form.paymentType === 'Pay'
+        !this.isCreditCardRegister &&
+        this.selectedMethodType === 'Check' &&
+        this.form.paymentType === 'Pay'
       );
     },
     isCreditCardRegister(): boolean {
       return isCreditCardAccountType(this.accountTypeById[this.bankAccount]);
+    },
+    registerTitle(): string {
+      return this.isCreditCardRegister
+        ? this.t`Credit Card Register`
+        : this.t`Check Register`;
     },
     bankAccountField(): Field {
       return {
@@ -548,6 +555,7 @@ export default defineComponent({
       await this.loadAccounts();
       await this.loadPaymentMethods();
       this.applySavedBank();
+      await this.applyInstrumentForAccount();
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('BankRegisterWrite mounted', error);
@@ -556,6 +564,7 @@ export default defineComponent({
   },
   activated() {
     this.applySavedBank();
+    void this.applyInstrumentForAccount();
   },
   methods: {
     applySavedBank() {
@@ -576,6 +585,19 @@ export default defineComponent({
       if (this.bankAccount) {
         setLastRegisterBankAccount(this.bankAccount);
       }
+      void this.applyInstrumentForAccount();
+    },
+    async applyInstrumentForAccount() {
+      if (!this.bankAccount) {
+        return;
+      }
+      this.form.paymentType = 'Pay';
+      this.form.printLater = false;
+      this.form.checkNumber = '';
+      this.form.paymentMethod = await resolveDefaultPaymentMethod(fyo, {
+        forCreditCard: this.isCreditCardRegister,
+      });
+      this.formKey += 1;
     },
     async loadAccounts() {
       const banks = (await fyo.db.getAll(ModelNameEnum.Account, {
@@ -604,9 +626,6 @@ export default defineComponent({
           order: 'asc',
         })) as { name: string; type?: string }[];
         this.paymentMethods = methods;
-        if (!this.form.paymentMethod) {
-          this.form.paymentMethod = await resolveDefaultPaymentMethod(fyo);
-        }
       } catch {
         this.paymentMethods = [];
       }
@@ -745,17 +764,14 @@ export default defineComponent({
         await createRegisterPayment(fyo, fields);
         if (this.form.alsoRecurring) {
           await memorizeRegisterFields(fyo, fields, { openEditor: false });
-          showToast({
-            type: 'success',
-            message: this
-              .t`Entry saved to Check Register; recurring template created`,
-          });
-        } else {
-          showToast({
-            type: 'success',
-            message: this.t`Entry saved to Check Register`,
-          });
         }
+        showToast({
+          type: 'success',
+          message: this.form.alsoRecurring
+            ? this
+                .t`Entry saved to ${this.registerTitle}; recurring template created`
+            : this.t`Entry saved to ${this.registerTitle}`,
+        });
         setLastRegisterBankAccount(this.bankAccount);
         // keep-alive caches this page — clear entry fields before leaving so
         // the next Write Entry visit is blank (bank / method defaults stay).

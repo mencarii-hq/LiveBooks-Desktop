@@ -143,6 +143,7 @@ export default {
       // Ignore the input blur that follows mousedown on a dropdown row so
       // a single click commits (Link/AutoComplete sticky-select).
       selecting: false,
+      suggestionRequestId: 0,
     };
   },
   computed: {
@@ -196,6 +197,9 @@ export default {
     value: {
       immediate: true,
       handler(newValue) {
+        if (this.selecting) {
+          return;
+        }
         this.setLinkValue(this.resolveDisplayLabel(newValue));
       },
     },
@@ -287,12 +291,17 @@ export default {
       return value;
     },
     async updateSuggestions(keyword) {
-      if (typeof keyword === 'string') {
+      const requestId = ++this.suggestionRequestId;
+      if (typeof keyword === 'string' && !this.selecting) {
         this.setLinkValue(keyword, true);
       }
 
       this.isLoading = true;
       const suggestions = await this.getSuggestions(keyword);
+      if (requestId !== this.suggestionRequestId || this.selecting) {
+        this.isLoading = false;
+        return;
+      }
       this.suggestions = this.setSetSuggestionAction(suggestions);
       this.isLoading = false;
     },
@@ -320,23 +329,32 @@ export default {
     },
     setSuggestion(suggestion) {
       this.selecting = true;
+      this.suggestionRequestId += 1;
       if (suggestion?.actionOnly) {
         this.setLinkValue(this.value);
-        this.$nextTick(() => {
+        window.setTimeout(() => {
           this.selecting = false;
-        });
+        }, 0);
         return;
       }
 
       if (suggestion) {
-        this.setLinkValue(suggestion.label);
+        const label = suggestion.label || '';
+        this.setLinkValue(label, true);
+        const input = this.$refs.input;
+        if (input instanceof HTMLInputElement) {
+          input.value = label;
+        }
         this.triggerChange(suggestion.value);
       }
-      this.$nextTick(() => {
+      window.setTimeout(() => {
         this.selecting = false;
-      });
+      }, 0);
     },
     onClick(e, toggleDropdown) {
+      if (this.selecting) {
+        return;
+      }
       if (this.isFocused) {
         toggleDropdown(true);
         this.updateSuggestions();
@@ -396,7 +414,7 @@ export default {
         return;
       }
 
-      this.triggerChange(e.target.value);
+      this.setLinkValue(e.target.value, true);
       this.updateSuggestions(e.target.value);
     },
 

@@ -19,6 +19,9 @@ export default {
     value: {
       immediate: true,
       handler(newValue) {
+        if (this.selecting) {
+          return;
+        }
         this.setLinkValue(newValue);
       },
     },

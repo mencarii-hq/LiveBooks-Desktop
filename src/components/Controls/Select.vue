@@ -11,7 +11,7 @@
     >
       <template #target>
         <div
-          v-on-outside-click="() => (dropdownVisible = false)"
+          v-on-outside-click="closeIfOutside"
           class="relative flex items-center justify-between"
           :class="[
             inputClasses,
@@ -136,10 +136,12 @@ export default defineComponent({
     value: {
       immediate: true,
       handler(v: string) {
-        const opt = this.options?.find(
-          (o: SelectOption) => o.value === v || o.label === v
-        );
-        this.selectValue = opt?.label ?? v ?? '';
+        this.syncSelectLabel(v);
+      },
+    },
+    options: {
+      handler() {
+        this.syncSelectLabel(this.value as string);
       },
     },
   },
@@ -153,6 +155,23 @@ export default defineComponent({
     },
   },
   methods: {
+    closeIfOutside(e?: Event) {
+      const target = e?.target;
+      if (
+        target instanceof Element &&
+        typeof target.closest === 'function' &&
+        target.closest('.popover-container')
+      ) {
+        return;
+      }
+      this.dropdownVisible = false;
+    },
+    syncSelectLabel(v: string) {
+      const opt = this.options?.find(
+        (o: SelectOption) => o.value === v || o.label === v
+      );
+      this.selectValue = opt?.label ?? v ?? '';
+    },
     toggleDropdown() {
       if (!this.closeDropDown) {
         this.dropdownVisible = true;

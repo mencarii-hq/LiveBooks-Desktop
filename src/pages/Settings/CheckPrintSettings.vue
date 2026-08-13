@@ -39,7 +39,7 @@
           type="checkbox"
           class="accent-green-600"
           :checked="omitCheckNumber"
-          @change="omitCheckNumber = ($event.target as HTMLInputElement).checked"
+          @change="onOmitCheckNumberChange"
         />
         <span>{{ t`Don't print check number (pre-printed stock)` }}</span>
       </label>
@@ -72,6 +72,7 @@
               bg-gray-25
               dark:bg-gray-850 dark:text-gray-25
             "
+            @change="queueSave"
           />
         </div>
         <div>
@@ -93,6 +94,7 @@
               bg-gray-25
               dark:bg-gray-850 dark:text-gray-25
             "
+            @change="queueSave"
           />
         </div>
       </div>
@@ -105,12 +107,12 @@
         <NudgeControl
           :label="t`Horizontal (X)`"
           :value="profile.offsetX"
-          @change="(v) => (profile.offsetX = v)"
+          @change="(v) => setProfileOffset('offsetX', v)"
         />
         <NudgeControl
           :label="t`Vertical (Y)`"
           :value="profile.offsetY"
-          @change="(v) => (profile.offsetY = v)"
+          @change="(v) => setProfileOffset('offsetY', v)"
         />
       </div>
 
@@ -233,6 +235,8 @@ export default defineComponent({
       profiles: getDefaultProfiles(),
       omitCheckNumber: true,
       saving: false,
+      loaded: false,
+      saveTimer: null as ReturnType<typeof setTimeout> | null,
       fieldNames: CHECK_FIELD_NAMES,
     };
   },
@@ -258,6 +262,11 @@ export default defineComponent({
     this.format = settings.activeFormat;
     this.profiles = settings.profiles;
     this.omitCheckNumber = settings.omitCheckNumber;
+    await this.$nextTick();
+    this.loaded = true;
+  },
+  async beforeUnmount() {
+    await this.flushSave();
   },
   methods: {
     onFormatChange(value: string | null) {
@@ -268,7 +277,19 @@ export default defineComponent({
         next === 'ledgerStub'
       ) {
         this.format = next;
+        this.queueSave();
       }
+    },
+    onOmitCheckNumberChange(event: Event) {
+      this.omitCheckNumber = (event.target as HTMLInputElement).checked;
+      this.queueSave();
+    },
+    setProfileOffset(axis: 'offsetX' | 'offsetY', value: number) {
+      if (!this.profile) {
+        return;
+      }
+      this.profile[axis] = Number(value) || 0;
+      this.queueSave();
     },
     fieldOffset(fieldName: CheckFieldName): FieldOffset {
       const p = this.profile;
@@ -283,8 +304,31 @@ export default defineComponent({
     setFieldOffset(fieldName: CheckFieldName, axis: 'x' | 'y', value: number) {
       const offset = this.fieldOffset(fieldName);
       offset[axis] = Number(value) || 0;
+      this.queueSave();
     },
-    async save() {
+    queueSave() {
+      if (!this.loaded) {
+        return;
+      }
+      if (this.saveTimer) {
+        clearTimeout(this.saveTimer);
+      }
+      this.saveTimer = setTimeout(() => {
+        this.saveTimer = null;
+        void this.persist(true);
+      }, 400);
+    },
+    async flushSave() {
+      if (this.saveTimer) {
+        clearTimeout(this.saveTimer);
+        this.saveTimer = null;
+      }
+      if (!this.loaded) {
+        return;
+      }
+      await this.persist(true);
+    },
+    async persist(quiet = false) {
       this.saving = true;
       try {
         await saveCheckSettings(fyo, {
@@ -292,10 +336,12 @@ export default defineComponent({
           profiles: this.profiles,
           omitCheckNumber: this.omitCheckNumber,
         });
-        showToast({
-          type: 'success',
-          message: this.t`Check printing settings saved`,
-        });
+        if (!quiet) {
+          showToast({
+            type: 'success',
+            message: this.t`Check printing settings saved`,
+          });
+        }
       } catch (error) {
         showToast({
           type: 'error',
@@ -304,6 +350,13 @@ export default defineComponent({
       } finally {
         this.saving = false;
       }
+    },
+    async save() {
+      if (this.saveTimer) {
+        clearTimeout(this.saveTimer);
+        this.saveTimer = null;
+      }
+      await this.persist(false);
     },
     async printSample() {
       if (!this.profile) {

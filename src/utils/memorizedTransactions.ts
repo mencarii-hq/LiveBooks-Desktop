@@ -147,30 +147,45 @@ export async function isCheckMethod(
 }
 
 /**
- * R2: Register entries (payments and deposits) default to the Check method.
- * Prefer a method of type `Check`, then one literally named "Check", then
- * fall back to Cash / Bank / first available for older books.
+ * Bank register defaults to Check. Credit-card register defaults to Transfer
+ * (never Check/Bank — those surface check # / clearance-date fields the
+ * Write Entry form does not collect).
  */
-export async function resolveDefaultPaymentMethod(fyo: Fyo): Promise<string> {
+export async function resolveDefaultPaymentMethod(
+  fyo: Fyo,
+  opts?: { forCreditCard?: boolean }
+): Promise<string> {
   try {
     const methods = (await fyo.db.getAll(ModelNameEnum.PaymentMethod, {
       fields: ['name', 'type'],
       orderBy: 'name',
       order: 'asc',
     })) as { name: string; type?: string }[];
-    const checkByType = methods.find((m) => m.type === 'Check');
-    if (checkByType) return checkByType.name;
-    const checkByName = methods.find(
-      (m) => m.name.trim().toLowerCase() === 'check'
+    const byType = (type: string) => methods.find((m) => m.type === type);
+    const byName = (name: string) =>
+      methods.find((m) => m.name.trim().toLowerCase() === name);
+
+    if (opts?.forCreditCard) {
+      return (
+        byType('Transfer')?.name ||
+        byName('transfer')?.name ||
+        byName('cash')?.name ||
+        methods.find((m) => m.type !== 'Check' && m.type !== 'Bank')?.name ||
+        methods[0]?.name ||
+        'Transfer'
+      );
+    }
+
+    return (
+      byType('Check')?.name ||
+      byName('check')?.name ||
+      byName('cash')?.name ||
+      byType('Bank')?.name ||
+      methods[0]?.name ||
+      'Check'
     );
-    if (checkByName) return checkByName.name;
-    const cash = methods.find((m) => m.name.trim().toLowerCase() === 'cash');
-    if (cash) return cash.name;
-    const bank = methods.find((m) => m.type === 'Bank');
-    if (bank) return bank.name;
-    return methods[0]?.name || 'Check';
   } catch {
-    return 'Check';
+    return opts?.forCreditCard ? 'Transfer' : 'Check';
   }
 }
 
@@ -288,6 +303,16 @@ export async function createRegisterPayment(
     doc.referenceId = '';
   } else if (manualCheckNumber) {
     doc.referenceId = manualCheckNumber;
+  }
+  // Transfer/Bank methods are type Bank in PaymentMethod (demo + patch).
+  // Write Entry does not collect clearanceDate / referenceId; without
+  // these, submit throws "Clearance Date not set."
+  const methodType = (await doc.paymentMethodDoc())?.type;
+  if (methodType === 'Bank') {
+    doc.clearanceDate = doc.date ?? fields.date;
+    if (!String(doc.referenceId || '').trim()) {
+      doc.referenceId = paymentMethod;
+    }
   }
   await doc.sync();
   await doc.submit();
