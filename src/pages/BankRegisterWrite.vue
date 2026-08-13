@@ -563,8 +563,13 @@ export default defineComponent({
     }
   },
   activated() {
+    const previousAccount = this.bankAccount;
     this.applySavedBank();
-    void this.applyInstrumentForAccount();
+    // keep-alive re-fires this on every return. Only reset instrument
+    // defaults when the bank/card actually changed (query or last-used).
+    if (this.bankAccount !== previousAccount) {
+      void this.applyInstrumentForAccount();
+    }
   },
   methods: {
     applySavedBank() {
