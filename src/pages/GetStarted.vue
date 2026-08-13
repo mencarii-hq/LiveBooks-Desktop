@@ -1,6 +1,10 @@
 <template>
   <div class="flex flex-col overflow-y-hidden">
-    <PageHeader :title="t`Set Up Your Workspace`" />
+    <PageHeader :title="t`Set Up Your Workspace`">
+      <p class="text-sm text-gray-600 dark:text-gray-400 select-none">
+        {{ progressLabel }}
+      </p>
+    </PageHeader>
     <div
       class="
         flex-1
@@ -8,72 +12,133 @@
         custom-scroll custom-scroll-thumb1
       "
     >
-      <div
-        v-for="section in sections"
-        :key="section.label"
-        class="p-4 border-b dark:border-gray-800"
-      >
-        <h2 class="font-medium dark:text-gray-25">{{ section.label }}</h2>
-        <div class="flex mt-4 gap-4">
+      <div class="p-4 flex flex-col gap-4">
+        <section v-for="(section, sIndex) in sections" :key="section.label">
           <div
-            v-for="item in section.items"
-            :key="item.label"
-            class="w-full md:w-1/3 sm:w-1/2"
+            class="
+              flex
+              items-center
+              gap-2
+              mb-2
+              w-full
+              text-left
+              cursor-pointer
+              select-none
+            "
+            role="button"
+            tabindex="0"
+            :aria-expanded="sectionOpen[sIndex]"
+            @click="toggleSection(sIndex)"
+            @keydown.enter.prevent="toggleSection(sIndex)"
+            @keydown.space.prevent="toggleSection(sIndex)"
+          >
+            <svg
+              class="
+                w-4
+                h-4
+                flex-shrink-0
+                text-gray-500
+                dark:text-gray-400
+                transition-transform
+              "
+              :class="{ 'rotate-90': sectionOpen[sIndex] }"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            <h2 class="font-medium dark:text-gray-25">{{ section.label }}</h2>
+            <span
+              v-if="section.optional"
+              class="
+                text-xs
+                px-1.5
+                py-0.5
+                rounded
+                bg-gray-100
+                text-gray-600
+                dark:bg-gray-800 dark:text-gray-400
+              "
+            >
+              {{ t`When needed` }}
+            </span>
+          </div>
+          <div
+            v-if="sectionOpen[sIndex]"
+            class="border rounded-lg overflow-hidden dark:border-gray-800"
           >
             <div
-              class="
-                flex flex-col
-                justify-between
-                h-40
-                p-4
-                border
-                dark:border-gray-800 dark:text-gray-50
-                rounded-lg
-              "
-              @mouseenter="() => (activeCard = item.key)"
-              @mouseleave="() => (activeCard = null)"
+              v-for="(item, index) in section.items"
+              :key="item.key"
+              class="flex items-center gap-3 px-3 py-2.5 dark:text-gray-50"
+              :class="{
+                'border-b dark:border-gray-800':
+                  index < section.items.length - 1,
+                'opacity-70': isCompleted(item),
+              }"
             >
-              <div>
-                <component
-                  :is="getIconComponent(item)"
-                  v-show="activeCard !== item.key && !isCompleted(item)"
-                  class="mb-4"
-                />
+              <div
+                class="
+                  w-8
+                  h-8
+                  rounded-md
+                  flex
+                  items-center
+                  justify-center
+                  flex-shrink-0
+                "
+                :class="
+                  isCompleted(item)
+                    ? 'bg-green-50 dark:bg-green-900/30'
+                    : 'bg-gray-100 dark:bg-gray-800'
+                "
+              >
                 <Icon
-                  v-show="isCompleted(item)"
+                  v-if="isCompleted(item)"
                   name="green-check"
                   size="24"
-                  class="w-5 h-5 mb-4"
+                  class="w-5 h-5"
                 />
-                <h3 class="font-medium">{{ item.label }}</h3>
-                <p class="mt-2 text-sm text-gray-800 dark:text-gray-300">
+                <Icon
+                  v-else
+                  :name="item.icon"
+                  size="18"
+                  :dark-mode="darkMode"
+                />
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-medium text-sm">{{ item.label }}</h3>
+                <p
+                  class="
+                    mt-0.5
+                    text-xs text-gray-600
+                    dark:text-gray-400
+                    truncate
+                  "
+                >
                   {{ item.description }}
                 </p>
               </div>
-              <div
-                v-show="activeCard === item.key && !isCompleted(item)"
-                class="flex mt-2 overflow-hidden"
-              >
+              <div class="flex items-center gap-2 flex-shrink-0">
                 <Button
                   v-if="item.action"
-                  class="leading-tight text-base"
-                  type="primary"
+                  class="leading-tight text-sm"
+                  :padding="false"
+                  :type="isCompleted(item) ? 'secondary' : 'primary'"
+                  :class="isCompleted(item) ? 'px-3' : 'px-4'"
                   @click="handleAction(item)"
                 >
-                  {{ t`Set Up` }}
-                </Button>
-                <Button
-                  v-if="item.documentation"
-                  class="leading-tight text-base"
-                  :class="{ 'ms-4': item.action }"
-                  @click="handleDocumentation(item)"
-                >
-                  {{ t`Documentation` }}
+                  {{ actionLabel(item) }}
                 </Button>
               </div>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   </div>
@@ -86,8 +151,12 @@ import Icon from 'src/components/Icon.vue';
 import PageHeader from 'src/components/PageHeader.vue';
 import { fyo } from 'src/initFyo';
 import { getGetStartedConfig } from 'src/utils/getStartedConfig';
+import {
+  getLivebooksCloudSessionSummary,
+  LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
+} from 'src/utils/livebooksCloud';
 import { GetStartedConfigItem } from 'src/utils/types';
-import { Component, defineComponent, h } from 'vue';
+import { defineComponent } from 'vue';
 
 type ListItem = GetStartedConfigItem['items'][number];
 
@@ -102,25 +171,93 @@ export default defineComponent({
     darkMode: { type: Boolean, default: false },
   },
   data() {
+    const sections = getGetStartedConfig();
     return {
-      activeCard: null as string | null,
-      sections: getGetStartedConfig(),
+      sections,
+      cloudSignedIn: false,
+      onSessionRefresh: null as (() => void) | null,
+      sectionOpen: sections.map(() => true),
+      sectionTouched: sections.map(() => false),
     };
+  },
+  computed: {
+    progressItems(): ListItem[] {
+      return this.sections
+        .flatMap((section) => section.items)
+        .filter((item) => item.fieldname || item.completedKey);
+    },
+    completedCount(): number {
+      return this.progressItems.filter((item) => this.isCompleted(item)).length;
+    },
+    totalCount(): number {
+      return this.progressItems.length;
+    },
+    progressLabel(): string {
+      return this.t`${this.completedCount} of ${this.totalCount} complete`;
+    },
+  },
+  async mounted() {
+    await this.refreshCloudSignedIn();
+    this.onSessionRefresh = () => {
+      void this.refreshCloudSignedIn();
+    };
+    document.addEventListener(
+      LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
+      this.onSessionRefresh
+    );
+  },
+  unmounted() {
+    if (this.onSessionRefresh) {
+      document.removeEventListener(
+        LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
+        this.onSessionRefresh
+      );
+    }
   },
   async activated() {
     await fyo.doc.getDoc('GetStarted');
+    await this.refreshCloudSignedIn();
     await this.checkForCompletedTasks();
+    this.applyDefaultSectionOpen();
   },
   methods: {
-    handleDocumentation({ documentation }: ListItem) {
-      if (documentation) {
-        ipc.openLink(documentation);
+    trackableItems(section: GetStartedConfigItem): ListItem[] {
+      return section.items.filter(
+        (item) => item.fieldname || item.completedKey
+      );
+    },
+    isSectionComplete(section: GetStartedConfigItem): boolean {
+      const items = this.trackableItems(section);
+      if (!items.length) {
+        return false;
       }
+      return items.every((item) => this.isCompleted(item));
+    },
+    applyDefaultSectionOpen() {
+      this.sectionOpen = this.sections.map((section, index) => {
+        if (this.sectionTouched[index]) {
+          return this.sectionOpen[index];
+        }
+        // Optional sections (Cloud) stay open even when signed in.
+        if (section.optional) {
+          return true;
+        }
+        return !this.isSectionComplete(section);
+      });
+    },
+    toggleSection(index: number) {
+      this.sectionTouched[index] = true;
+      this.sectionOpen[index] = !this.sectionOpen[index];
+    },
+    actionLabel(item: ListItem): string {
+      if (this.isCompleted(item)) {
+        return item.viewLabel || this.t`View`;
+      }
+      return item.actionLabel || this.t`Set Up`;
     },
     async handleAction({ key, action }: ListItem) {
       if (action) {
         action();
-        this.activeCard = null;
       }
 
       switch (key) {
@@ -129,9 +266,6 @@ export default defineComponent({
           break;
         case 'General':
           await this.updateChecks({ companySetup: true });
-          break;
-        case 'System':
-          await this.updateChecks({ systemSetup: true });
           break;
         case 'Review Accounts':
           await this.updateChecks({ chartOfAccountsReviewed: true });
@@ -143,6 +277,10 @@ export default defineComponent({
           await this.updateChecks({ taxesAdded: true });
           break;
       }
+    },
+    async refreshCloudSignedIn() {
+      const { signedIn } = await getLivebooksCloudSessionSummary();
+      this.cloudSignedIn = signedIn;
     },
     async checkIsOnboardingComplete() {
       if (fyo.singles.GetStarted?.onboardingComplete) {
@@ -219,33 +357,15 @@ export default defineComponent({
       await fyo.doc.getDoc('GetStarted');
     },
     isCompleted(item: ListItem) {
+      if (item.completedKey === 'cloudSignedIn') {
+        return this.cloudSignedIn;
+      }
+
       if (!item.fieldname) {
         return false;
       }
 
       return fyo.singles.GetStarted?.get(item.fieldname) || false;
-    },
-    getIconComponent(item: ListItem) {
-      const completed = item.fieldname
-        ? fyo.singles.GetStarted?.[item.fieldname] || false
-        : false;
-      let name = completed ? 'green-check' : item.icon;
-      let size = completed ? '24' : '18';
-      return {
-        name,
-        render() {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          return h(Icon, {
-            ...Object.assign(
-              {
-                name,
-                size,
-              },
-              this.$attrs
-            ),
-          });
-        },
-      } as Component;
     },
   },
 });

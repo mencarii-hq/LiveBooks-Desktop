@@ -15,21 +15,24 @@ export function getLivebooksCloudOrigin(): string {
   return trimTrailingSlash(raw || 'http://127.0.0.1:3000');
 }
 
-/** Cloud dashboard; unauthenticated visitors are redirected to sign-in by the server. */
+/** Cloud dashboard (Explore). Unauthenticated visitors can look around; not a Devise route. */
 export function livebooksCloudRootUrl(): string {
   return `${getLivebooksCloudOrigin()}/`;
 }
 
+/** Rails 8 auth sign-in (`resource :session` → GET /session/new). Not Devise `/users/sign_in`. */
 export function livebooksCloudSignInUrl(): string {
-  return livebooksCloudRootUrl();
+  return `${getLivebooksCloudOrigin()}/session/new`;
 }
 
+/** Rails 8 auth registration (`resources :registrations` → GET /registrations/new). Not Devise `/users/sign_up`. */
 export function livebooksCloudSignUpUrl(): string {
-  return livebooksCloudRootUrl();
+  return `${getLivebooksCloudOrigin()}/registrations/new`;
 }
 
+/** Cloud billing. Logged-out `/billing` already returns here after Cloud sign-in — no extra query params. */
 export function livebooksCloudSubscribeUrl(): string {
-  return livebooksCloudRootUrl();
+  return `${getLivebooksCloudOrigin()}/billing`;
 }
 
 export function livebooksCloudAccountSecurityUrl(): string {
@@ -44,4 +47,9 @@ export function livebooksCloudMfaStepUpUrl(): string {
 /** Stable survey entry — cloud 302s to the Google Form (Phase 0). */
 export function livebooksCloudFeedbackUrl(): string {
   return `${getLivebooksCloudOrigin()}/feedback`;
+}
+
+/** QuickBooks Desktop export (Web Connector) on Cloud. */
+export function livebooksCloudQbdExportUrl(): string {
+  return `${getLivebooksCloudOrigin()}/qbd_exports`;
 }

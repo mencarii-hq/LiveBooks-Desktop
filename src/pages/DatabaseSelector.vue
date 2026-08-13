@@ -30,6 +30,11 @@
             t`Create a new company or select an existing one from your computer`
           }}
         </p>
+        <p class="text-ink-muted text-sm select-none mt-1">
+          {{
+            t`Your books stay on this computer. Cloud is for when your operations need it, after you open a company.`
+          }}
+        </p>
       </div>
 
       <hr class="border-default" />

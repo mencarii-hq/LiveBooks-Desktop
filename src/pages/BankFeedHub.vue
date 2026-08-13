@@ -137,7 +137,7 @@
           {{
             bookId
               ? t`No online banks connected yet. Use Connect via Plaid above to get started.`
-              : t`Sign into LiveBooks Cloud to connect online banks via Plaid.`
+              : t`Online bank feeds use LiveBooks Cloud when your operations need them. Sign in to connect banks via Plaid.`
           }}
         </div>
         <div
@@ -1331,7 +1331,7 @@ export default defineComponent({
       }
     },
     msgSignInCloud() {
-      return t`Sign into LiveBooks Cloud to use online bank feeds here.`;
+      return t`Online bank feeds are for when your operations need them. Sign into LiveBooks Cloud to use them here.`;
     },
     msgEmptyPayload() {
       return t`Empty payload`;

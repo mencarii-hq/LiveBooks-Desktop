@@ -46,7 +46,7 @@ LiveBooks is **local-first**. Customer ledgers live in a **plaintext SQLite file
 - When `safeStorage` is **unavailable** (e.g. Linux without a configured Secret Service):
   - **Packaged builds** refuse to write tokens in plaintext. Cloud connect cannot establish a lasting session until a keyring is available.
   - **Dev/unpackaged builds** allow plaintext fallback so contributors aren't blocked.
-- Manage Cloud surfaces a "Secure storage unavailable" warning whenever the store is degraded (install/unlock GNOME Keyring or KWallet on Linux).
+- Cloud surfaces a "Secure storage unavailable" warning whenever the store is degraded (install/unlock GNOME Keyring or KWallet on Linux).
 - **Linux AppImage** ships **unsigned** in MVP — distribute only via this repo's GitHub Releases; do not treat third-party mirrors as authentic.
 
 ### Plaid and MFA (Pro)

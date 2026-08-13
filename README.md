@@ -36,7 +36,7 @@ Accounting core and many capabilities come from upstream; see **[frappe/books](h
 - Reconciliation: Match bank activity to ledger entries.
 - Dashboard: Overview of key financial data and performance metrics.
 - Point of Sale: Integrated POS for retail sales.
-- Works offline: Continue working without the internet; **optional cloud sync**.
+- Works offline: Continue working without the internet; **cloud sync when your operations need it**.
 - Double-entry accounting: Each transaction recorded across two accounts.
 
 ### Data philosophy
@@ -110,7 +110,7 @@ By default this targets your current OS and architecture. For other targets, see
 ### LiveBooks Cloud (release and CI)
 
 - **API origin:** Set **`LIVEBOOKS_CLOUD_ORIGIN`** and **`VITE_LIVEBOOKS_CLOUD_ORIGIN`** to the same production base URL (no trailing slash) when producing binaries for end users. The [Publish Mac](.github/workflows/publish-mac.yml) / [Publish Windows](.github/workflows/publish-windows.yml) / [Publish Linux](.github/workflows/publish-linux.yml) workflows pass both from repository secret **`LIVEBOOKS_CLOUD_ORIGIN`**; if that secret is unset, the build still defaults to `http://127.0.0.1:3000` (suitable for local packaging only).
-- **Linux (AppImage x64):** Download only from [GitHub Releases](https://github.com/mencarii-hq/LiveBooks-Desktop/releases) — the Linux AppImage is **unsigned**. A desktop keyring (GNOME Keyring / KWallet) is required to connect LiveBooks Cloud; without it the app cannot keep a Cloud session. Manage Cloud shows a secure-storage warning when keyring/encryption is unavailable.
+- **Linux (AppImage x64):** Download only from [GitHub Releases](https://github.com/mencarii-hq/LiveBooks-Desktop/releases) — the Linux AppImage is **unsigned**. A desktop keyring (GNOME Keyring / KWallet) is required to connect LiveBooks Cloud; without it the app cannot keep a Cloud session. Cloud shows a secure-storage warning when keyring/encryption is unavailable.
 - **Auto-updates:** Prerelease channels are **off** by default (`electron-updater`). For internal QA builds that should consume GitHub prereleases, set environment variable **`LIVEBOOKS_UPDATER_ALLOW_PRERELEASE=1`** (or `true`) when launching the app or when wrapping the packaged binary.
 - **Session security:** See **Security posture** above. In **packaged** builds, refresh tokens are **not** written in plaintext when `safeStorage` is unavailable — you re-authenticate each launch. **Dev** (`yarn dev`) may use plaintext token fallback so contributors are not blocked.
 - **Day-1 verification:** `yarn test:day1` runs automated checks; pre-GA signing QA is in [`docs/signing-qa-runbook.md`](docs/signing-qa-runbook.md).

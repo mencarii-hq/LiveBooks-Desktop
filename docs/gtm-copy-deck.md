@@ -40,7 +40,7 @@ LiveBooks Desktop stores your company file as a **SQLCipher-encrypted SQLite dat
 
 **I got a new computer — how do I open my books?**
 
-1. Install LiveBooks Desktop from [GitHub Releases](https://github.com/mencarii-hq/LiveBooks-Desktop/releases).
+1. Install LiveBooks Desktop from [mencarii.com](https://mencarii.com).
 2. Sign in to the same LiveBooks Cloud account.
 3. If you enabled **Cloud backup (Pro)** and MFA, use **Recovery Mode** with your cloud email, password, and authenticator code. The app restores your encryption key through the main process — we never show the raw key in the browser UI.
 

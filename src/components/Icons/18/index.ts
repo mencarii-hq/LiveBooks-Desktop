@@ -1,4 +1,5 @@
 import Check from './check.vue';
+import Cloud from './cloud.vue';
 import CommonEntries from './common-entries.vue';
 import Customer from './customer.vue';
 import Dashboard from './dashboard.vue';
@@ -28,6 +29,7 @@ import System from './system.vue';
 // prettier-ignore
 export default {
   'check': Check,
+  'cloud': Cloud,
   'common-entries': CommonEntries,
   'customer': Customer,
   'dashboard': Dashboard,

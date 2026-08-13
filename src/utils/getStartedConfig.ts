@@ -1,6 +1,8 @@
 import { t } from 'fyo';
 import { ModelNameEnum } from 'models/types';
 import { fyo } from 'src/initFyo';
+import { openLivebooksCloudSignIn } from './livebooksCloud';
+import { livebooksCloudQbdExportUrl } from './livebooksCloudUrls';
 import { getFormRoute, openSettings, routeTo } from './ui';
 import { GetStartedConfigItem } from './types';
 
@@ -33,14 +35,6 @@ export function getGetStartedConfig(): GetStartedConfigItem[] {
           fieldname: 'printSetup',
           action: () => openSettings(ModelNameEnum.PrintSettings),
         },
-        {
-          key: 'System',
-          label: t`System`,
-          icon: 'system',
-          description: t`Setup system defaults like date format and display precision`,
-          fieldname: 'systemSetup',
-          action: () => openSettings(ModelNameEnum.SystemSettings),
-        },
       ],
     },
     {
@@ -53,7 +47,6 @@ export function getGetStartedConfig(): GetStartedConfigItem[] {
           description: t`Review your chart of accounts, add any account or tax heads as needed`,
           action: () => routeTo('/chart-of-accounts'),
           fieldname: 'chartOfAccountsReviewed',
-          documentation: 'https://docs.frappe.io/books/chart-of-accounts',
         },
         {
           key: 'Opening Balances',
@@ -67,7 +60,6 @@ export function getGetStartedConfig(): GetStartedConfigItem[] {
             });
             await routeTo(getFormRoute(ModelNameEnum.JournalEntry, doc.name!));
           },
-          documentation: 'https://docs.frappe.io/books/setup-opening-balances',
         },
         {
           key: 'Add Taxes',
@@ -76,13 +68,11 @@ export function getGetStartedConfig(): GetStartedConfigItem[] {
           fieldname: 'taxesAdded',
           description: t`Set up your tax templates for your sales or purchase transactions`,
           action: () => routeTo('/list/Tax'),
-          documentation:
-            'https://docs.frappe.io/books/create-initial-entries#add-taxes',
         },
       ],
     },
     {
-      label: t`Sales`,
+      label: t`Receivable`,
       items: [
         {
           key: 'Add Sales Items',
@@ -97,8 +87,6 @@ export function getGetStartedConfig(): GetStartedConfigItem[] {
               },
             }),
           fieldname: 'salesItemCreated',
-          documentation:
-            'https://docs.frappe.io/books/create-initial-entries#add-sales-items',
         },
         {
           key: 'Add Customers',
@@ -113,8 +101,6 @@ export function getGetStartedConfig(): GetStartedConfigItem[] {
               },
             }),
           fieldname: 'customerCreated',
-          documentation:
-            'https://docs.frappe.io/books/create-initial-entries#add-customers',
         },
         {
           key: 'Create Sales Invoice',
@@ -123,12 +109,11 @@ export function getGetStartedConfig(): GetStartedConfigItem[] {
           description: t`Create your first sales invoice for the created customer`,
           action: () => routeTo('/list/SalesInvoice'),
           fieldname: 'invoiceCreated',
-          documentation: 'https://docs.frappe.io/books/sales-invoices',
         },
       ],
     },
     {
-      label: t`Purchase`,
+      label: t`Payable`,
       items: [
         {
           key: 'Add Purchase Items',
@@ -163,8 +148,42 @@ export function getGetStartedConfig(): GetStartedConfigItem[] {
           description: t`Create your first purchase invoice from the created supplier`,
           action: () => routeTo('/list/PurchaseInvoice'),
           fieldname: 'billCreated',
-          documentation:
-            'https://docs.frappe.io/books/purchase-invoices#creating-purchase-invoices',
+        },
+      ],
+    },
+    {
+      label: t`Cloud`,
+      optional: true,
+      items: [
+        {
+          key: 'CloudSignIn',
+          label: t`Sign in to LiveBooks Cloud`,
+          icon: 'cloud',
+          description: t`Books stay on this computer. Cloud is for when your operations need backup, sync, and collaboration.`,
+          actionLabel: t`Sign in`,
+          viewLabel: t`Open`,
+          completedKey: 'cloudSignedIn',
+          action: () => {
+            void openLivebooksCloudSignIn();
+          },
+        },
+        {
+          key: 'ExportQBD',
+          label: t`Export QuickBooks Desktop`,
+          icon: 'common-entries',
+          description: t`Export your QuickBooks Desktop company file from Cloud.`,
+          actionLabel: t`Open`,
+          action: () => {
+            ipc.openLink(livebooksCloudQbdExportUrl());
+          },
+        },
+        {
+          key: 'CloudBankFeeds',
+          label: t`Connect bank feeds`,
+          icon: 'opening-ac',
+          description: t`Import transactions from your bank. Manual feeds work offline.`,
+          actionLabel: t`Open`,
+          action: () => routeTo('/bank-feeds'),
         },
       ],
     },

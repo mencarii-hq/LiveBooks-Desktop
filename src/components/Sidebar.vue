@@ -146,7 +146,7 @@
           class="h-3 w-3 flex-shrink-0"
         />
         <p class="break-words">
-          {{ t`Manage Cloud` }}
+          {{ t`Cloud` }}
         </p>
       </button>
 
@@ -296,7 +296,7 @@
             "
           >
             {{
-              t`Sign in on the web to link this computer to LiveBooks Cloud. Keep this app open while you connect.`
+              t`Your books stay on this computer. LiveBooks Cloud is for when your operations need backup, sync, collaboration, and bank feeds. Sign in on the web to link this computer; keep this app open while you connect.`
             }}
           </p>
           <p
@@ -331,8 +331,22 @@
             {{
               livebooksCloudSignedIn
                 ? t`Open LiveBooks Cloud`
-                : t`Sign in on the web`
+                : t`Explore Cloud`
             }}
+          </Button>
+          <Button
+            v-if="!livebooksCloudSignedIn"
+            class="w-full"
+            @click="handleLivebooksCloudSignIn"
+          >
+            {{ t`Sign in` }}
+          </Button>
+          <Button
+            v-if="!livebooksCloudSignedIn"
+            class="w-full"
+            @click="showLivebooksCloudModal = false"
+          >
+            {{ t`Use offline` }}
           </Button>
           <Button
             v-if="livebooksCloudSignedIn"
@@ -355,6 +369,7 @@ import { showDialog, showToast } from 'src/utils/interactive';
 import {
   getLivebooksCloudSessionSummary,
   LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
+  openLivebooksCloudHome,
   openLivebooksCloudSignIn,
   signOutLivebooksCloud,
 } from 'src/utils/livebooksCloud';
@@ -559,7 +574,7 @@ export default defineComponent({
     },
     livebooksCloudManageButtonTitle(): string {
       if (!this.livebooksCloudSignedIn) {
-        return t`LiveBooks Cloud — sign in or manage`;
+        return t`LiveBooks Cloud — backup, sync, and bank feeds when your operations need them`;
       }
       if (this.livebooksCloudReachable === false) {
         return t`LiveBooks Cloud — signed in, server unreachable`;
@@ -721,6 +736,14 @@ export default defineComponent({
       }, 400);
     },
     async handleLivebooksCloudModalPrimary() {
+      if (this.livebooksCloudSignedIn) {
+        await openLivebooksCloudSignIn();
+      } else {
+        openLivebooksCloudHome();
+      }
+      this.showLivebooksCloudModal = false;
+    },
+    async handleLivebooksCloudSignIn() {
       await openLivebooksCloudSignIn();
       this.showLivebooksCloudModal = false;
     },

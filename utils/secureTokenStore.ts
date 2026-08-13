@@ -9,7 +9,7 @@
  *     to write a plaintext fallback. Persisting refresh tokens in
  *     plaintext on disk is a permanent leak we won't accept in production
  *     just to spare the user a re-authentication. Cloud connect cannot keep
- *     a session until encryption is available; Manage Cloud shows a
+ *     a session until encryption is available; Cloud shows a
  *     "Secure storage unavailable" warning.
  *
  *   * In dev / unpackaged builds plaintext fallback is allowed so
@@ -102,7 +102,7 @@ export function setSecureToken(key: TokenKey, value: string): void {
   if (!plaintextFallbackAllowed()) {
     // in packaged builds without OS keychain support,
     // skip persistence entirely. Cloud session cannot be established
-    // until encryption is available. Manage Cloud surfaces the warning.
+    // until encryption is available. Cloud surfaces the warning.
     config.delete(encryptedKey(key));
     config.delete(key);
     return;
@@ -129,7 +129,7 @@ export function hasSecureToken(key: TokenKey): boolean {
 
 /**
  * True when refresh-token persistence is silently degraded — used by the
- * Manage Cloud UI to show the "Secure storage unavailable" warning. Returns
+ * Cloud UI to show the "Secure storage unavailable" warning. Returns
  * false in dev because plaintext fallback is allowed there.
  */
 export function isSecureStorageDegraded(): boolean {
