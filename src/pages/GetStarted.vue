@@ -288,10 +288,14 @@ export default defineComponent({
       }
 
       const doc = await fyo.doc.getDoc('GetStarted');
-      const onboardingComplete = fyo.schemaMap.GetStarted?.fields
-        .filter(({ fieldname }) => fieldname !== 'onboardingComplete')
-        .map(({ fieldname }) => doc.get(fieldname))
-        .every(Boolean);
+      const requiredFields = this.sections
+        .filter((section) => !section.optional)
+        .flatMap((section) => section.items)
+        .map((item) => item.fieldname)
+        .filter((fieldname): fieldname is string => Boolean(fieldname));
+      const onboardingComplete =
+        requiredFields.length > 0 &&
+        requiredFields.every((fieldname) => doc.get(fieldname));
 
       if (onboardingComplete) {
         // Mark complete for checklist UI, but do not auto-hide Get Started —

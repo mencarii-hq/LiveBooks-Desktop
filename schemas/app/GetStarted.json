@@ -14,11 +14,6 @@
       "fieldtype": "Check"
     },
     {
-      "fieldname": "systemSetup",
-      "label": "System Setup",
-      "fieldtype": "Check"
-    },
-    {
       "fieldname": "printSetup",
       "label": "Print Setup",
       "fieldtype": "Check"
