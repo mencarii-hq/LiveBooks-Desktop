@@ -128,8 +128,17 @@ function threeUpSlot(originTopIn: number): CheckSlot {
         align: 'left',
       },
       {
+        fieldname: 'address',
+        topIn: 1.88,
+        leftIn: 0.9,
+        widthIn: 3.5,
+        fontPt: 8.5,
+        align: 'left',
+        multiline: true,
+      },
+      {
         fieldname: 'memo',
-        topIn: 2.6,
+        topIn: 2.65,
         leftIn: 0.6,
         widthIn: 3.2,
         fontPt: 9,

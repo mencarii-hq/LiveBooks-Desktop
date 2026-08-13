@@ -29,7 +29,7 @@ export class PaymentSplit extends Doc {
         try {
           const rows = (await parent.fyo.db.getAll('Account', {
             fields: ['accountType'],
-            filters: { name: moneyAccountName },
+            filters: { name: String(moneyAccountName) },
             limit: 1,
           })) as { accountType?: string }[];
           moneyType = rows[0]?.accountType;

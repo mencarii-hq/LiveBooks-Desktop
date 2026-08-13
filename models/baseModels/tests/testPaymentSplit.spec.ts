@@ -362,6 +362,50 @@ test('payroll: gross and withholdings post signed, bank leg is net', async (t) =
   t.equal(totalDebit, 3000, 'total posted is the gross amount');
 });
 
+test('expense plug: negative expense split posts credit, net stays positive', async (t) => {
+  const payment = getSplitPayment('Pay', 800);
+  await payment.append('splits', {
+    account: expenseA,
+    amount: fyo.pesa(1000),
+  });
+  await payment.append('splits', {
+    account: expenseB,
+    amount: fyo.pesa(-200),
+  });
+  await payment.sync();
+  await payment.submit();
+
+  const ales = await alesForReference(payment.name!);
+  const cash = net(ales, cashAccount);
+  const a = net(ales, expenseA);
+  const b = net(ales, expenseB);
+
+  t.equal(cash.credit, 800, 'bank is credited the net check');
+  t.equal(a.debit, 1000, 'gross expense is debited');
+  t.equal(b.credit, 200, 'negative expense plug is credited');
+});
+
+test('split validation: zero net payment amount is rejected', async (t) => {
+  const payment = getSplitPayment('Pay', 0);
+  await payment.append('splits', {
+    account: expenseA,
+    amount: fyo.pesa(100),
+  });
+  await payment.append('splits', {
+    account: expenseB,
+    amount: fyo.pesa(-100),
+  });
+  try {
+    await payment.sync();
+    t.fail('sync should have thrown for zero net amount');
+  } catch (error) {
+    t.ok(
+      error instanceof ValidationError,
+      'zero net split payment throws ValidationError'
+    );
+  }
+});
+
 test('payroll validation: signed mismatch and all-negative lines reject', async (t) => {
   // 3000 − 500 = 2500 ≠ 2400.
   const mismatched = getSplitPayment('Pay', 2400);

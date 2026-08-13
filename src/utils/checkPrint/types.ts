@@ -80,6 +80,8 @@ export interface CheckData {
   date: string;
   payee: string;
   address: string;
+  /** False when the address block is payee name only (no street). */
+  hasStreetAddress: boolean;
   amountNumeric: string;
   amountWords: string;
   memo: string;

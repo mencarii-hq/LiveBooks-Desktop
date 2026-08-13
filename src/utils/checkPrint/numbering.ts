@@ -1,4 +1,4 @@
-import { Fyo } from 'fyo';
+import { Fyo, t } from 'fyo';
 import { ModelNameEnum } from 'models/types';
 import type { Payment } from 'models/baseModels/Payment/Payment';
 import type { Account } from 'models/baseModels/Account/Account';
@@ -71,14 +71,18 @@ export function normalizeCheckNumber(value: unknown): string {
  */
 export async function getUsedCheckNumbers(
   fyo: Fyo,
-  bankAccount: string
+  bankAccount: string,
+  excludePaymentName?: string
 ): Promise<Set<string>> {
   const used = new Set<string>();
   const rows = (await fyo.db.getAll(ModelNameEnum.Payment, {
-    fields: ['referenceId'],
+    fields: ['name', 'referenceId'],
     filters: { account: bankAccount },
-  })) as { referenceId?: string }[];
+  })) as { name?: string; referenceId?: string }[];
   for (const r of rows) {
+    if (excludePaymentName && r.name === excludePaymentName) {
+      continue;
+    }
     const ref = normalizeCheckNumber(r.referenceId);
     if (ref) {
       used.add(ref);
@@ -276,4 +280,73 @@ export async function voidAndRequeue(
   await payment.set('referenceId', '');
   await payment.set('printLater', true);
   await payment.sync();
+}
+
+/**
+ * Dedicated post-submit check-# edit: sets `referenceId` (plus a memo
+ * audit line) and clears `printLater` so the payment leaves Checks to
+ * Print. Does not whitelist the field in `canEdit`. Uniqueness is per
+ * bank account (voided numbers stay reserved). Numeric values advance
+ * `Account.nextCheckNumber` past the new number so later print assignment
+ * skips it; `assignBatchNumbers` also walks past used numbers.
+ */
+export async function setPaymentCheckNumber(
+  fyo: Fyo,
+  paymentName: string,
+  newNumberRaw: string
+): Promise<void> {
+  const payment = (await fyo.doc.getDoc(
+    ModelNameEnum.Payment,
+    paymentName
+  )) as Payment;
+
+  if (!payment.name || payment.isCancelled) {
+    throw new Error(t`Cannot set a check number on this payment.`);
+  }
+
+  const newNumber = normalizeCheckNumber(newNumberRaw);
+  if (!newNumber) {
+    throw new Error(t`Enter a check number.`);
+  }
+
+  const bankAccount = String(payment.account || '');
+  if (!bankAccount) {
+    throw new Error(t`Payment has no bank account.`);
+  }
+
+  const used = await getUsedCheckNumbers(
+    fyo,
+    bankAccount,
+    String(payment.name)
+  );
+  if (used.has(newNumber)) {
+    throw new Error(
+      t`Check number ${newNumber} is already used on this bank account.`
+    );
+  }
+
+  const oldNumber = String(payment.referenceId || '').trim() || '(none)';
+  const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
+  const note = `Check # ${oldNumber} → ${newNumber} (${stamp})`;
+  const memo = String(payment.memo || '').trim();
+  const nextMemo = memo ? `${memo}\n${note}` : note;
+
+  await payment.set('referenceId', newNumber);
+  await payment.set('printLater', false);
+  await payment.set('memo', nextMemo);
+  await payment.sync();
+
+  const n = Number(newNumber);
+  if (Number.isFinite(n) && n > 0) {
+    const account = (await fyo.doc.getDoc(
+      ModelNameEnum.Account,
+      bankAccount
+    )) as Account;
+    const current = Number(account.nextCheckNumber) || 0;
+    const advanced = Math.max(current, Math.floor(n) + 1);
+    if (advanced !== current) {
+      await account.set('nextCheckNumber', advanced);
+      await account.sync();
+    }
+  }
 }

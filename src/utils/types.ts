@@ -136,6 +136,7 @@ export type DialogButton = {
 
 export type GetStartedConfigItem = {
   label: string;
+  optional?: boolean;
   items: {
     key: string;
     label: string;
@@ -144,5 +145,8 @@ export type GetStartedConfigItem = {
     fieldname?: string;
     documentation?: string;
     action?: () => void;
+    actionLabel?: string;
+    viewLabel?: string;
+    completedKey?: 'cloudSignedIn';
   }[];
 };

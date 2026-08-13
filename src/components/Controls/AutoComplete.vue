@@ -27,7 +27,7 @@
             :placeholder="inputPlaceholder"
             :readonly="isReadOnly"
             :tabindex="isReadOnly ? '-1' : '0'"
-            @focus="(e) => !isReadOnly && onInputFocus(e)"
+            @focus="(e) => !isReadOnly && onFocus(e, toggleDropdown)"
             @click="(e) => !isReadOnly && onClick(e, toggleDropdown)"
             @blur="(e) => !isReadOnly && onBlur(e.target.value, toggleDropdown)"
             @input="(e) => onInput(e, toggleDropdown)"
@@ -140,6 +140,9 @@ export default {
       highlightedIndex: -1,
       isFocused: false,
       isDropdownOpen: false,
+      // Ignore the input blur that follows mousedown on a dropdown row so
+      // a single click commits (Link/AutoComplete sticky-select).
+      selecting: false,
     };
   },
   computed: {
@@ -316,8 +319,12 @@ export default {
         .map(({ item }) => item);
     },
     setSuggestion(suggestion) {
+      this.selecting = true;
       if (suggestion?.actionOnly) {
         this.setLinkValue(this.value);
+        this.$nextTick(() => {
+          this.selecting = false;
+        });
         return;
       }
 
@@ -325,9 +332,9 @@ export default {
         this.setLinkValue(suggestion.label);
         this.triggerChange(suggestion.value);
       }
-    },
-    onInputFocus(e) {
-      this.isFocused = true;
+      this.$nextTick(() => {
+        this.selecting = false;
+      });
     },
     onClick(e, toggleDropdown) {
       if (this.isFocused) {
@@ -345,6 +352,9 @@ export default {
       this.$emit('focus', e);
     },
     async onBlur(label, toggleDropdown) {
+      if (this.selecting) {
+        return;
+      }
       this.isFocused = false;
       this.isDropdownOpen = false;
       if (!label && !this.value) {

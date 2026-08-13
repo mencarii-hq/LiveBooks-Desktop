@@ -201,8 +201,17 @@
                       <div class="cell-body tabular-nums">
                         {{ row.deposit }}
                       </div>
-                      <div class="cell-body tabular-nums pe-4">
+                      <div class="cell-body tabular-nums">
                         {{ row.balance }}
+                      </div>
+                      <div class="cell-body pe-4" @click.stop>
+                        <DropdownWithActions
+                          v-if="row.paymentName"
+                          :actions="registerRowActions(row)"
+                          :icon="true"
+                          force-dropdown
+                          type="secondary"
+                        />
                       </div>
                     </Row>
                   </div>
@@ -249,6 +258,7 @@ import Button from 'src/components/Button.vue';
 import ExportWizard from 'src/components/ExportWizard.vue';
 import FilterDropdown from 'src/components/FilterDropdown.vue';
 import FormControl from 'src/components/Controls/FormControl.vue';
+import DropdownWithActions from 'src/components/DropdownWithActions.vue';
 import Modal from 'src/components/Modal.vue';
 import PageHeader from 'src/components/PageHeader.vue';
 import ColResizeHandle from 'src/components/ColResizeHandle.vue';
@@ -272,7 +282,9 @@ import {
   setLastRegisterBankAccount,
 } from 'src/utils/registerBankAccount';
 import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
-import { routeTo } from 'src/utils/ui';
+import { commonDocCancel, getActionsForDoc, routeTo } from 'src/utils/ui';
+import { Action } from 'fyo/model/types';
+import { Payment } from 'models/baseModels/Payment/Payment';
 import { QueryFilter } from 'utils/db/types';
 import { defineComponent, toRaw } from 'vue';
 
@@ -295,12 +307,13 @@ const COLUMN_IDS = [
   'payment',
   'deposit',
   'balance',
+  'actions',
 ] as const;
 type ColumnId = typeof COLUMN_IDS[number];
 const COLUMN_COUNT = COLUMN_IDS.length;
-const COLUMN_RATIO = [0.8, 1.3, 1.1, 1.1, 1.1, 1, 1, 1];
+const COLUMN_RATIO = [0.8, 1.3, 1.1, 1.1, 1.1, 1, 1, 1, 0.55];
 /** Fallback when the header is not yet mounted (w-8 + me-2). */
-const FALLBACK_INDEX_COL_PX = 40;
+const FALLBACK_INDEX_COL_PX = 32;
 
 type RegisterRow = {
   key: string;
@@ -315,6 +328,8 @@ type RegisterRow = {
   deposit: string;
   balance: string;
   paymentName?: string;
+  canSetCheck?: boolean;
+  canVoid?: boolean;
 };
 
 export default defineComponent({
@@ -327,6 +342,7 @@ export default defineComponent({
     FilterDropdown,
     Modal,
     ExportWizard,
+    DropdownWithActions,
     FormControl,
     Paginator,
   },
@@ -380,7 +396,8 @@ export default defineComponent({
         { id: 'memo', label: this.t`Memo`, class: '' },
         { id: 'payment', label: outflow, class: '' },
         { id: 'deposit', label: inflow, class: '' },
-        { id: 'balance', label: this.t`Balance`, class: 'pe-4' },
+        { id: 'balance', label: this.t`Balance`, class: '' },
+        { id: 'actions', label: this.t`Actions`, class: 'pe-4' },
       ];
     },
     gridTemplate(): string | null {
@@ -740,6 +757,8 @@ export default defineComponent({
             categoryTitle: string;
             party: string;
             checkNo: string;
+            canSetCheck: boolean;
+            canVoid: boolean;
           }
         >();
 
@@ -753,6 +772,13 @@ export default defineComponent({
         };
 
         if (paymentNames.length) {
+          const methodRows = (await fyo.db.getAll(ModelNameEnum.PaymentMethod, {
+            fields: ['name', 'type'],
+          })) as { name: string; type?: string }[];
+          const methodType: Record<string, string> = {};
+          for (const m of methodRows) {
+            methodType[m.name] = m.type || '';
+          }
           const pays = (await fyo.db.getAll(ModelNameEnum.Payment, {
             filters: { name: ['in', paymentNames] },
             fields: [
@@ -763,6 +789,8 @@ export default defineComponent({
               'paymentAccount',
               'memo',
               'referenceId',
+              'printLater',
+              'paymentMethod',
               'party',
             ],
           })) as {
@@ -773,6 +801,8 @@ export default defineComponent({
             paymentAccount?: string;
             memo?: string;
             referenceId?: string;
+            printLater?: boolean;
+            paymentMethod?: string;
             party?: string;
           }[];
 
@@ -820,12 +850,19 @@ export default defineComponent({
                 )
                 .join('\n');
             }
+            const isCheck =
+              methodType[p.paymentMethod || ''] === 'Check' ||
+              (p.paymentMethod || '').trim().toLowerCase() === 'check';
+            const isPayCheck = p.paymentType === 'Pay' && isCheck;
+            const hasNumber = !!(p.referenceId || '').trim();
             paymentMap.set(p.name, {
               memo: p.memo || '',
               checkNo: (p.referenceId || '').trim(),
               category,
               categoryTitle,
               party: p.party || '',
+              canSetCheck: isPayCheck,
+              canVoid: isPayCheck && hasNumber && !p.printLater,
             });
           }
         }
@@ -874,6 +911,8 @@ export default defineComponent({
               ale.referenceType === ModelNameEnum.Payment
                 ? ale.referenceName
                 : undefined,
+            canSetCheck: payInfo?.canSetCheck,
+            canVoid: payInfo?.canVoid,
           });
         }
         this.rows = rows.reverse();
@@ -892,6 +931,70 @@ export default defineComponent({
           path: `/edit/Payment/${row.paymentName}`,
           query: { from: 'bank-register' },
         });
+      }
+    },
+    registerRowActions(row: RegisterRow): Action[] {
+      if (!row.paymentName) {
+        return [];
+      }
+      const name = row.paymentName;
+      const actions: Action[] = [
+        {
+          label: this.t`Open`,
+          action: async () => {
+            await this.openRow(row);
+          },
+        },
+      ];
+      if (row.canSetCheck) {
+        actions.push({
+          label: this.t`Set check #…`,
+          action: async () => {
+            await this.runPaymentAction(name, this.t`Set check #…`);
+          },
+        });
+      }
+      if (row.canVoid) {
+        actions.push({
+          label: this.t`Void check # (requeue)…`,
+          action: async () => {
+            await this.runPaymentAction(name, this.t`Void check # (requeue)…`);
+          },
+        });
+      }
+      actions.push({
+        label: this.t`Duplicate`,
+        action: async () => {
+          const payment = (await fyo.doc.getDoc(
+            ModelNameEnum.Payment,
+            name
+          )) as Payment;
+          const grouped = getActionsForDoc(payment);
+          const dupe = grouped.find((a) => a.label === this.t`Duplicate`);
+          if (dupe) {
+            await dupe.action(payment);
+          }
+        },
+      });
+      actions.push({
+        label: this.t`Cancel payment`,
+        action: async () => {
+          const payment = await fyo.doc.getDoc(ModelNameEnum.Payment, name);
+          await commonDocCancel(payment);
+          await this.loadRows();
+        },
+      });
+      return actions;
+    },
+    async runPaymentAction(paymentName: string, label: string) {
+      const payment = (await fyo.doc.getDoc(
+        ModelNameEnum.Payment,
+        paymentName
+      )) as Payment;
+      const act = Payment.getActions(fyo).find((a) => a.label === label);
+      if (act) {
+        await act.action(payment);
+        await this.loadRows();
       }
     },
     async loadBalanceAsOfToday() {

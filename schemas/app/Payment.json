@@ -65,7 +65,8 @@
       "target": "Account",
       "create": true,
       "required": true,
-      "section": "Details"
+      "section": "Details",
+      "description": "Customer receivable account (AR). Income is on the invoice, not here."
     },
     {
       "fieldname": "paymentAccount",

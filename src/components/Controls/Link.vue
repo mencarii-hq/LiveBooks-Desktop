@@ -14,7 +14,7 @@ export default {
   name: 'Link',
   extends: AutoComplete,
   data() {
-    return { results: [], filtersDisabled: false };
+    return { results: [], resultsFilterKey: '', filtersDisabled: false };
   },
   watch: {
     value: {
@@ -96,7 +96,8 @@ export default {
         return [];
       }
 
-      if (this.results?.length) {
+      const filterKey = JSON.stringify(filters ?? {});
+      if (this.results?.length && this.resultsFilterKey === filterKey) {
         return this.results;
       }
 
@@ -108,14 +109,23 @@ export default {
           schema.titleField,
           schema.linkDisplayField,
           this.df.groupBy,
-          ...(schemaName === 'Account' ? ['accountName'] : []),
+          ...(schemaName === 'Account' ? ['accountName', 'rootType'] : []),
           ...(schemaName === 'Party' ? ['partyName'] : []),
         ]),
       ].filter(Boolean);
 
+      const orderBy =
+        schemaName === 'Account'
+          ? 'accountName'
+          : schemaName === 'Party'
+          ? 'partyName'
+          : schema.titleField || 'name';
+
       const results = await fyo.db.getAll(schemaName, {
         filters,
         fields,
+        orderBy,
+        order: 'asc',
       });
 
       if (schemaName === 'Party') {
@@ -123,7 +133,7 @@ export default {
           fyo,
           results.map((r) => r.name).filter(Boolean)
         );
-        return (this.results = results
+        const options = results
           .map((r) => {
             const label = partyLabel(map, r.name);
             if (!label || isUuidDocId(label)) {
@@ -135,10 +145,17 @@ export default {
             }
             return option;
           })
-          .filter(Boolean));
+          .filter(Boolean)
+          .sort((a, b) =>
+            String(a.label).localeCompare(String(b.label), undefined, {
+              sensitivity: 'base',
+            })
+          );
+        this.resultsFilterKey = filterKey;
+        return (this.results = options);
       }
 
-      return (this.results = results
+      const options = results
         .map((r) => {
           const label =
             schemaName === 'Account'
@@ -148,12 +165,31 @@ export default {
                 })
               : r[schema.titleField];
           const option = { label, value: r.name };
-          if (this.df.groupBy) {
+          if (schemaName === 'Account' && r.rootType) {
+            // Mixed account-type pickers (register Category): group by
+            // root type, then A–Z within the group (QBD-style).
+            option.group = r.rootType;
+          } else if (this.df.groupBy) {
             option.group = r[this.df.groupBy];
           }
           return option;
         })
-        .filter(Boolean));
+        .filter(Boolean)
+        .sort((a, b) => {
+          const groupCmp = String(a.group || '').localeCompare(
+            String(b.group || ''),
+            undefined,
+            { sensitivity: 'base' }
+          );
+          if (groupCmp !== 0) {
+            return groupCmp;
+          }
+          return String(a.label).localeCompare(String(b.label), undefined, {
+            sensitivity: 'base',
+          });
+        });
+      this.resultsFilterKey = filterKey;
+      return (this.results = options);
     },
     async getSuggestions(keyword = '') {
       let filters = this.filtersDisabled ? null : await this.getFilters();
@@ -193,7 +229,7 @@ export default {
         }
       }
 
-      if (this.doc && this.df.create) {
+      if (this.df.create) {
         options = options.concat(this.getCreateNewOption());
       }
 
@@ -224,6 +260,7 @@ export default {
     disableFiltering(keyword) {
       this.filtersDisabled = true;
       this.results = [];
+      this.resultsFilterKey = '';
       setTimeout(() => {
         this.isDropdownOpen = true;
         this.updateSuggestions(keyword);
@@ -250,6 +287,9 @@ export default {
       this.updateSuggestions(e.target.value);
     },
     async onBlur(label, toggleDropdown) {
+      if (this.selecting) {
+        return;
+      }
       this.isFocused = false;
       this.isDropdownOpen = false;
       if (toggleDropdown) {
@@ -288,7 +328,67 @@ export default {
       // No real option — restore committed value; do not link a phantom name.
       await this.setLinkValue(this.value);
     },
+    quickAddPartyRole() {
+      const roleFilter = this.df?.filters?.role;
+      if (Array.isArray(roleFilter) && roleFilter[0] === 'in') {
+        const roles = roleFilter[1];
+        if (Array.isArray(roles)) {
+          const hasSupplier = roles.includes('Supplier');
+          const hasCustomer = roles.includes('Customer');
+          if (hasSupplier && !hasCustomer) {
+            return 'Supplier';
+          }
+          if (hasCustomer && !hasSupplier) {
+            return 'Customer';
+          }
+        }
+      }
+      return 'Both';
+    },
+    async quickAddParty() {
+      const typed = String(this.linkValue || '').trim();
+      if (!typed || isUuidDocId(typed)) {
+        const { showToast } = await import('src/utils/interactive');
+        showToast({
+          type: 'warning',
+          message: t`Type a payee name to Quick Add.`,
+        });
+        return;
+      }
+
+      const { showDialog } = await import('src/utils/interactive');
+      const ok = await showDialog({
+        title: t`Name not found`,
+        detail: t`Quick Add "${typed}" as a payee?`,
+        type: 'info',
+        buttons: [
+          { label: t`Cancel`, action: () => false, isEscape: true },
+          { label: t`Quick Add`, action: () => true, isPrimary: true },
+        ],
+      });
+      if (!ok) {
+        return;
+      }
+
+      const role = this.quickAddPartyRole();
+      const doc = fyo.doc.getNewDoc('Party', {
+        partyName: typed,
+        role,
+      });
+      await doc.sync();
+      this.results = [];
+      this.resultsFilterKey = '';
+      this.triggerChange(doc.name);
+      await this.setLinkValue(doc.name);
+    },
     async openNewDoc() {
+      // Standalone Links (Write Entry) have no parent Doc — Quick Add with a
+      // confirm, not silent create and not the full Party form.
+      if (this.df.target === 'Party' && !this.doc) {
+        await this.quickAddParty();
+        return;
+      }
+
       const schemaName = this.df.target;
       const fieldname = this.df.fieldname;
       const parentDoc = this.doc;
@@ -317,6 +417,7 @@ export default {
         }
 
         this.results = [];
+        this.resultsFilterKey = '';
         this.$router.back();
       });
     },

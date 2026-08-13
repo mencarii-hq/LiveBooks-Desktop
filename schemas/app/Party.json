@@ -85,7 +85,9 @@
       "fieldtype": "Link",
       "target": "Account",
       "create": true,
-      "section": "Billing"
+      "section": "Billing",
+      "description": "Optional. Payable for vendors, Receivable for customers. Leave blank if unsure.",
+      "sub_label": "Optional. Payable for vendors, Receivable for customers. Leave blank if unsure."
     },
     {
       "fieldname": "currency",

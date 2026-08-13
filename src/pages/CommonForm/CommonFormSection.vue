@@ -52,6 +52,12 @@
           @change="(value: DocValue) => $emit('value-change', field, value)"
           @row-change="(field:Field, value:DocValue, parentfield:Field) => $emit('row-change',field, value, parentfield)"
         />
+        <p
+          v-if="fieldHelp(field)"
+          class="text-xs text-gray-500 dark:text-gray-400 mt-1"
+        >
+          {{ fieldHelp(field) }}
+        </p>
         <div v-if="errors?.[field.fieldname]" class="text-sm text-red-600 mt-1">
           {{ errors[field.fieldname] }}
         </div>
@@ -113,6 +119,17 @@ export default defineComponent({
     },
     fieldDoc(field: Field): Doc {
       return this.getDocForField?.(field) ?? this.doc;
+    },
+    fieldHelp(field: Field): string {
+      if (
+        this.doc.schemaName === 'Payment' &&
+        field.fieldname === 'account' &&
+        this.doc.get('paymentType') === 'Receive'
+      ) {
+        return this
+          .t`Customer receivable account (AR). Income is on the invoice, not here.`;
+      }
+      return '';
     },
     evaluateReadOnly,
   },

@@ -218,6 +218,9 @@ export class Payment extends Transactional {
     }
 
     const amount = this.amount as Money;
+    if (!amount || amount.isZero() || amount.isNegative()) {
+      throw new ValidationError(t`Payment amount must be greater than zero.`);
+    }
     if (!total.eq(amount)) {
       throw new ValidationError(
         t`Split total ${this.fyo.format(
@@ -1025,6 +1028,20 @@ export class Payment extends Transactional {
     },
   };
 
+  duplicate(): Doc {
+    const doc = super.duplicate() as Payment;
+    const src = String(this.name || '');
+    doc.referenceId = '';
+    doc.printLater = false;
+    doc.clearanceDate = null as unknown as undefined;
+    doc.referenceDate = null as unknown as undefined;
+    doc.date = new Date();
+    const note = `Duplicated from ${src}`;
+    const memo = String(doc.memo || '').trim();
+    doc.memo = memo ? `${memo} · ${note}` : note;
+    return doc;
+  }
+
   static getActions(fyo: Fyo): Action[] {
     return [
       getLedgerLinkAction(fyo),
@@ -1141,6 +1158,112 @@ export class Payment extends Transactional {
             type: 'success',
             message: fyo.t`Check #${checkNo} voided. Payment is back on Checks to Print.`,
           });
+        },
+      },
+      {
+        label: fyo.t`Set check #…`,
+        condition: (doc) => {
+          const payment = doc as Payment;
+          if (
+            !payment.name ||
+            !payment.isSubmitted ||
+            payment.isCancelled ||
+            payment.paymentType !== 'Pay'
+          ) {
+            return false;
+          }
+          const method = payment.getLink('paymentMethod') as {
+            type?: string;
+          } | null;
+          const methodName = (payment.paymentMethod as string) ?? '';
+          return (
+            method?.type === 'Check' ||
+            methodName.trim().toLowerCase() === 'check'
+          );
+        },
+        action: async (doc) => {
+          const payment = doc as Payment;
+          const { isCheckMethod } = await import(
+            'src/utils/memorizedTransactions'
+          );
+          if (
+            !(await isCheckMethod(fyo, (payment.paymentMethod as string) || ''))
+          ) {
+            const { showToast } = await import('src/utils/interactive');
+            showToast({
+              type: 'warning',
+              message: fyo.t`Only Check payments can set a check number.`,
+            });
+            return;
+          }
+          const { isPrintedCheck } = await import(
+            'src/utils/checkPrint/numbering'
+          );
+          const method = payment.getLink('paymentMethod') as {
+            type?: string;
+          } | null;
+          const printed = isPrintedCheck({
+            paymentMethod: payment.paymentMethod as string,
+            printLater: payment.printLater,
+            referenceId: payment.referenceId as string,
+            paymentMethodType: method?.type,
+          });
+          const { showDialog, showToast } = await import(
+            'src/utils/interactive'
+          );
+          if (printed) {
+            const proceed = await showDialog({
+              title: fyo.t`This check was already printed`,
+              detail: fyo.t`Changing the number does not reprint or void the old check. Continue?`,
+              type: 'warning',
+              buttons: [
+                { label: fyo.t`Cancel`, action: () => false, isEscape: true },
+                {
+                  label: fyo.t`Change number`,
+                  action: () => true,
+                  isPrimary: true,
+                },
+              ],
+            });
+            if (!proceed) {
+              return;
+            }
+          }
+          const current = String(payment.referenceId || '').trim();
+          const entered = await showDialog({
+            title: fyo.t`Set check #`,
+            detail: current
+              ? fyo.t`Current number: ${current}`
+              : fyo.t`This payment has no check number yet.`,
+            input: { placeholder: fyo.t`Check number`, value: current },
+            buttons: [
+              { label: fyo.t`Cancel`, action: () => '', isEscape: true },
+              {
+                label: fyo.t`Save`,
+                action: (value?: string) => String(value || '').trim(),
+                isPrimary: true,
+              },
+            ],
+          });
+          const next = String(entered || '').trim();
+          if (!next) {
+            return;
+          }
+          try {
+            const { setPaymentCheckNumber } = await import(
+              'src/utils/checkPrint/numbering'
+            );
+            await setPaymentCheckNumber(fyo, String(payment.name), next);
+            showToast({
+              type: 'success',
+              message: fyo.t`Check number set to ${next}.`,
+            });
+          } catch (error) {
+            showToast({
+              type: 'error',
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
         },
       },
       {

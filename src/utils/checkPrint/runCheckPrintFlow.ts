@@ -1,7 +1,7 @@
 import { Fyo, t } from 'fyo';
 import { showDialog, showToast } from 'src/utils/interactive';
 import {
-  anyMissingAddress,
+  confirmMissingStreetAddress,
   buildCheckDataForPayments,
   loadCheckSettings,
   printCheckBatch,
@@ -88,30 +88,8 @@ export async function runCheckPrintFlow(
     numbers
   );
 
-  if (anyMissingAddress(checks)) {
-    const missing = [
-      ...new Set(
-        checks
-          .filter((c) => !c.address.trim())
-          .map((c) => String(c.payee || c.paymentName || ''))
-      ),
-    ];
-    const names = missing.slice(0, 5).join(', ');
-    const more =
-      missing.length > 5 ? t` (+${String(missing.length - 5)} more)` : '';
-
-    const proceed = await showDialog({
-      title: t`Missing address`,
-      detail: t`These payees have no address on file: ${names}${more}. Add an address on the payee (use the link in Checks to Print), then print again — or print anyway.`,
-      type: 'warning',
-      buttons: [
-        { label: t`Cancel`, action: () => false, isEscape: true },
-        { label: t`Print anyway`, action: () => true, isPrimary: true },
-      ],
-    });
-    if (!proceed) {
-      return { printed: 0, skipped: skips, cancelled: true };
-    }
+  if (!(await confirmMissingStreetAddress(checks))) {
+    return { printed: 0, skipped: skips, cancelled: true };
   }
 
   const settings = await loadCheckSettings(fyo);

@@ -88,30 +88,27 @@ function formatCheckDate(value: unknown): string {
   return dt.toFormat('MMM d, yyyy');
 }
 
-async function getPartyAddress(
+export async function getPartyAddress(
   fyo: Fyo,
   party: string,
   payeeLabel?: string
-): Promise<string> {
+): Promise<{ address: string; hasStreetAddress: boolean }> {
+  const payee = (payeeLabel && payeeLabel.trim()) || '';
   if (!party) {
-    return '';
+    return { address: payee, hasStreetAddress: false };
   }
   try {
     const partyDoc = await fyo.doc.getDoc(ModelNameEnum.Party, party);
-    const addressLink = partyDoc.address as string | undefined;
-    if (!addressLink) {
-      return '';
-    }
-    const addressDoc = await fyo.doc.getDoc(ModelNameEnum.Address, addressLink);
     const displayName =
-      payeeLabel ||
+      payee ||
       (typeof partyDoc.partyName === 'string' && partyDoc.partyName.trim()) ||
       party;
-    const lines = [
-      // Addressee first so the block works in an envelope window (#6).
-      // partyName is the human label; Party.name is the UUID PK.
-      // Shrink-to-fit absorbs long names / the extra line.
-      displayName,
+    const addressLink = partyDoc.address as string | undefined;
+    if (!addressLink) {
+      return { address: displayName, hasStreetAddress: false };
+    }
+    const addressDoc = await fyo.doc.getDoc(ModelNameEnum.Address, addressLink);
+    const streetLines = [
       addressDoc.addressLine1,
       addressDoc.addressLine2,
       [addressDoc.city, addressDoc.state, addressDoc.postalCode]
@@ -121,9 +118,11 @@ async function getPartyAddress(
     ]
       .map((l) => (l ? String(l).trim() : ''))
       .filter(Boolean);
-    return lines.join('\n');
+    const hasStreetAddress = streetLines.length > 0;
+    const lines = [displayName, ...streetLines].filter(Boolean);
+    return { address: lines.join('\n'), hasStreetAddress };
   } catch {
-    return '';
+    return { address: payee, hasStreetAddress: false };
   }
 }
 
@@ -152,12 +151,14 @@ export async function buildCheckDataForPayments(
     const amountFloat = amountMoney?.float ?? 0;
     const party = (payment.party as string) || '';
     const payee = partyLabel(partyNames, party);
+    const addr = await getPartyAddress(fyo, party, payee);
     checks.push({
       paymentName: name,
       checkNumber: numbers[name] ?? (payment.referenceId as string) ?? '',
       date: formatCheckDate(payment.date),
       payee,
-      address: await getPartyAddress(fyo, party, payee),
+      address: addr.address,
+      hasStreetAddress: addr.hasStreetAddress,
       amountNumeric: fyo.format(amountMoney as never, ModelNameEnum.Currency),
       amountWords: amountInWords(amountFloat),
       memo: (payment.memo as string) || '',
@@ -166,9 +167,38 @@ export async function buildCheckDataForPayments(
   return checks;
 }
 
-/** True if any check is missing a payee address (Q-M: warn but allow). */
+/** True if any check has payee name only — no street address for a window. */
 export function anyMissingAddress(checks: CheckData[]): boolean {
-  return checks.some((c) => !c.address.trim());
+  return checks.some((c) => !c.hasStreetAddress);
+}
+
+export async function confirmMissingStreetAddress(
+  checks: CheckData[]
+): Promise<boolean> {
+  if (!anyMissingAddress(checks)) {
+    return true;
+  }
+  const missing = [
+    ...new Set(
+      checks
+        .filter((c) => !c.hasStreetAddress)
+        .map((c) => String(c.payee || c.paymentName || ''))
+    ),
+  ];
+  const names = missing.slice(0, 5).join(', ');
+  const more =
+    missing.length > 5 ? t` (+${String(missing.length - 5)} more)` : '';
+  const { showDialog } = await import('src/utils/interactive');
+  const proceed = await showDialog({
+    title: t`No street address`,
+    detail: t`Payee name will print in the address window for: ${names}${more}. Add a street address on the payee for window envelopes — or print anyway.`,
+    type: 'warning',
+    buttons: [
+      { label: t`Cancel`, action: () => false, isEscape: true },
+      { label: t`Print anyway`, action: () => true, isPrimary: true },
+    ],
+  });
+  return !!proceed;
 }
 
 async function renderDocument(
@@ -273,6 +303,9 @@ export async function printPaymentAsCheck(
     const checks = await buildCheckDataForPayments(fyo, [paymentName], {
       [paymentName]: existingRef,
     });
+    if (!(await confirmMissingStreetAddress(checks))) {
+      return;
+    }
     await printCheckBatch(checks, format, profile, {
       omitCheckNumber: settings.omitCheckNumber,
     });

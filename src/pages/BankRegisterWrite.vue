@@ -125,7 +125,8 @@
                 :show-label="idx === 0"
                 :df="splitAmountField"
                 :value="line.amount"
-                @change="(v) => (line.amount = Number(v) || 0)"
+                :step="0.01"
+                @change="(v) => (line.amount = parseSplitAmount(v))"
               />
               <FormControl
                 class="flex-1"
@@ -243,6 +244,14 @@
           </label>
         </div>
 
+        <p
+          v-if="isCreditCardRegister"
+          class="mt-3 text-sm text-gray-500 dark:text-gray-400"
+        >
+          {{
+            t`Credit card: Charge increases the card balance; Payment decreases it (pay the card from this register). To pay the card from a bank, write a Payment on the bank register and categorize it to this card.`
+          }}
+        </p>
         <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
           {{
             t`Post to register adds this payment now. Schedule only creates a template with no payment. Check “also create a recurring schedule” to do both — run schedules later from Recurring Transactions.`
@@ -356,6 +365,7 @@ export default defineComponent({
       } as Field;
     },
     partyField(): Field {
+      const pay = this.form.paymentType === 'Pay';
       return {
         fieldtype: 'Link',
         target: 'Party',
@@ -363,6 +373,12 @@ export default defineComponent({
         label: this.t`Payee`,
         placeholder: this.t`Payee`,
         required: true,
+        create: true,
+        filters: pay
+          ? {
+              role: ['in', ['Supplier', 'Both', 'Employee', 'Contractor']],
+            }
+          : { role: ['in', ['Customer', 'Both']] },
       } as Field;
     },
     categoryField(): Field {
@@ -622,6 +638,10 @@ export default defineComponent({
     removeSplitLine(idx: number) {
       this.splitLines.splice(idx, 1);
     },
+    parseSplitAmount(value: unknown): number {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : 0;
+    },
     /** #8: returns an error message, or '' when the split lines are valid. */
     validateSplitLines(): string {
       if (this.splitLines.length < 2) {
@@ -631,13 +651,20 @@ export default defineComponent({
         if (!line.account) {
           return this.t`Every split line needs a category.`;
         }
-        if (!Number(line.amount)) {
+        if (
+          !Number.isFinite(Number(line.amount)) ||
+          Number(line.amount) === 0
+        ) {
           return this
-            .t`Every split line needs a nonzero amount. Withholdings are negative.`;
+            .t`Every split line needs a nonzero amount. Negative amounts are plugs that reduce the check.`;
         }
       }
       if (this.splitGrossCents <= 0) {
         return this.t`At least one split line must be positive.`;
+      }
+      const amountCents = Math.round((Number(this.form.amount) || 0) * 100);
+      if (amountCents <= 0) {
+        return this.t`Amount must be greater than 0.`;
       }
       if (this.splitRemainder !== 0) {
         return this
