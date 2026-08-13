@@ -22,7 +22,7 @@
         <div
           data-testid="switch-company"
           class="
-            text-lg
+            text-base
             tracking-tight
             text-white
             flex
@@ -61,7 +61,7 @@
             :class="isGroupActive(group) && !group.items ? '-ms-1' : ''"
           />
           <div
-            class="ms-2 text-lg"
+            class="ms-2 text-base"
             :class="
               isGroupActive(group) && !group.items
                 ? 'text-white font-medium'
@@ -194,7 +194,7 @@
       <div class="select-none">
         <p
           class="
-            text-white text-lg
+            text-white text-base
             tracking-tight
             whitespace-normal
             break-words

@@ -57,7 +57,9 @@
                 clip-rule="evenodd"
               />
             </svg>
-            <h2 class="font-medium dark:text-gray-25">{{ section.label }}</h2>
+            <h2 class="text-sm font-medium dark:text-gray-25">
+              {{ section.label }}
+            </h2>
             <span
               v-if="section.optional"
               class="
