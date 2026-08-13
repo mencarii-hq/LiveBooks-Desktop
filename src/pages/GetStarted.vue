@@ -12,8 +12,13 @@
         custom-scroll custom-scroll-thumb1
       "
     >
-      <div class="p-4 flex flex-col gap-4">
-        <section v-for="(section, sIndex) in sections" :key="section.label">
+      <div class="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        <section
+          v-for="(section, sIndex) in sections"
+          :key="section.label"
+          class="min-w-0"
+          :class="{ 'lg:col-span-2': section.optional }"
+        >
           <div
             class="
               flex
