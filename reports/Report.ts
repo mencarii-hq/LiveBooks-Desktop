@@ -5,6 +5,7 @@ import { Action } from 'fyo/model/types';
 import Observable from 'fyo/utils/observable';
 import { Field, RawValue } from 'schemas/types';
 import { getIsNullOrUndef } from 'utils';
+import { reactive } from 'vue';
 import { ColumnField, ReportData, ReportRow } from './types';
 
 export abstract class Report extends Observable<RawValue> {
@@ -24,6 +25,10 @@ export abstract class Report extends Observable<RawValue> {
     super();
     this.fyo = fyo;
     this.reportData = [];
+    // Like Doc: subclass constructors (and the observer listeners they
+    // register) capture this proxy, so `shouldRefresh = true` set from an
+    // fyo observer is visible to Vue watchers (pane live-refresh).
+    return reactive(this) as unknown as this;
   }
 
   get title(): string {

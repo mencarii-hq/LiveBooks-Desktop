@@ -10,7 +10,7 @@ import { safeParseFloat } from 'utils/index';
 import { isUsCaCompany } from 'utils/regional';
 import { RouteLocationRaw } from 'vue-router';
 import { fuzzyMatch } from '.';
-import { getFormRoute, routeTo } from './ui';
+import { getFormRoute, routeToMain } from './ui';
 import { searchGroups } from '../../utils/types';
 import type { SearchGroup, SearchItem } from '../../utils/types';
 
@@ -81,7 +81,7 @@ function getCreateAction(fyo: Fyo, schemaName: string, initData?: RawValueMap) {
   return async function action() {
     const doc = fyo.doc.getNewDoc(schemaName, initData);
     const route = getFormRoute(schemaName, doc.name!);
-    await routeTo(route);
+    await routeToMain(route);
   };
 }
 
@@ -333,7 +333,7 @@ function getNonDocSearchList(fyo: Fyo) {
     .map((d) => {
       if (d.route && !d.action) {
         d.action = async () => {
-          await routeTo(d.route!);
+          await routeToMain(d.route!);
         };
       }
       return d;
@@ -485,7 +485,7 @@ export class Search {
 
   private _executeRecentAction(item: StoredRecentItem) {
     if (item.route) {
-      void routeTo(item.route);
+      void routeToMain(item.route);
     } else if (item.schemaName && item.group === 'Create') {
       const action = getCreateAction(this.fyo, item.schemaName, item.initData);
       void action();
@@ -498,12 +498,12 @@ export class Search {
 
   private _openDocList(schemaName: string) {
     const route = `/list/${schemaName}`;
-    void routeTo(route);
+    void routeToMain(route);
   }
 
   private _openReport(reportName: string) {
     const route = `/report/${reportName}`;
-    void routeTo(route);
+    void routeToMain(route);
   }
 
   get skipTables() {
@@ -852,7 +852,7 @@ export class Search {
       more: keyword.values.slice(1),
       group: 'Docs',
       action: async () => {
-        await routeTo(route);
+        await routeToMain(route);
       },
     };
   }

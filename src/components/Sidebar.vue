@@ -49,6 +49,7 @@
               : ''
           "
           @click="routeToSidebarItem(group)"
+          @contextmenu="onSidebarContextMenu($event, group)"
         >
           <Icon
             class="flex-shrink-0"
@@ -92,6 +93,7 @@
               item.indent ? 'ps-16' : 'ps-10',
             ]"
             @click="routeToSidebarItem(item)"
+            @contextmenu="onSidebarContextMenu($event, item)"
           >
             <p :style="isItemActive(item) ? 'margin-left: -4px' : ''">
               {{ item.label }}
@@ -385,9 +387,11 @@ import { getSidebarConfig } from 'src/utils/sidebarConfig';
 import { SidebarConfig, SidebarItem, SidebarRoot } from 'src/utils/types';
 import {
   handleWindowDragDoubleClick,
-  routeTo,
+  openRouteInSidePane,
+  routeToMain,
   toggleSidebar,
 } from 'src/utils/ui';
+import { showContextMenu } from 'src/utils/contextMenu';
 import { openFeedbackSurvey } from 'src/utils/feedbackSurvey';
 import { livebooksDesktopDisplayName } from 'utils/livebooksAppEnv';
 import { REGIONAL_LABELS_CHANGED_EVENT } from 'utils/regional';
@@ -704,7 +708,6 @@ export default defineComponent({
     }
   },
   methods: {
-    routeTo,
     reportIssue,
     toggleSidebar,
     openFeedbackSurvey,
@@ -1106,7 +1109,22 @@ export default defineComponent({
       return this.activeGroup && group.label === this.activeGroup.label;
     },
     routeToSidebarItem(item: SidebarItem | SidebarRoot) {
-      routeTo(this.getPath(item));
+      void routeToMain(this.getPath(item));
+    },
+    onSidebarContextMenu(
+      event: MouseEvent,
+      item: SidebarItem | SidebarRoot
+    ) {
+      const path = this.getPath(item);
+      if (!path) {
+        return;
+      }
+      showContextMenu(event, [
+        {
+          label: this.t`Open in side pane`,
+          action: () => openRouteInSidePane(path),
+        },
+      ]);
     },
     getPath(item: SidebarItem | SidebarRoot) {
       const { route: path, filters } = item;

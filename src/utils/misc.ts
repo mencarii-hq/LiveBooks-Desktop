@@ -189,15 +189,34 @@ export function getIsMac() {
 
 export async function getReport(
   name: keyof typeof reports,
-  options?: { fresh?: boolean }
+  options?: { fresh?: boolean; instanceKey?: string }
 ) {
-  const cachedReport = fyo.store.reports[name];
+  const cache = fyo.store.reports as Record<
+    string,
+    typeof fyo.store.reports[keyof typeof fyo.store.reports]
+  >;
+  const cacheKey = options?.instanceKey
+    ? `${String(name)}::${options.instanceKey}`
+    : String(name);
+  const cachedReport = cache[cacheKey];
   if (cachedReport && !options?.fresh) {
     return cachedReport;
   }
 
   const report = new reports[name](fyo);
   await report.initialize();
-  fyo.store.reports[name] = report;
+  cache[cacheKey] = report;
+  if (!options?.instanceKey) {
+    fyo.store.reports[name] = report;
+  }
   return report;
+}
+
+/** Drop a pane-scoped report instance when its pane unmounts. */
+export function clearReportInstance(
+  name: keyof typeof reports,
+  instanceKey: string
+) {
+  const cache = fyo.store.reports as Record<string, unknown>;
+  delete cache[`${String(name)}::${instanceKey}`];
 }

@@ -28,8 +28,17 @@ import { isUuidDocId } from 'utils/ids';
 import { isUsCaCompany } from 'utils/regional';
 import { SelectFileOptions } from 'utils/types';
 import { RouteLocationRaw } from 'vue-router';
+import {
+  draftFromRoute,
+  focusPane,
+  isMainOnlyPath,
+  MAIN_PANE_ID,
+  openInSidePane,
+  shouldFocusMainForDoc,
+} from './deskPanes';
 import { evaluateHidden } from './doc';
 import { showDialog, showToast } from './interactive';
+import { getActivePaneNav, isChildPaneNav, setActivePaneNav } from './paneNav';
 import { referenceHasReconciledAles } from './reconcileStore';
 import { showSidebar } from './refs';
 import {
@@ -56,6 +65,11 @@ export async function openQuickEdit({
     throw new ValueError(t`Quick edit error: ${schemaName} entry has no name.`);
   }
 
+  const paneNav = getActivePaneNav();
+  if (isChildPaneNav(paneNav)) {
+    return paneNav.openEdit({ doc, hideFields, showFields });
+  }
+
   if (router.currentRoute.value.query.name === name) {
     return;
   }
@@ -71,10 +85,15 @@ export async function openQuickEdit({
 }
 
 export async function openSettings(tab: SettingsTab) {
-  await routeTo({ path: '/settings', query: { tab } });
+  await routeToMain({ path: '/settings', query: { tab } });
 }
 
 export async function routeTo(route: RouteLocationRaw) {
+  const paneNav = getActivePaneNav();
+  if (isChildPaneNav(paneNav)) {
+    return paneNav.navigate(route);
+  }
+
   if (
     typeof route === 'string' &&
     route === router.currentRoute.value.fullPath
@@ -83,6 +102,47 @@ export async function routeTo(route: RouteLocationRaw) {
   }
 
   return await router.push(route);
+}
+
+/**
+ * Sidebar, search, and other chrome — always the main router view.
+ * Big navigations also move focus to the main pane, so follow-up
+ * clicks and shortcuts target the view that was just opened.
+ */
+export async function routeToMain(route: RouteLocationRaw) {
+  setActivePaneNav(null);
+  focusPane(MAIN_PANE_ID);
+  if (
+    typeof route === 'string' &&
+    route === router.currentRoute.value.fullPath
+  ) {
+    return;
+  }
+  return await router.push(route);
+}
+
+export async function routeReplace(route: RouteLocationRaw) {
+  const paneNav = getActivePaneNav();
+  if (isChildPaneNav(paneNav)) {
+    return paneNav.navigate(route);
+  }
+  return await router.replace(route);
+}
+
+export function openRouteInSidePane(route: RouteLocationRaw) {
+  const draft = draftFromRoute(route);
+  if (isMainOnlyPath(draft.path)) {
+    void routeToMain(route);
+    return;
+  }
+
+  const mainDraft = draftFromRoute(router.currentRoute.value);
+  if (shouldFocusMainForDoc(draft, mainDraft.identity)) {
+    focusPane(MAIN_PANE_ID);
+    return;
+  }
+
+  openInSidePane(route);
 }
 
 export async function deleteDocWithPrompt(doc: Doc) {

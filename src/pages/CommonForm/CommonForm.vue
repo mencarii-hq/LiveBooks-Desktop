@@ -223,6 +223,7 @@ import {
   getActionsForDoc,
   getGroupedActionsForDoc,
   isPrintable,
+  routeReplace,
   routeTo,
 } from 'src/utils/ui';
 import { useDocShortcuts } from 'src/utils/vueUtils';
@@ -256,6 +257,7 @@ export default defineComponent({
   props: {
     name: { type: String, default: '' },
     schemaName: { type: String, default: ModelNameEnum.SalesInvoice },
+    paneId: { type: String, default: '' },
   },
   setup() {
     const shortcuts = inject(shortcutsKey);
@@ -571,25 +573,13 @@ export default defineComponent({
       this.activeTab = [...this.groupedFields.keys()][0];
     }
     this.isPrintable = await isPrintable(this.schemaName);
+    this.setFormViewShortcuts();
   },
   activated(): void {
     this.useFullWidth = !!this.fyo.singles.Misc?.useFullWidth;
     docsPathRef.value = docsPathMap[this.schemaName] ?? '';
     this.bindMemorizedListRedirect();
-    this.shortcuts?.pmod.set(this.context, ['KeyP'], () => {
-      if (!this.canPrint) {
-        return;
-      }
-
-      this.printButton?.$el.click();
-    });
-    this.shortcuts?.pmod.set(this.context, ['KeyL'], () => {
-      if (!this.canShowLinks && !this.showLinks) {
-        return;
-      }
-
-      this.showLinks = !this.showLinks;
-    });
+    this.setFormViewShortcuts();
   },
   deactivated(): void {
     this.unbindMemorizedListRedirect();
@@ -599,6 +589,28 @@ export default defineComponent({
   },
   methods: {
     routeTo,
+    setFormViewShortcuts() {
+      // Shortcuts here register after awaits in mounted(), i.e. outside the
+      // pane-ownership window — associate explicitly or a side-pane form's
+      // shortcuts get treated as main-owned (and can steal Cmd+P/Cmd+S).
+      if (this.paneId) {
+        this.shortcuts?.associatePaneContext(this.paneId, this.context);
+      }
+      this.shortcuts?.pmod.set(this.context, ['KeyP'], () => {
+        if (!this.canPrint) {
+          return;
+        }
+
+        this.printButton?.$el.click();
+      });
+      this.shortcuts?.pmod.set(this.context, ['KeyL'], () => {
+        if (!this.canShowLinks && !this.showLinks) {
+          return;
+        }
+
+        this.showLinks = !this.showLinks;
+      });
+    },
     bindMemorizedListRedirect() {
       if (
         this.schemaName !== ModelNameEnum.MemorizedTransaction ||
@@ -697,7 +709,7 @@ export default defineComponent({
 
       this.doc.once('afterSync', async () => {
         const route = getFormRoute(this.schemaName, this.doc.name!);
-        await this.$router.replace(route);
+        await routeReplace(route);
       });
     },
     async showRowEditForm(doc: Doc) {

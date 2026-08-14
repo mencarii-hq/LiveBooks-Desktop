@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col">
+  <div class="flex flex-col" @contextmenu="onPageContextMenu">
     <PageHeader :title="title">
       <Button
         v-if="
@@ -70,6 +70,7 @@
       :is-selection-mode="isSelectionMode"
       class="flex-1 flex h-full"
       @open-doc="openDoc"
+      @open-doc-in-pane="openDocInPane"
       @updated-data="updatedData"
       @make-new-doc="makeNewDoc"
       @selected-items-changed="updateSelectedItems"
@@ -99,7 +100,9 @@ import {
   getCreateFiltersFromListViewFilters,
 } from 'src/utils/misc';
 import { docsPathRef } from 'src/utils/refs';
-import { getFormRoute, routeTo } from 'src/utils/ui';
+import { showContextMenu } from 'src/utils/contextMenu';
+import { getFormRoute, openRouteInSidePane, routeTo } from 'src/utils/ui';
+import { t } from 'fyo';
 import { QueryFilter } from 'utils/db/types';
 import { defineComponent, inject, ref } from 'vue';
 import List from './List.vue';
@@ -120,6 +123,7 @@ export default defineComponent({
     schemaName: { type: String, required: true },
     filters: { type: Object, default: undefined },
     pageTitle: { type: String, default: '' },
+    paneId: { type: String, default: '' },
   },
   setup() {
     return {
@@ -149,7 +153,9 @@ export default defineComponent({
   },
   computed: {
     context(): string {
-      return 'ListView-' + this.schemaName;
+      return this.paneId
+        ? `ListView-${this.schemaName}-${this.paneId}`
+        : 'ListView-' + this.schemaName;
     },
     title(): string {
       if (this.pageTitle) {
@@ -181,6 +187,10 @@ export default defineComponent({
       ];
     },
   },
+  mounted() {
+    this.listConfig = getListConfig(this.schemaName);
+    this.setShortcuts();
+  },
   activated() {
     this.listConfig = getListConfig(this.schemaName);
     docsPathRef.value =
@@ -197,10 +207,17 @@ export default defineComponent({
     docsPathRef.value = '';
     this.shortcuts?.delete(this.context);
   },
+  unmounted() {
+    this.shortcuts?.delete(this.context);
+  },
   methods: {
     setShortcuts() {
       if (!this.shortcuts) {
         return;
+      }
+
+      if (this.paneId) {
+        this.shortcuts.associatePaneContext(this.paneId, this.context);
       }
 
       this.shortcuts.pmod.set(this.context, ['KeyN'], () =>
@@ -216,6 +233,37 @@ export default defineComponent({
     async openDoc(name: string) {
       const route = getFormRoute(this.schemaName, name);
       await routeTo(route);
+    },
+    onPageContextMenu(event: MouseEvent) {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('[data-list-row]')) {
+        return;
+      }
+      const filters = this.filters ?? {};
+      const title = this.pageTitle ? `/${this.pageTitle}` : '';
+      const params = new URLSearchParams();
+      if (Object.keys(filters).length) {
+        params.set('filters', JSON.stringify(filters));
+      }
+      const query = params.toString();
+      const path = query
+        ? `/list/${this.schemaName}${title}?${query}`
+        : `/list/${this.schemaName}${title}`;
+      showContextMenu(event, [
+        {
+          label: t`Open in side pane`,
+          action: () => openRouteInSidePane(path),
+        },
+      ]);
+    },
+    openDocInPane(name: string, event: MouseEvent) {
+      const route = getFormRoute(this.schemaName, name);
+      showContextMenu(event, [
+        {
+          label: t`Open in side pane`,
+          action: () => openRouteInSidePane(route),
+        },
+      ]);
     },
     async makeNewDoc() {
       if (!this.canCreate) {

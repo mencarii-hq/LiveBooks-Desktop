@@ -1,6 +1,7 @@
 import { Keys } from 'utils/types';
 import { watch } from 'vue';
-import { getIsMac } from './misc';
+import { MAIN_PANE_ID } from './deskPanes';
+import { getShortcutOwnerPaneId } from './paneNav';
 
 interface ModMap {
   alt: boolean;
@@ -42,13 +43,19 @@ export class Shortcuts {
   shortcuts: ShortcutMap;
   modMap: Partial<Record<Mod, boolean>>;
   keySet: Set<string>;
+  paneContexts: Map<string, Set<Context>>;
+  focusedPaneId: string;
 
   constructor(keys: Keys) {
     this.modMap = {};
     this.keySet = new Set();
     this.keys = keys;
     this.shortcuts = new Map();
-    this.isMac = getIsMac();
+    this.paneContexts = new Map();
+    this.focusedPaneId = MAIN_PANE_ID;
+    this.isMac =
+      typeof navigator !== 'undefined' &&
+      navigator.userAgent.indexOf('Mac') !== -1;
 
     watch(this.keys, (keys) => {
       const key = this.getKey(Array.from(keys.pressed), keys);
@@ -64,13 +71,62 @@ export class Shortcuts {
     });
   }
 
-  #trigger(key: string) {
-    const configList = Array.from(this.shortcuts.keys())
-      .map((cxt) => this.shortcuts.get(cxt)?.get(key))
-      .filter(Boolean)
-      .reverse() as ShortcutConfig[];
+  setFocusedPaneId(id: string) {
+    this.focusedPaneId = id;
+  }
 
-    for (const config of configList) {
+  associatePaneContext(paneId: string, context: Context) {
+    let set = this.paneContexts.get(paneId);
+    if (!set) {
+      set = new Set();
+      this.paneContexts.set(paneId, set);
+    }
+    set.add(context);
+  }
+
+  clearPane(paneId: string) {
+    const set = this.paneContexts.get(paneId);
+    if (set) {
+      for (const context of set) {
+        this.shortcuts.delete(context);
+      }
+    }
+    this.paneContexts.delete(paneId);
+  }
+
+  #isContextActive(context: Context): boolean {
+    const owner = this.#paneIdForContext(context);
+    if (this.focusedPaneId === MAIN_PANE_ID) {
+      return owner === null;
+    }
+    return owner === this.focusedPaneId;
+  }
+
+  #paneIdForContext(context: Context): string | null {
+    for (const [paneId, set] of this.paneContexts) {
+      if (set.has(context)) {
+        return paneId;
+      }
+    }
+    return null;
+  }
+
+  /** Used by unit tests and the keys watcher. */
+  triggerKey(key: string) {
+    this.#trigger(key);
+  }
+
+  #trigger(key: string) {
+    const entries = Array.from(this.shortcuts.entries()).reverse();
+
+    for (const [context, map] of entries) {
+      if (!this.#isContextActive(context)) {
+        continue;
+      }
+      const config = map.get(key);
+      if (!config) {
+        continue;
+      }
       config.callback();
       if (!config.propagate) {
         break;
@@ -144,6 +200,11 @@ export class Shortcuts {
     this.keySet.add(key);
     contextualShortcuts.set(key, { callback, propagate });
     this.shortcuts.set(context, contextualShortcuts);
+
+    const owner = getShortcutOwnerPaneId();
+    if (owner && owner !== MAIN_PANE_ID) {
+      this.associatePaneContext(owner, context);
+    }
   }
 
   /**

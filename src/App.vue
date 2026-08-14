@@ -76,6 +76,7 @@ import {
 import { updatePrintTemplates } from './utils/printTemplates';
 import { Search } from './utils/search';
 import { Shortcuts } from './utils/shortcuts';
+import { clearDeskPanes } from './utils/deskPanes';
 import { routeTo } from './utils/ui';
 import { useKeys } from './utils/vueUtils';
 import { setDarkMode } from 'src/utils/theme';
@@ -434,6 +435,7 @@ export default defineComponent({
       await releaseBootSplash();
       invalidateUsCaCompanyCache();
       localStorage.clear();
+      clearDeskPanes();
       clearSavedLastRoute();
       fyo.config.set('lastSelectedFilePath', null);
       fyo.telemetry.stop();

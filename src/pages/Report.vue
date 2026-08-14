@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col w-full h-full">
+  <div class="flex flex-col w-full h-full" @contextmenu="onPageContextMenu">
     <PageHeader :title="title">
       <template #left>
         <span
@@ -72,7 +72,7 @@
         :df="field"
         :value="report.get(field.fieldname)"
         :read-only="loading"
-        @change="async (value) => await report?.set(field.fieldname, value)"
+        @change="async (value) => await onFilterChange(field.fieldname, value)"
       />
     </div>
 
@@ -92,10 +92,12 @@ import PageHeader from 'src/components/PageHeader.vue';
 import ListReport from 'src/components/Report/ListReport.vue';
 import { fyo } from 'src/initFyo';
 import { shortcutsKey } from 'src/utils/injectionKeys';
-import { docsPathMap, getReport } from 'src/utils/misc';
+import { showContextMenu } from 'src/utils/contextMenu';
+import { focusedPaneId, updatePaneProps } from 'src/utils/deskPanes';
+import { clearReportInstance, docsPathMap, getReport } from 'src/utils/misc';
 import { docsPathRef } from 'src/utils/refs';
 import { ActionGroup } from 'src/utils/types';
-import { routeTo } from 'src/utils/ui';
+import { openRouteInSidePane, routeTo } from 'src/utils/ui';
 import {
   deleteMemorizedReport,
   getMemorizedReportPath,
@@ -126,6 +128,18 @@ export default defineComponent({
       type: String,
       default: '{}',
     },
+    memorizedName: {
+      type: String,
+      default: '',
+    },
+    instanceKey: {
+      type: String,
+      default: '',
+    },
+    useRoute: {
+      type: Boolean,
+      default: true,
+    },
   },
   setup() {
     return { shortcuts: inject(shortcutsKey) };
@@ -135,26 +149,44 @@ export default defineComponent({
       loading: false,
       report: null as null | Report,
       routeFilterReportClass: null as null | string,
+      refreshTimer: null as ReturnType<typeof setTimeout> | null,
     };
   },
   computed: {
-    memorizedName() {
+    resolvedMemorizedName() {
+      if (!this.useRoute) {
+        return this.memorizedName.trim();
+      }
       const value = this.$route.query.memorizedName;
-      return typeof value === 'string' && value.trim() ? value : '';
+      if (typeof value === 'string' && value.trim()) {
+        return value;
+      }
+      return this.memorizedName.trim();
+    },
+    shortcutContext() {
+      return this.instanceKey
+        ? `${this.reportClassName}::${this.instanceKey}`
+        : this.reportClassName;
+    },
+    reportInstanceKey() {
+      return this.instanceKey || undefined;
+    },
+    focusedDeskPaneId() {
+      return focusedPaneId.value;
     },
     isMemorized() {
-      return Boolean(this.memorizedName);
+      return Boolean(this.resolvedMemorizedName);
     },
     title() {
-      if (this.memorizedName) {
-        return this.memorizedName;
+      if (this.resolvedMemorizedName) {
+        return this.resolvedMemorizedName;
       }
       return reports[this.reportClassName]?.title ?? t`Report`;
     },
     printPath() {
       const params = new URLSearchParams();
-      if (this.memorizedName) {
-        params.set('memorizedName', this.memorizedName);
+      if (this.resolvedMemorizedName) {
+        params.set('memorizedName', this.resolvedMemorizedName);
       }
       if (this.report) {
         params.set(
@@ -191,7 +223,7 @@ export default defineComponent({
   watch: {
     '$route.query.defaultFilters': {
       async handler() {
-        if (!this.report) {
+        if (!this.useRoute || !this.report) {
           return;
         }
         await this.applyRouteFilters();
@@ -199,35 +231,135 @@ export default defineComponent({
     },
     '$route.query.memorizedName': {
       async handler() {
-        if (!this.report) {
+        if (!this.useRoute || !this.report) {
           return;
         }
         await this.applyRouteFilters();
       },
     },
+    'report.shouldRefresh'(value: boolean) {
+      if (value) {
+        this.scheduleRefresh();
+      }
+    },
+    focusedDeskPaneId(id: string) {
+      if (this.instanceKey && id === this.instanceKey) {
+        void this.flushRefresh();
+      }
+    },
+  },
+  async mounted() {
+    // keep-alive main view boots from activated(); pane mounts never activate.
+    if (this.instanceKey || !this.useRoute) {
+      await this.bootstrapReport();
+    }
   },
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   async activated() {
     docsPathRef.value =
       docsPathMap[this.reportClassName] ?? docsPathMap.Reports!;
-    await this.setReportData();
-    await this.applyRouteFilters();
+    await this.bootstrapReport();
 
     if (fyo.store.isDevelopment) {
       // @ts-ignore
       window.rep = this;
     }
 
-    this.shortcuts?.pmod.set(this.reportClassName, ['KeyP'], async () => {
-      await routeTo(this.printPath);
-    });
+    this.setReportShortcuts();
   },
   deactivated() {
     docsPathRef.value = '';
-    this.shortcuts?.delete(this.reportClassName);
+    this.shortcuts?.delete(this.shortcutContext);
+  },
+  beforeUnmount() {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+    }
+    this.shortcuts?.delete(this.shortcutContext);
+    if (this.instanceKey) {
+      clearReportInstance(this.reportClassName, this.instanceKey);
+    }
   },
   methods: {
     routeTo,
+    setReportShortcuts() {
+      if (this.instanceKey && this.shortcuts) {
+        this.shortcuts.associatePaneContext(
+          this.instanceKey,
+          this.shortcutContext
+        );
+      }
+      this.shortcuts?.pmod.set(this.shortcutContext, ['KeyP'], async () => {
+        await routeTo(this.printPath);
+      });
+    },
+    scheduleRefresh() {
+      if (this.refreshTimer) {
+        clearTimeout(this.refreshTimer);
+      }
+      this.refreshTimer = setTimeout(() => {
+        void this.flushRefresh();
+      }, 1500);
+    },
+    async flushRefresh() {
+      if (!this.report?.shouldRefresh) {
+        return;
+      }
+      await this.report.setReportData(undefined, true);
+      this.report.shouldRefresh = false;
+    },
+    async bootstrapReport() {
+      await this.setReportData();
+      if (this.useRoute) {
+        await this.applyRouteFilters();
+      } else {
+        await this.applyPropFilters();
+      }
+      this.setReportShortcuts();
+      if (this.instanceKey) {
+        updatePaneProps(this.instanceKey, {}, this.title);
+      }
+    },
+    async onFilterChange(fieldname: string, value: DocValue) {
+      await this.report?.set(fieldname, value);
+      this.syncPaneFilters();
+    },
+    syncPaneFilters() {
+      if (!this.instanceKey || !this.report) {
+        return;
+      }
+      updatePaneProps(
+        this.instanceKey,
+        {
+          defaultFilters: JSON.stringify(
+            toMemorizedFilterMap(this.report.filterMap)
+          ),
+        },
+        this.title
+      );
+    },
+    onPageContextMenu(event: MouseEvent) {
+      const filtersJson = this.report
+        ? JSON.stringify(toMemorizedFilterMap(this.report.filterMap))
+        : this.defaultFilters || '{}';
+      const params = new URLSearchParams();
+      if (filtersJson && filtersJson !== '{}') {
+        params.set('defaultFilters', filtersJson);
+      }
+      if (this.resolvedMemorizedName) {
+        params.set('memorizedName', this.resolvedMemorizedName);
+      }
+      const query = params.toString();
+      const path = query
+        ? `/report/${this.reportClassName}?${query}`
+        : `/report/${this.reportClassName}`;
+      showContextMenu(event, [
+        {
+          label: t`Open in side pane`,
+          action: () => openRouteInSidePane(path),
+        },
+      ]);
+    },
     async memorizeReport() {
       if (!this.report) {
         return;
@@ -253,14 +385,55 @@ export default defineComponent({
       );
     },
     async deleteMemorized() {
-      if (!this.memorizedName) {
+      if (!this.resolvedMemorizedName) {
         return;
       }
 
-      const deleted = await deleteMemorizedReport(fyo, this.memorizedName);
+      const deleted = await deleteMemorizedReport(
+        fyo,
+        this.resolvedMemorizedName
+      );
       if (deleted) {
         await routeTo(`/report/${this.reportClassName}`);
       }
+    },
+    async applyPropFilters() {
+      let parsed: Record<string, DocValue> = {};
+      try {
+        parsed = JSON.parse(this.defaultFilters || '{}') as Record<
+          string,
+          DocValue
+        >;
+      } catch {
+        parsed = {};
+      }
+      const relativeDates = Boolean(parsed.relativeDates);
+      delete parsed.relativeDates;
+      const filterKeys = Object.keys(parsed);
+      if (!filterKeys.length && !relativeDates) {
+        return;
+      }
+
+      this.report = await getReport(this.reportClassName, {
+        fresh: true,
+        instanceKey: this.reportInstanceKey,
+      });
+      if (relativeDates) {
+        const report = this.report as Report & {
+          toDate?: string;
+          fromDate?: string;
+          fromYear?: number;
+          toYear?: number;
+        };
+        delete report.toDate;
+        delete report.fromDate;
+        delete report.fromYear;
+        delete report.toYear;
+      }
+      for (const key of filterKeys) {
+        await this.report.set(key, parsed[key], false);
+      }
+      await this.report.updateData();
     },
     async applyRouteFilters() {
       const filters = this.$route.query as Record<string, DocValue>;
@@ -291,7 +464,10 @@ export default defineComponent({
       const hasIncoming = filterKeys.length > 0 || relativeDates;
 
       if (hasIncoming) {
-        this.report = await getReport(this.reportClassName, { fresh: true });
+        this.report = await getReport(this.reportClassName, {
+          fresh: true,
+          instanceKey: this.reportInstanceKey,
+        });
         if (relativeDates) {
           const report = this.report as Report & {
             toDate?: string;
@@ -315,20 +491,27 @@ export default defineComponent({
       }
 
       if (this.routeFilterReportClass === this.reportClassName) {
-        this.report = await getReport(this.reportClassName, { fresh: true });
+        this.report = await getReport(this.reportClassName, {
+          fresh: true,
+          instanceKey: this.reportInstanceKey,
+        });
         this.routeFilterReportClass = null;
       }
     },
     async setReportData() {
       const expectedName = reports[this.reportClassName]?.reportName;
       if (this.report === null || this.report.reportName !== expectedName) {
-        this.report = await getReport(this.reportClassName);
+        this.report = await getReport(this.reportClassName, {
+          instanceKey: this.reportInstanceKey,
+        });
       }
 
       if (!this.report.reportData.length) {
         await this.report.setReportData();
+        this.report.shouldRefresh = false;
       } else if (this.report.shouldRefresh) {
         await this.report.setReportData(undefined, true);
+        this.report.shouldRefresh = false;
       }
     },
   },

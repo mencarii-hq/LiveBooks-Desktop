@@ -165,7 +165,9 @@ input[type='number']::-webkit-inner-spin-button {
 }
 
 html.desk-sidebar-resizing,
-html.desk-sidebar-resizing * {
+html.desk-sidebar-resizing *,
+html.desk-pane-resizing,
+html.desk-pane-resizing * {
   cursor: col-resize !important;
 }
 

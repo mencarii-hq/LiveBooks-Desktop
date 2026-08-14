@@ -287,6 +287,7 @@ import {
   setLastRegisterBankAccount,
 } from 'src/utils/registerBankAccount';
 import { isUuidDocId } from 'utils/ids';
+import { routeTo } from 'src/utils/ui';
 import { defineComponent } from 'vue';
 
 type AccountOpt = { name: string; accountName?: string };
@@ -295,6 +296,9 @@ type SplitLine = { account: string; amount: number; description: string };
 export default defineComponent({
   name: 'BankRegisterWrite',
   components: { PageHeader, Button, FormControl },
+  props: {
+    account: { type: String, default: '' },
+  },
   data() {
     return {
       bankAccount: '',
@@ -574,7 +578,7 @@ export default defineComponent({
   methods: {
     applySavedBank() {
       const names = this.bankAccounts.map((a) => a.name);
-      const fromQuery = String(this.$route.query.account || '');
+      const fromQuery = String(this.account || this.$route.query.account || '');
       const saved = getLastRegisterBankAccount(names);
       const pick =
         (fromQuery && names.includes(fromQuery) ? fromQuery : '') ||
@@ -781,7 +785,7 @@ export default defineComponent({
         // keep-alive caches this page — clear entry fields before leaving so
         // the next Write Entry visit is blank (bank / method defaults stay).
         this.resetFormAfterSave();
-        await this.$router.push({ name: 'Check Register' });
+        await routeTo('/bank-register');
       } catch (error) {
         await handleErrorWithDialog(error);
         this.showFormError(

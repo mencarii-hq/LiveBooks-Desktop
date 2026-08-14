@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { showSidebar } from 'src/utils/refs';
 import { toggleSidebar } from 'src/utils/ui';
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { inject, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { runApplyJournalRecovery } from 'src/utils/plaidApplyRecovery';
 import {
   notifyPlaidBackgroundMfaVerified,
@@ -10,8 +10,24 @@ import {
 } from 'src/utils/plaidBackgroundSync';
 import PlaidBankSyncMfaBanner from 'src/components/PlaidBankSyncMfaBanner.vue';
 import PlaidSyncStatusBanner from 'src/components/PlaidSyncStatusBanner.vue';
+import ContextMenu from 'src/components/ContextMenu.vue';
+import DeskChildPane from 'src/components/DeskChildPane.vue';
 import Sidebar from '../components/Sidebar.vue';
 import SideDrawerShell from '../components/SideDrawerShell.vue';
+import {
+  childPaneWidthPx,
+  childPanes,
+  focusedPaneId,
+  focusPane,
+  MAIN_PANE_ID,
+  persistPaneWidthPx,
+  PANE_MAX_PX,
+  PANE_MIN_PX,
+  restoreDeskPanes,
+} from 'src/utils/deskPanes';
+import { shortcutsKey } from 'src/utils/injectionKeys';
+import { setActivePaneNav } from 'src/utils/paneNav';
+import { contextMenuState, hideContextMenu } from 'src/utils/contextMenu';
 import {
   syncSideDrawerCssVar,
   loadSideDrawerWidthPx,
@@ -30,6 +46,84 @@ const SIDEBAR_MAX_PX = 408; // ~15% under previous 480px cap
 const SIDEBAR_DEFAULT_PX = 220;
 
 const deskRootRef = ref<HTMLElement | null>(null);
+const shortcuts = inject(shortcutsKey);
+const isPaneResizing = ref(false);
+const PANE_RESIZING_HTML_CLASS = 'desk-pane-resizing';
+
+function clampPaneWidthPx(n: number, totalWidth = deskWidthPx()): number {
+  let px = Math.min(PANE_MAX_PX, Math.max(PANE_MIN_PX, n));
+  if (totalWidth > 0) {
+    const maxForWindow = Math.max(
+      PANE_MIN_PX,
+      Math.min(PANE_MAX_PX, totalWidth * 0.55)
+    );
+    px = Math.min(maxForWindow, Math.max(PANE_MIN_PX, px));
+  }
+  return Math.round(px);
+}
+
+function panePxFromClientX(clientX: number): number {
+  const el = deskRootRef.value;
+  if (!el) {
+    return childPaneWidthPx.value;
+  }
+  const rect = el.getBoundingClientRect();
+  const rtl = document.documentElement.dir === 'rtl';
+  const raw = rtl ? clientX - rect.left : rect.right - clientX;
+  return clampPaneWidthPx(raw, rect.width);
+}
+
+function onPaneResizePointerDown(e: PointerEvent) {
+  if (e.button !== 0) return;
+  const grip = e.currentTarget as HTMLElement;
+  const pointerId = e.pointerId;
+  const startX = e.clientX;
+  let dragActive = false;
+
+  grip.setPointerCapture(pointerId);
+
+  const beginDrag = (clientX: number) => {
+    if (dragActive) return;
+    dragActive = true;
+    isPaneResizing.value = true;
+    document.documentElement.classList.add(PANE_RESIZING_HTML_CLASS);
+    document.body.style.userSelect = 'none';
+    childPaneWidthPx.value = panePxFromClientX(clientX);
+  };
+
+  const onMove = (ev: PointerEvent) => {
+    if (Math.abs(ev.clientX - startX) < DRAG_THRESHOLD_PX && !dragActive) {
+      return;
+    }
+    beginDrag(ev.clientX);
+    childPaneWidthPx.value = panePxFromClientX(ev.clientX);
+  };
+
+  const onEnd = (ev: PointerEvent) => {
+    grip.removeEventListener('pointermove', onMove);
+    grip.removeEventListener('pointerup', onEnd);
+    grip.removeEventListener('pointercancel', onEnd);
+    try {
+      grip.releasePointerCapture(ev.pointerId);
+    } catch {
+      /* already released */
+    }
+    if (!dragActive) return;
+    isPaneResizing.value = false;
+    document.documentElement.classList.remove(PANE_RESIZING_HTML_CLASS);
+    document.body.style.userSelect = '';
+    persistPaneWidthPx();
+  };
+
+  grip.addEventListener('pointermove', onMove);
+  grip.addEventListener('pointerup', onEnd);
+  grip.addEventListener('pointercancel', onEnd);
+}
+
+function onMainPaneFocus() {
+  setActivePaneNav(null);
+  focusPane(MAIN_PANE_ID);
+}
 
 function deskWidthPx(): number {
   return deskRootRef.value?.getBoundingClientRect().width ?? 0;
@@ -172,6 +266,9 @@ function onResizePointerDown(e: PointerEvent) {
 function onWindowResize() {
   syncSidebarCssVar();
   syncSideDrawerCssVar(loadSideDrawerWidthPx());
+  if (childPanes.value.length) {
+    childPaneWidthPx.value = clampPaneWidthPx(childPaneWidthPx.value);
+  }
 }
 
 let applyRecoveryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -181,6 +278,8 @@ function onPlaidMfaVerified() {
 }
 
 onMounted(() => {
+  restoreDeskPanes();
+  shortcuts?.setFocusedPaneId(focusedPaneId.value);
   void nextTick(() => {
     syncSidebarCssVar();
     syncSideDrawerCssVar(loadSideDrawerWidthPx());
@@ -197,6 +296,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('resize', onWindowResize);
   document.documentElement.classList.remove(RESIZING_HTML_CLASS);
+  document.documentElement.classList.remove(PANE_RESIZING_HTML_CLASS);
   document.body.style.userSelect = '';
   if (applyRecoveryTimer) {
     clearTimeout(applyRecoveryTimer);
@@ -207,6 +307,13 @@ onUnmounted(() => {
 
 watch([showSidebar, sidebarWidthPx], () => {
   void nextTick(() => syncSidebarCssVar());
+});
+
+watch(focusedPaneId, (id) => {
+  shortcuts?.setFocusedPaneId(id);
+  if (id === MAIN_PANE_ID) {
+    setActivePaneNav(null);
+  }
 });
 </script>
 <template>
@@ -276,29 +383,70 @@ watch([showSidebar, sidebarWidthPx], () => {
       />
       <PlaidSyncStatusBanner class="shrink-0 mx-4 mt-2" />
       <div class="flex flex-1 min-h-0 overflow-hidden">
-        <router-view v-slot="{ Component }">
-          <keep-alive>
-            <component
-              :is="Component"
-              :key="$route.path"
-              :dark-mode="darkMode"
-              class="flex-1 min-h-0 min-w-0"
-            />
-          </keep-alive>
-        </router-view>
-
-        <router-view v-slot="{ Component, route }" name="edit">
-          <Transition name="quickedit">
-            <SideDrawerShell v-if="route?.query?.edit">
+        <div
+          class="flex flex-1 min-h-0 min-w-0 overflow-hidden"
+          data-testid="desk-main-pane"
+          @focusin="onMainPaneFocus"
+          @mousedown="onMainPaneFocus"
+        >
+          <router-view v-slot="{ Component }">
+            <keep-alive>
               <component
                 :is="Component"
-                :key="route.query.schemaName + route.query.name"
-                class="h-full w-full min-w-0"
+                :key="$route.path"
                 :dark-mode="darkMode"
+                class="flex-1 min-h-0 min-w-0"
               />
-            </SideDrawerShell>
-          </Transition>
-        </router-view>
+            </keep-alive>
+          </router-view>
+
+          <router-view v-slot="{ Component, route }" name="edit">
+            <Transition name="quickedit">
+              <SideDrawerShell v-if="route?.query?.edit">
+                <component
+                  :is="Component"
+                  :key="route.query.schemaName + route.query.name"
+                  class="h-full w-full min-w-0"
+                  :dark-mode="darkMode"
+                />
+              </SideDrawerShell>
+            </Transition>
+          </router-view>
+        </div>
+
+        <template v-if="childPanes.length">
+          <div
+            class="
+              sidebar-resize-grip
+              window-no-drag
+              shrink-0
+              self-stretch
+              touch-none
+              z-10
+            "
+            :class="{ 'is-resizing': isPaneResizing }"
+            role="separator"
+            aria-orientation="vertical"
+            :aria-valuenow="childPaneWidthPx"
+            :aria-valuemin="PANE_MIN_PX"
+            :aria-valuemax="PANE_MAX_PX"
+            data-testid="desk-pane-resize-grip"
+            @pointerdown="onPaneResizePointerDown"
+          />
+          <div
+            class="flex flex-col min-h-0 min-w-0"
+            :style="{ width: childPaneWidthPx + 'px' }"
+            data-testid="desk-side-panes"
+          >
+            <DeskChildPane
+              v-for="pane in childPanes"
+              :key="pane.id"
+              :pane="pane"
+              :focused="focusedPaneId === pane.id"
+              :dark-mode="darkMode"
+            />
+          </div>
+        </template>
       </div>
     </div>
 
@@ -323,6 +471,14 @@ watch([showSidebar, sidebarWidthPx], () => {
     >
       <feather-icon name="chevrons-right" class="w-4 h-4" />
     </button>
+
+    <ContextMenu
+      :open="contextMenuState.open"
+      :x="contextMenuState.x"
+      :y="contextMenuState.y"
+      :items="contextMenuState.items"
+      @close="hideContextMenu"
+    />
   </div>
 </template>
 

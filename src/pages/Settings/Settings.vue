@@ -220,6 +220,9 @@ export default defineComponent({
   provide() {
     return { doc: computed(() => this.doc) };
   },
+  props: {
+    tab: { type: String, default: '' },
+  },
   setup() {
     return {
       shortcuts: inject(shortcutsKey),
@@ -368,6 +371,7 @@ export default defineComponent({
       window.settings = this;
     }
 
+    this.applyInitialTab();
     this.update();
   },
   beforeUnmount() {
@@ -378,10 +382,7 @@ export default defineComponent({
   },
   activated(): void {
     this.syncZoomFactor();
-    const tab = this.$route.query.tab;
-    if (typeof tab === 'string' && this.tabLabels[tab]) {
-      this.activeTab = tab;
-    }
+    this.applyInitialTab();
 
     docsPathRef.value = docsPathMap.Settings ?? '';
     this.shortcuts?.pmod.set(COMPONENT_NAME, ['KeyS'], async () => {
@@ -401,6 +402,12 @@ export default defineComponent({
     await this.reset();
   },
   methods: {
+    applyInitialTab() {
+      const tab = this.tab || this.$route.query.tab;
+      if (typeof tab === 'string' && this.tabLabels[tab]) {
+        this.activeTab = tab;
+      }
+    },
     settingsDocNames(): string[] {
       // POS lives on InventorySettings but is injected under General; keep it
       // in save/reset even when the Inventory tab is hidden.

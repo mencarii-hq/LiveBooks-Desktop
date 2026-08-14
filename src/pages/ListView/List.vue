@@ -135,6 +135,7 @@
               </div>
 
               <Row
+                data-list-row
                 gap="0.5rem"
                 class="
                   cursor-pointer
@@ -146,6 +147,11 @@
                 :column-count="columns.length"
                 :grid-template-columns="gridTemplate"
                 @click="isSelectionMode ? null : $emit('openDoc', row.name)"
+                @contextmenu.prevent.stop="
+                  isSelectionMode
+                    ? null
+                    : $emit('openDocInPane', row.name, $event)
+                "
               >
                 <ListCell
                   v-for="(column, c) in columns"
@@ -244,7 +250,13 @@ export default defineComponent({
     canCreate: Boolean,
     isSelectionMode: Boolean,
   },
-  emits: ['openDoc', 'makeNewDoc', 'updatedData', 'selected-items-changed'],
+  emits: [
+    'openDoc',
+    'openDocInPane',
+    'makeNewDoc',
+    'updatedData',
+    'selected-items-changed',
+  ],
   data() {
     return {
       data: [] as RenderData[],
