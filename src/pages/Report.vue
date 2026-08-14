@@ -1,6 +1,25 @@
 <template>
   <div class="flex flex-col w-full h-full">
     <PageHeader :title="title">
+      <template #left>
+        <span
+          class="
+            pill
+            font-medium
+            rounded-full
+            select-none
+            pointer-events-none
+            self-center
+          "
+          :class="
+            isMemorized
+              ? 'bg-blue-200 text-blue-700 dark:bg-blue-800 dark:text-blue-200'
+              : 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-200'
+          "
+        >
+          {{ isMemorized ? t`Memorized` : t`Default` }}
+        </span>
+      </template>
       <DropdownWithActions
         v-for="group of groupedActions"
         :key="group.label"
@@ -12,10 +31,27 @@
         {{ group.group }}
       </DropdownWithActions>
       <Button
+        :icon="false"
+        :title="t`Memorize this report`"
+        class="text-xs"
+        @click="memorizeReport"
+      >
+        {{ t`Memorize` }}
+      </Button>
+      <Button
+        v-if="isMemorized"
+        :icon="false"
+        :title="t`Delete this memorized report`"
+        class="text-xs"
+        @click="deleteMemorized"
+      >
+        {{ t`Delete` }}
+      </Button>
+      <Button
         ref="printButton"
         :icon="true"
         :title="t`Open Report Print View`"
-        @click="routeTo(`/report-print/${reportClassName}`)"
+        @click="routeTo(printPath)"
       >
         <feather-icon name="printer" class="w-4 h-4"></feather-icon>
       </Button>
@@ -60,6 +96,12 @@ import { docsPathMap, getReport } from 'src/utils/misc';
 import { docsPathRef } from 'src/utils/refs';
 import { ActionGroup } from 'src/utils/types';
 import { routeTo } from 'src/utils/ui';
+import {
+  deleteMemorizedReport,
+  getMemorizedReportPath,
+  promptAndSaveMemorizedReport,
+  toMemorizedFilterMap,
+} from 'src/utils/memorizedReports';
 import { PropType, computed, defineComponent, inject } from 'vue';
 
 export default defineComponent({
@@ -92,11 +134,38 @@ export default defineComponent({
     return {
       loading: false,
       report: null as null | Report,
+      routeFilterReportClass: null as null | string,
     };
   },
   computed: {
+    memorizedName() {
+      const value = this.$route.query.memorizedName;
+      return typeof value === 'string' && value.trim() ? value : '';
+    },
+    isMemorized() {
+      return Boolean(this.memorizedName);
+    },
     title() {
+      if (this.memorizedName) {
+        return this.memorizedName;
+      }
       return reports[this.reportClassName]?.title ?? t`Report`;
+    },
+    printPath() {
+      const params = new URLSearchParams();
+      if (this.memorizedName) {
+        params.set('memorizedName', this.memorizedName);
+      }
+      if (this.report) {
+        params.set(
+          'defaultFilters',
+          JSON.stringify(toMemorizedFilterMap(this.report.filterMap))
+        );
+      }
+      const query = params.toString();
+      return query
+        ? `/report-print/${this.reportClassName}?${query}`
+        : `/report-print/${this.reportClassName}`;
     },
     groupedActions() {
       const actions = this.report?.getActions() ?? [];
@@ -119,33 +188,30 @@ export default defineComponent({
       return Object.values(actionsMap);
     },
   },
+  watch: {
+    '$route.query.defaultFilters': {
+      async handler() {
+        if (!this.report) {
+          return;
+        }
+        await this.applyRouteFilters();
+      },
+    },
+    '$route.query.memorizedName': {
+      async handler() {
+        if (!this.report) {
+          return;
+        }
+        await this.applyRouteFilters();
+      },
+    },
+  },
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   async activated() {
     docsPathRef.value =
       docsPathMap[this.reportClassName] ?? docsPathMap.Reports!;
     await this.setReportData();
-
-    const filters = this.$route.query as Record<string, DocValue>;
-    const validFilters: Record<string, DocValue> = {};
-
-    if (filters.defaultFilters && typeof filters.defaultFilters === 'string') {
-      const parsed = JSON.parse(filters.defaultFilters);
-      Object.assign(validFilters, parsed);
-    }
-
-    for (const [key, value] of Object.entries(filters)) {
-      if (key !== 'defaultFilters' && typeof value === 'string') {
-        validFilters[key] = value;
-      }
-    }
-    const filterKeys = Object.keys(validFilters);
-    for (const key of filterKeys) {
-      await this.report?.set(key, validFilters[key]);
-    }
-
-    if (filterKeys.length) {
-      await this.report?.updateData();
-    }
+    await this.applyRouteFilters();
 
     if (fyo.store.isDevelopment) {
       // @ts-ignore
@@ -153,7 +219,7 @@ export default defineComponent({
     }
 
     this.shortcuts?.pmod.set(this.reportClassName, ['KeyP'], async () => {
-      await routeTo(`/report-print/${this.reportClassName}`);
+      await routeTo(this.printPath);
     });
   },
   deactivated() {
@@ -162,8 +228,100 @@ export default defineComponent({
   },
   methods: {
     routeTo,
+    async memorizeReport() {
+      if (!this.report) {
+        return;
+      }
+
+      const savedName = await promptAndSaveMemorizedReport(
+        fyo,
+        this.reportClassName,
+        this.report.filterMap
+      );
+      if (!savedName) {
+        return;
+      }
+
+      await routeTo(
+        getMemorizedReportPath({
+          name: savedName,
+          reportClassName: this.reportClassName,
+          filtersJson: JSON.stringify(
+            toMemorizedFilterMap(this.report.filterMap)
+          ),
+        })
+      );
+    },
+    async deleteMemorized() {
+      if (!this.memorizedName) {
+        return;
+      }
+
+      const deleted = await deleteMemorizedReport(fyo, this.memorizedName);
+      if (deleted) {
+        await routeTo(`/report/${this.reportClassName}`);
+      }
+    },
+    async applyRouteFilters() {
+      const filters = this.$route.query as Record<string, DocValue>;
+      const validFilters: Record<string, DocValue> = {};
+      const ignoredQueryKeys = new Set(['defaultFilters', 'memorizedName']);
+
+      if (
+        filters.defaultFilters &&
+        typeof filters.defaultFilters === 'string'
+      ) {
+        const parsed = JSON.parse(filters.defaultFilters) as Record<
+          string,
+          DocValue
+        >;
+        Object.assign(validFilters, parsed);
+      }
+
+      for (const [key, value] of Object.entries(filters)) {
+        if (!ignoredQueryKeys.has(key) && typeof value === 'string') {
+          validFilters[key] = value;
+        }
+      }
+
+      const relativeDates = Boolean(validFilters.relativeDates);
+      delete validFilters.relativeDates;
+
+      const filterKeys = Object.keys(validFilters);
+      const hasIncoming = filterKeys.length > 0 || relativeDates;
+
+      if (hasIncoming) {
+        this.report = await getReport(this.reportClassName, { fresh: true });
+        if (relativeDates) {
+          const report = this.report as Report & {
+            toDate?: string;
+            fromDate?: string;
+            fromYear?: number;
+            toYear?: number;
+          };
+          delete report.toDate;
+          delete report.fromDate;
+          delete report.fromYear;
+          delete report.toYear;
+        }
+
+        for (const key of filterKeys) {
+          await this.report.set(key, validFilters[key], false);
+        }
+
+        await this.report.updateData();
+        this.routeFilterReportClass = this.reportClassName;
+        return;
+      }
+
+      if (this.routeFilterReportClass === this.reportClassName) {
+        this.report = await getReport(this.reportClassName, { fresh: true });
+        this.routeFilterReportClass = null;
+      }
+    },
     async setReportData() {
-      if (this.report === null) {
+      const expectedName = reports[this.reportClassName]?.reportName;
+      if (this.report === null || this.report.reportName !== expectedName) {
         this.report = await getReport(this.reportClassName);
       }
 

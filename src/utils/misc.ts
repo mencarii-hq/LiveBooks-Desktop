@@ -109,6 +109,7 @@ export const docsPathMap: Record<string, string | undefined> = {
   ProfitAndLoss: 'books/profit-and-loss',
   BalanceSheet: 'books/balance-sheet',
   TrialBalance: 'books/trial-balance',
+  SalesByCustomer: 'books/reports',
   AccountsReceivableAging: 'books/reports',
   AccountsPayableAging: 'books/reports',
 
@@ -186,9 +187,12 @@ export function getIsMac() {
   return navigator.userAgent.indexOf('Mac') !== -1;
 }
 
-export async function getReport(name: keyof typeof reports) {
+export async function getReport(
+  name: keyof typeof reports,
+  options?: { fresh?: boolean }
+) {
   const cachedReport = fyo.store.reports[name];
-  if (cachedReport) {
+  if (cachedReport && !options?.fresh) {
     return cachedReport;
   }
 

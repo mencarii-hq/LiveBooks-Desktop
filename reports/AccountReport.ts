@@ -40,6 +40,8 @@ export abstract class AccountReport extends LedgerReport {
   toYear?: number;
   consolidateColumns = false;
   hideGroupAmounts = false;
+  hideZeroRows = false;
+  comparePriorYear = false;
   periodicity: Periodicity = 'Monthly';
   basedOn: BasedOn = 'Until Date';
 
@@ -110,9 +112,23 @@ export abstract class AccountReport extends LedgerReport {
   }
 
   getReportRowsFromAccountList(accountList: AccountList): ReportData {
-    return accountList.map((al) => {
+    const rows = accountList.map((al) => {
       return this.getRowFromAccountListNode(al);
     });
+
+    if (!this.hideZeroRows) {
+      return rows;
+    }
+
+    return pruneZeroBalanceRows(rows);
+  }
+
+  shouldReloadRawData(filter?: string, force?: boolean): boolean {
+    if (force || !filter) {
+      return true;
+    }
+
+    return filter !== 'hideGroupAmounts' && filter !== 'hideZeroRows';
   }
 
   getRowFromAccountListNode(al: AccountListNode) {
@@ -125,7 +141,7 @@ export abstract class AccountReport extends LedgerReport {
       indent: al.level ?? 0,
     } as ReportCell;
 
-    const balanceCells = this._dateRanges!.map((k) => {
+    const balanceCells = this._getOrderedDateRanges().map((k) => {
       const rawValue = al.valueMap?.get(k)?.balance ?? 0;
       let value = this.fyo.format(rawValue, 'Currency');
       if (this.hideGroupAmounts && al.isGroup) {
@@ -258,12 +274,13 @@ export abstract class AccountReport extends LedgerReport {
     const toDate = DateTime.fromISO(endpoints.toDate);
 
     if (this.consolidateColumns) {
-      return [
+      const current = [
         {
           toDate,
           fromDate,
         },
       ];
+      return this._withPriorYearRanges(current);
     }
 
     const months: number = monthsMap[this.periodicity];
@@ -290,7 +307,34 @@ export abstract class AccountReport extends LedgerReport {
       });
     }
 
-    return dateRanges.sort((b, a) => b.toDate.toMillis() - a.toDate.toMillis());
+    const current = dateRanges.sort(
+      (b, a) => b.toDate.toMillis() - a.toDate.toMillis()
+    );
+    return this._withPriorYearRanges(current);
+  }
+
+  _withPriorYearRanges(current: DateRange[]): DateRange[] {
+    if (!this.comparePriorYear) {
+      return current;
+    }
+
+    const prior = current.map((range) => ({
+      fromDate: range.fromDate.minus({ years: 1 }),
+      toDate: range.toDate.minus({ years: 1 }),
+      isPriorYear: true,
+    }));
+
+    return [...current, ...prior];
+  }
+
+  _getOrderedDateRanges(): DateRange[] {
+    const ranges = this._dateRanges ?? [];
+    const current = ranges.filter((d) => !d.isPriorYear);
+    const prior = ranges.filter((d) => d.isPriorYear);
+    const byNewest = (a: DateRange, b: DateRange) =>
+      b.toDate.toMillis() - a.toDate.toMillis();
+
+    return [...current].sort(byNewest).concat([...prior].sort(byNewest));
   }
 
   async _getFromAndToDates() {
@@ -320,7 +364,10 @@ export abstract class AccountReport extends LedgerReport {
 
     const dateFilter: string[] = [];
     dateFilter.push('<', toDate);
-    dateFilter.push('>=', fromDate);
+    const queryFromDate = this.comparePriorYear
+      ? DateTime.fromISO(fromDate).minus({ years: 1 }).toISODate()
+      : fromDate;
+    dateFilter.push('>=', queryFromDate);
 
     filters.date = dateFilter;
     filters.reverted = false;
@@ -411,6 +458,16 @@ export abstract class AccountReport extends LedgerReport {
         label: t`Hide Group Amounts`,
         fieldname: 'hideGroupAmounts',
       } as Field,
+      {
+        fieldtype: 'Check',
+        label: t`Hide Zero Rows`,
+        fieldname: 'hideZeroRows',
+      } as Field,
+      {
+        fieldtype: 'Check',
+        label: t`Compare Previous Year`,
+        fieldname: 'comparePriorYear',
+      } as Field,
     ].flat();
   }
 
@@ -425,16 +482,15 @@ export abstract class AccountReport extends LedgerReport {
       },
     ] as ColumnField[];
 
-    const dateColumns = this._dateRanges!.sort(
-      (a, b) => b.toDate.toMillis() - a.toDate.toMillis()
-    ).map((d) => {
+    const dateColumns = this._getOrderedDateRanges().map((d) => {
       const toDate = d.toDate.minus({ days: 1 });
-      const label = this.fyo.format(toDate.toJSDate(), 'Date');
+      const dateLabel = this.fyo.format(toDate.toJSDate(), 'Date');
+      const label = d.isPriorYear ? `${t`PY`} ${dateLabel}` : dateLabel;
 
       return {
         label,
         fieldtype: 'Data',
-        fieldname: 'toDate',
+        fieldname: d.isPriorYear ? 'priorYearToDate' : 'toDate',
         align: 'right',
         width: ACC_BAL_WIDTH,
       } as ColumnField;
@@ -443,7 +499,124 @@ export abstract class AccountReport extends LedgerReport {
     return [columns, dateColumns].flat();
   }
 
+  getDrillDownRoute(row: ReportRow, cellIndex: number) {
+    if (cellIndex <= 0 || row.isEmpty) {
+      return null;
+    }
+
+    const account = row.cells[0]?.rawValue;
+    if (typeof account !== 'string' || !account) {
+      return null;
+    }
+
+    if (this.accountMap && !this.accountMap[account]) {
+      return null;
+    }
+
+    const range = this._getOrderedDateRanges()[cellIndex - 1];
+    if (!range) {
+      return null;
+    }
+
+    const fromDate = range.fromDate.toISODate();
+    const toDate = range.toDate.minus({ days: 1 }).toISODate();
+    if (!fromDate || !toDate) {
+      return null;
+    }
+
+    return {
+      name: 'Report',
+      params: { reportClassName: 'GeneralLedger' },
+      query: {
+        defaultFilters: JSON.stringify({
+          account,
+          fromDate,
+          toDate,
+        }),
+      },
+    };
+  }
+
+  getPrintMeta(): { subtitle?: string } {
+    const current = (this._dateRanges ?? []).filter((d) => !d.isPriorYear);
+    if (!current.length) {
+      return {};
+    }
+
+    const from = current.reduce(
+      (min, d) => (d.fromDate < min ? d.fromDate : min),
+      current[0].fromDate
+    );
+    const to = current.reduce(
+      (max, d) => (d.toDate > max ? d.toDate : max),
+      current[0].toDate
+    );
+    const toInclusive = to.minus({ days: 1 });
+    let subtitle = `${this.fyo.format(
+      from.toJSDate(),
+      'Date'
+    )} – ${this.fyo.format(toInclusive.toJSDate(), 'Date')}`;
+
+    if (this.comparePriorYear) {
+      subtitle += ` · ${t`Compared to previous year`}`;
+    }
+
+    return { subtitle };
+  }
+
   metaFilters: string[] = ['basedOn'];
+}
+
+export function pruneZeroBalanceRows(rows: ReportData): ReportData {
+  const isZeroAmountRow = (row: ReportRow) => {
+    const amountCells = row.cells.slice(1);
+    if (!amountCells.length) {
+      return false;
+    }
+
+    return amountCells.every((cell) => {
+      const raw = cell.rawValue;
+      return typeof raw !== 'number' || raw === 0;
+    });
+  };
+
+  const keep = rows.map((row) => {
+    if (row.isEmpty) {
+      return true;
+    }
+
+    if (row.isGroup) {
+      return true;
+    }
+
+    return !isZeroAmountRow(row);
+  });
+
+  for (let i = rows.length - 1; i >= 0; i--) {
+    if (!keep[i] || !rows[i].isGroup) {
+      continue;
+    }
+
+    const level = rows[i].level ?? 0;
+    let hasVisibleChild = false;
+    for (let j = i + 1; j < rows.length; j++) {
+      const childLevel = rows[j].level ?? 0;
+      if (childLevel <= level) {
+        break;
+      }
+
+      if (keep[j] && !rows[j].isEmpty) {
+        hasVisibleChild = true;
+        break;
+      }
+    }
+
+    if (!hasVisibleChild && isZeroAmountRow(rows[i])) {
+      keep[i] = false;
+    }
+  }
+
+  return rows.filter((_, i) => keep[i]);
 }
 
 export async function getFiscalEndpoints(

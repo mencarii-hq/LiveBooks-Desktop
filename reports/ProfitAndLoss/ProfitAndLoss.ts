@@ -25,7 +25,7 @@ export class ProfitAndLoss extends AccountReport {
 
   async setReportData(filter?: string, force?: boolean) {
     this.loading = true;
-    if (force || filter !== 'hideGroupAmounts') {
+    if (this.shouldReloadRawData(filter, force)) {
       await this._setRawData();
     }
 

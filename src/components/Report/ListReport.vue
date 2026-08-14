@@ -79,7 +79,8 @@
                 whitespace-normal
                 py-1.5
               "
-              :class="[getCellColorClass(cell)]"
+              :class="[getCellColorClass(cell), drillDownClass(row, c)]"
+              @click="(e) => onCellClick(e, row, c)"
             >
               {{ cell.value }}
             </div>
@@ -123,6 +124,7 @@ import {
   writeColumnWidths,
 } from 'src/utils/columnWidths';
 import { languageDirectionKey } from 'src/utils/injectionKeys';
+import { routeTo } from 'src/utils/ui';
 import { defineComponent } from 'vue';
 import ColResizeHandle from '../ColResizeHandle.vue';
 import Paginator from '../Paginator.vue';
@@ -272,6 +274,22 @@ export default defineComponent({
         r += 1;
         row = this.dataSlice[r];
       }
+    },
+    drillDownClass(row, c) {
+      if (!this.report?.getDrillDownRoute?.(row, c)) {
+        return '';
+      }
+
+      return 'cursor-pointer hover:underline';
+    },
+    async onCellClick(event, row, c) {
+      const route = this.report?.getDrillDownRoute?.(row, c);
+      if (!route) {
+        return;
+      }
+
+      event.stopPropagation();
+      await routeTo(route);
     },
     getCellStyle(cell, i) {
       const styles = {};

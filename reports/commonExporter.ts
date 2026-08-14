@@ -141,8 +141,16 @@ function convertReportToCSVMatrix(report: Report): unknown[][] {
 
     const csvrow: unknown[] = [];
     for (let c = 0; c < row.cells.length; c++) {
-      const cell = getValueFromCell(row.cells[c], displayPrecision);
-      csvrow.push(cell);
+      const reportCell = row.cells[c];
+      if (c === 0) {
+        const indent = '  '.repeat(reportCell.indent ?? 0);
+        const label =
+          reportCell.value || getValueFromCell(reportCell, displayPrecision);
+        csvrow.push(`${indent}${String(label ?? '')}`);
+        continue;
+      }
+
+      csvrow.push(getValueFromCell(reportCell, displayPrecision));
     }
 
     csvdata.push(csvrow);

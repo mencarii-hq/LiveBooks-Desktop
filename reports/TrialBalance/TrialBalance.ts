@@ -56,7 +56,7 @@ export class TrialBalance extends AccountReport {
 
   async setReportData(filter?: string, force?: boolean) {
     this.loading = true;
-    if (force || filter !== 'hideGroupAmounts') {
+    if (this.shouldReloadRawData(filter, force)) {
       await this._setRawData();
     }
 
@@ -233,6 +233,11 @@ export class TrialBalance extends AccountReport {
         label: t`Hide Group Amounts`,
         fieldname: 'hideGroupAmounts',
       } as Field,
+      {
+        fieldtype: 'Check',
+        label: t`Hide Zero Rows`,
+        fieldname: 'hideZeroRows',
+      } as Field,
     ] as Field[];
   }
 
@@ -288,5 +293,53 @@ export class TrialBalance extends AccountReport {
         width: ACC_BAL_WIDTH,
       },
     ] as ColumnField[];
+  }
+
+  getDrillDownRoute(row: ReportRow, cellIndex: number) {
+    if (cellIndex <= 0 || row.isEmpty) {
+      return null;
+    }
+
+    const account = row.cells[0]?.rawValue;
+    if (typeof account !== 'string' || !account) {
+      return null;
+    }
+
+    if (this.accountMap && !this.accountMap[account]) {
+      return null;
+    }
+
+    const rangeIndex = Math.floor((cellIndex - 1) / 2);
+    const range = this._dateRanges?.[rangeIndex];
+    const fromDate = range?.fromDate.toISODate();
+    const toDate = range?.toDate.toISODate();
+    if (!fromDate || !toDate) {
+      return null;
+    }
+
+    return {
+      name: 'Report',
+      params: { reportClassName: 'GeneralLedger' },
+      query: {
+        defaultFilters: JSON.stringify({
+          account,
+          fromDate,
+          toDate,
+        }),
+      },
+    };
+  }
+
+  getPrintMeta(): { subtitle?: string } {
+    if (!this.fromDate || !this.toDate) {
+      return {};
+    }
+
+    return {
+      subtitle: `${this.fyo.format(this.fromDate, 'Date')} – ${this.fyo.format(
+        this.toDate,
+        'Date'
+      )}`,
+    };
   }
 }

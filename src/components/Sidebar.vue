@@ -76,21 +76,21 @@
         <div v-if="group.items && isGroupActive(group)">
           <div
             v-for="item in group.items"
-            :key="item.label"
+            :key="item.name"
             class="
               text-base
               h-8
-              ps-10
               cursor-pointer
               flex
               items-center
               hover:bg-green-800
             "
-            :class="
+            :class="[
               isItemActive(item)
                 ? 'bg-green-700 text-white border-s-4 border-white'
-                : 'text-white'
-            "
+                : 'text-white',
+              item.indent ? 'ps-16' : 'ps-10',
+            ]"
             @click="routeToSidebarItem(item)"
           >
             <p :style="isItemActive(item) ? 'margin-left: -4px' : ''">
@@ -391,6 +391,7 @@ import {
 import { openFeedbackSurvey } from 'src/utils/feedbackSurvey';
 import { livebooksDesktopDisplayName } from 'utils/livebooksAppEnv';
 import { REGIONAL_LABELS_CHANGED_EVENT } from 'utils/regional';
+import { MEMORIZED_REPORTS_CHANGED_EVENT } from 'src/utils/memorizedReports';
 import { defineComponent, inject } from 'vue';
 import router from '../router';
 import Button from './Button.vue';
@@ -649,6 +650,10 @@ export default defineComponent({
       REGIONAL_LABELS_CHANGED_EVENT,
       this.onRegionalLabelsChangedBound
     );
+    document.addEventListener(
+      MEMORIZED_REPORTS_CHANGED_EVENT,
+      this.onRegionalLabelsChangedBound
+    );
 
     this.unsubscribeLivebooksSubscription = subscribeLivebooksSubscription(
       (s) => this.applyLivebooksSubscriptionSnapshot(s)
@@ -678,6 +683,10 @@ export default defineComponent({
     if (this.onRegionalLabelsChangedBound) {
       document.removeEventListener(
         REGIONAL_LABELS_CHANGED_EVENT,
+        this.onRegionalLabelsChangedBound
+      );
+      document.removeEventListener(
+        MEMORIZED_REPORTS_CHANGED_EVENT,
         this.onRegionalLabelsChangedBound
       );
     }
@@ -803,12 +812,15 @@ export default defineComponent({
     },
     isSidebarRouteMatch(currentPath: string, item: SidebarItem) {
       const { params, query } = this.$route;
-      const route = item.route;
+      const route = item.route.split('?')[0];
       const fromBankRegister = query.from === 'bank-register';
 
       // Exact path only for /list/* — `/list/Party` must not match
       // `/list/Party/Customers` (and the same for Items / Payments siblings).
       if (currentPath === route) {
+        if (route.startsWith('/report/')) {
+          return this.reportSidebarFiltersMatch(item);
+        }
         return true;
       }
       if (
@@ -1062,6 +1074,33 @@ export default defineComponent({
     },
     isItemActive(item: SidebarItem) {
       return this.isSidebarRouteMatch(this.$route.path, item);
+    },
+    reportSidebarFiltersMatch(item: SidebarItem) {
+      const search = item.route.includes('?')
+        ? item.route.slice(item.route.indexOf('?') + 1)
+        : '';
+      const itemParams = search ? new URLSearchParams(search) : null;
+      const itemMemorized = itemParams?.get('memorizedName') ?? null;
+      const routeMemorized =
+        typeof this.$route.query.memorizedName === 'string'
+          ? this.$route.query.memorizedName
+          : null;
+
+      if (itemMemorized || routeMemorized) {
+        return itemMemorized === routeMemorized;
+      }
+
+      const itemFilters = itemParams?.get('defaultFilters') ?? null;
+      const routeFilters =
+        typeof this.$route.query.defaultFilters === 'string'
+          ? this.$route.query.defaultFilters
+          : null;
+
+      if (itemFilters) {
+        return itemFilters === routeFilters;
+      }
+
+      return !routeFilters;
     },
     isGroupActive(group: SidebarRoot) {
       return this.activeGroup && group.label === this.activeGroup.label;

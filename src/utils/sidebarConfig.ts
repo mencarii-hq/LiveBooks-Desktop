@@ -3,9 +3,13 @@ import { routeFilters } from 'src/utils/filters';
 import { isUsCaCompany } from 'utils/regional';
 import { fyo } from '../initFyo';
 import { SidebarConfig, SidebarItem, SidebarRoot } from './types';
+import {
+  getMemorizedReportPath,
+  listMemorizedReports,
+} from './memorizedReports';
 
-export function getSidebarConfig(): SidebarConfig {
-  const sideBar = getCompleteSidebar();
+export async function getSidebarConfig(): Promise<SidebarConfig> {
+  const sideBar = await getCompleteSidebar();
   return getFilteredSidebar(sideBar);
 }
 
@@ -112,7 +116,7 @@ function getPOSSidebar() {
   };
 }
 
-function getReportSidebar() {
+function getReportSidebar(): SidebarRoot {
   return {
     label: t`Reports`,
     name: 'reports',
@@ -140,12 +144,17 @@ function getReportSidebar() {
         route: '/report/TrialBalance',
       },
       {
-        label: t`Accounts Receivable Aging`,
+        label: t`Sales by Customer`,
+        name: 'sales-by-customer',
+        route: '/report/SalesByCustomer',
+      },
+      {
+        label: t`Receivable Aging`,
         name: 'accounts-receivable-aging',
         route: '/report/AccountsReceivableAging',
       },
       {
-        label: t`Accounts Payable Aging`,
+        label: t`Payable Aging`,
         name: 'accounts-payable-aging',
         route: '/report/AccountsPayableAging',
       },
@@ -153,7 +162,67 @@ function getReportSidebar() {
   };
 }
 
-function getCompleteSidebar(): SidebarConfig {
+function reportClassFromRoute(route: string): string {
+  const path = route.split('?')[0];
+  const prefix = '/report/';
+  if (!path.startsWith(prefix)) {
+    return '';
+  }
+  return path.slice(prefix.length);
+}
+
+async function getReportSidebarWithMemorized(): Promise<SidebarRoot> {
+  const sidebar = getReportSidebar();
+  const memorized = await listMemorizedReports(fyo);
+  if (!memorized.length) {
+    return sidebar;
+  }
+
+  const byClass = new Map<string, typeof memorized>();
+  for (const row of memorized) {
+    const list = byClass.get(row.reportClassName) ?? [];
+    list.push(row);
+    byClass.set(row.reportClassName, list);
+  }
+
+  const items: SidebarItem[] = [];
+  const nested = new Set<string>();
+  for (const item of sidebar.items ?? []) {
+    items.push(item);
+    const className = reportClassFromRoute(item.route);
+    const children = className ? byClass.get(className) : undefined;
+    if (!children?.length) {
+      continue;
+    }
+
+    for (const row of children) {
+      items.push({
+        label: row.name,
+        name: `memorized-report-${row.name}`,
+        route: getMemorizedReportPath(row),
+        indent: true,
+      });
+      nested.add(row.name);
+    }
+  }
+
+  for (const row of memorized) {
+    if (nested.has(row.name)) {
+      continue;
+    }
+    items.push({
+      label: row.name,
+      name: `memorized-report-${row.name}`,
+      route: getMemorizedReportPath(row),
+      indent: true,
+    });
+  }
+
+  sidebar.items = items;
+  return sidebar;
+}
+
+async function getCompleteSidebar(): Promise<SidebarConfig> {
   return [
     {
       label: t`Get Started`,
@@ -358,7 +427,7 @@ function getCompleteSidebar(): SidebarConfig {
         },
       ] as SidebarItem[],
     },
-    getReportSidebar(),
+    await getReportSidebarWithMemorized(),
     getInventorySidebar(),
     getPOSSidebar(),
     getRegionalSidebar(),

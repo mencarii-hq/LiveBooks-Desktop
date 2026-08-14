@@ -72,7 +72,11 @@ export interface LedgerEntry {
 
 export type GroupedMap = Map<string, LedgerEntry[]>;
 
-export type DateRange = { fromDate: DateTime; toDate: DateTime };
+export type DateRange = {
+  fromDate: DateTime;
+  toDate: DateTime;
+  isPriorYear?: boolean;
+};
 export type ValueMap = Map<DateRange, Record<string, number>>;
 
 export interface Account {

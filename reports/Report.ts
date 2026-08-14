@@ -5,7 +5,7 @@ import { Action } from 'fyo/model/types';
 import Observable from 'fyo/utils/observable';
 import { Field, RawValue } from 'schemas/types';
 import { getIsNullOrUndef } from 'utils';
-import { ColumnField, ReportData } from './types';
+import { ColumnField, ReportData, ReportRow } from './types';
 
 export abstract class Report extends Observable<RawValue> {
   static title: string;
@@ -98,4 +98,21 @@ export abstract class Report extends Observable<RawValue> {
   abstract getFilters(): Field[] | Promise<Field[]>;
   abstract getColumns(): ColumnField[] | Promise<ColumnField[]>;
   abstract setReportData(filter?: string, force?: boolean): Promise<void>;
+
+  getDrillDownRoute(
+    row: ReportRow,
+    cellIndex: number
+  ): {
+    name: string;
+    params: Record<string, string>;
+    query: Record<string, string>;
+  } | null {
+    void row;
+    void cellIndex;
+    return null;
+  }
+
+  getPrintMeta(): { subtitle?: string } {
+    return {};
+  }
 }

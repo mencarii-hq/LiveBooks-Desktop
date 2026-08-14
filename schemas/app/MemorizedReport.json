@@ -1,0 +1,30 @@
+{
+  "name": "MemorizedReport",
+  "label": "Memorized Report",
+  "naming": "manual",
+  "titleField": "name",
+  "isSingle": false,
+  "isChild": false,
+  "isSubmittable": false,
+  "fields": [
+    {
+      "fieldname": "name",
+      "label": "Name",
+      "fieldtype": "Data",
+      "required": true
+    },
+    {
+      "fieldname": "reportClassName",
+      "label": "Report",
+      "fieldtype": "Data",
+      "required": true
+    },
+    {
+      "fieldname": "filtersJson",
+      "label": "Filters",
+      "fieldtype": "Text",
+      "hidden": true
+    }
+  ],
+  "keywordFields": ["name", "reportClassName"]
+}

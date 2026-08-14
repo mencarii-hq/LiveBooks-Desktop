@@ -49,6 +49,9 @@
                   {{ title }}
                 </p>
               </div>
+              <p v-if="printSubtitle" class="text-sm text-gray-600 mt-1">
+                {{ printSubtitle }}
+              </p>
             </div>
 
             <!-- Report Data -->
@@ -59,7 +62,7 @@
                   :key="`cell-${r}.${c}`"
                   :class="cellClasses(cell.idx, r)"
                   class="text-sm p-2"
-                  style="min-height: 2rem"
+                  :style="printCellStyle(cell)"
                 >
                   {{ cell.value }}
                 </div>
@@ -67,8 +70,8 @@
             </div>
 
             <div class="border-t p-2">
-              <p class="text-xs text-right w-full">
-                {{ fyo.format(new Date(), 'Datetime') }}
+              <p class="text-xs text-right w-full text-gray-600">
+                {{ t`Prepared` }} {{ fyo.format(new Date(), 'Datetime') }}
               </p>
             </div>
           </div>
@@ -260,6 +263,7 @@
   </div>
 </template>
 <script lang="ts">
+import { DocValue } from 'fyo/core/types';
 import { Verb } from 'fyo/telemetry/types';
 import { Report } from 'reports/Report';
 import { reports } from 'reports/index';
@@ -313,6 +317,10 @@ export default defineComponent({
   },
   computed: {
     title(): string {
+      const memorizedName = this.$route.query.memorizedName;
+      if (typeof memorizedName === 'string' && memorizedName.trim()) {
+        return memorizedName;
+      }
       return reports[this.reportName]?.title ?? this.t`Report`;
     },
     logoSrc(): string | undefined {
@@ -332,7 +340,12 @@ export default defineComponent({
           .map((name) => ({ value: name, label: name })),
       };
     },
-    matrix(): { value: string; idx: number }[][] {
+    matrix(): {
+      value: string;
+      idx: number;
+      indent?: number;
+      bold?: boolean;
+    }[][] {
       if (!this.report) {
         return [];
       }
@@ -341,13 +354,21 @@ export default defineComponent({
         .map((col, idx) => ({ value: col.label, idx }))
         .filter((_, i) => this.columnSelection[i]);
 
-      const matrix: { value: string; idx: number }[][] = [columns];
+      const matrix: {
+        value: string;
+        idx: number;
+        indent?: number;
+        bold?: boolean;
+      }[][] = [columns];
       const start = Math.max(this.start - 1, 0);
       const end = Math.min(start + this.limit, this.report.reportData.length);
       const slice = this.report.reportData.slice(start, end);
 
       for (let i = 0; i < slice.length; i++) {
         const row = slice[i];
+        if (row.folded) {
+          continue;
+        }
 
         matrix.push([]);
         for (let j = 0; j < row.cells.length; j++) {
@@ -355,12 +376,20 @@ export default defineComponent({
             continue;
           }
 
-          const value = row.cells[j].value;
-          matrix.at(-1)?.push({ value, idx: Number(j) });
+          const cell = row.cells[j];
+          matrix.at(-1)?.push({
+            value: cell.value,
+            idx: Number(j),
+            indent: cell.indent,
+            bold: cell.bold,
+          });
         }
       }
 
       return matrix;
+    },
+    printSubtitle(): string {
+      return this.report?.getPrintMeta?.()?.subtitle ?? '';
     },
     rowStyles(): Record<string, string> {
       const style: Record<string, string> = {};
@@ -395,7 +424,7 @@ export default defineComponent({
     },
   },
   async mounted() {
-    this.report = await getReport(this.reportName);
+    this.report = await this.loadReportFromRoute();
     this.limit = this.report.reportData.length;
     this.columnSelection = this.report.columns.map(() => true);
 
@@ -413,6 +442,63 @@ export default defineComponent({
     window.removeEventListener('resize', this.setScale);
   },
   methods: {
+    async loadReportFromRoute() {
+      const filters = this.$route.query as Record<string, DocValue>;
+      const validFilters: Record<string, DocValue> = {};
+      const ignoredQueryKeys = new Set(['defaultFilters', 'memorizedName']);
+
+      if (
+        filters.defaultFilters &&
+        typeof filters.defaultFilters === 'string'
+      ) {
+        const parsed = JSON.parse(filters.defaultFilters) as Record<
+          string,
+          DocValue
+        >;
+        Object.assign(validFilters, parsed);
+      }
+
+      for (const [key, value] of Object.entries(filters)) {
+        if (!ignoredQueryKeys.has(key) && typeof value === 'string') {
+          validFilters[key] = value;
+        }
+      }
+
+      const relativeDates = Boolean(validFilters.relativeDates);
+      delete validFilters.relativeDates;
+
+      const filterKeys = Object.keys(validFilters);
+      const hasIncoming = filterKeys.length > 0 || relativeDates;
+      const report = await getReport(
+        this.reportName,
+        hasIncoming ? { fresh: true } : undefined
+      );
+
+      if (hasIncoming) {
+        if (relativeDates) {
+          const dated = report as Report & {
+            toDate?: string;
+            fromDate?: string;
+            fromYear?: number;
+            toYear?: number;
+          };
+          delete dated.toDate;
+          delete dated.fromDate;
+          delete dated.fromYear;
+          delete dated.toYear;
+        }
+
+        for (const key of filterKeys) {
+          await report.set(key, validFilters[key], false);
+        }
+
+        await report.updateData();
+      } else if (!report.reportData.length) {
+        await report.setReportData();
+      }
+
+      return report;
+    },
     setScale() {
       const el = this.$refs.previewContainer as HTMLElement | undefined;
       const pageWidthPx = this.size.width * 37.2;
@@ -454,6 +540,19 @@ export default defineComponent({
     },
     setRecommendedMargins() {
       this.margins = { top: 1.5, right: 1.5, bottom: 1.5, left: 1.5 };
+    },
+    printCellStyle(cell: {
+      indent?: number;
+      bold?: boolean;
+    }): Record<string, string> {
+      const style: Record<string, string> = { minHeight: '2rem' };
+      if (cell.indent) {
+        style.paddingLeft = `${cell.indent * 1.25}rem`;
+      }
+      if (cell.bold) {
+        style.fontWeight = 'bold';
+      }
+      return style;
     },
     cellClasses(cIdx: number, rIdx: number): string[] {
       const classes: string[] = [];

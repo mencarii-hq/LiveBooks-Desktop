@@ -65,6 +65,7 @@ export interface SidebarItem {
   schemaName?: string;
   hidden?: () => boolean;
   filters?: QueryFilter;
+  indent?: boolean;
 }
 
 export interface ExportField {

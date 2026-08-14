@@ -36,6 +36,7 @@ import PaymentFor from './app/PaymentFor.json';
 import PaymentSplit from './app/PaymentSplit.json';
 import CheckPrintSettings from './app/CheckPrintSettings.json';
 import MemorizedTransaction from './app/MemorizedTransaction.json';
+import MemorizedReport from './app/MemorizedReport.json';
 import PayrollDeduction from './app/PayrollDeduction.json';
 import PayrollProfile from './app/PayrollProfile.json';
 import PriceList from './app/PriceList.json';
@@ -153,6 +154,7 @@ export const appSchemas: Schema[] | SchemaStub[] = [
   CheckPrintSettings as Schema,
 
   MemorizedTransaction as Schema,
+  MemorizedReport as Schema,
   PayrollDeduction as Schema,
   PayrollProfile as Schema,
 
