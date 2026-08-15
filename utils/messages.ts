@@ -45,6 +45,19 @@ export enum IPC_ACTIONS {
   COPY_FILE = 'copy-file',
   RENAME_FILE = 'rename-file',
   GET_DB_DEFAULT_PATH = 'get-db-default-path',
+  // Source book archive (user-facing "QBD Archive") messages
+  SOURCEBOOKS_GET_STATUS = 'sourcebooks-get-status',
+  SOURCEBOOKS_LIST_CLOUD_EXPORTS = 'sourcebooks-list-cloud-exports',
+  SOURCEBOOKS_PULL_CLOUD = 'sourcebooks-pull-cloud',
+  SOURCEBOOKS_ATTACH_LOCAL = 'sourcebooks-attach-local',
+  SOURCEBOOKS_DETACH = 'sourcebooks-detach',
+  SOURCEBOOKS_SEARCH = 'sourcebooks-search',
+  SOURCEBOOKS_LIST_RECORDS = 'sourcebooks-list-records',
+  SOURCEBOOKS_GET_RECORD = 'sourcebooks-get-record',
+  SOURCEBOOKS_LIST_SNAPSHOTS = 'sourcebooks-list-snapshots',
+  SOURCEBOOKS_GET_SNAPSHOT = 'sourcebooks-get-snapshot',
+  SOURCEBOOKS_MARK_COPIED = 'sourcebooks-mark-copied',
+  SOURCEBOOKS_GET_COPIED = 'sourcebooks-get-copied',
   // Database messages
   DB_CREATE = 'db-create',
   DB_CONNECT = 'db-connect',
@@ -60,6 +73,7 @@ export enum IPC_CHANNELS {
   LOG_MAIN_PROCESS_ERROR = 'main-process-error',
   CONSOLE_LOG = 'console-log',
   LIVEBOOKS_CLOUD_SESSION_CHANGED = 'livebooks-cloud-session-changed',
+  SOURCEBOOKS_PROGRESS = 'sourcebooks-progress',
 }
 
 export enum DB_CONN_FAILURE {

@@ -17,6 +17,18 @@ import type {
   SelectFileReturn,
   TemplateFile,
 } from 'utils/types';
+import type {
+  CloudQbdExportSummary,
+  SourceBookCopiedRecord,
+  SourceBookListRequest,
+  SourceBookListResult,
+  SourceBookOpResult,
+  SourceBookRecordDetail,
+  SourceBookSearchRequest,
+  SourceBookSearchResult,
+  SourceBookSnapshot,
+  SourceBookStatus,
+} from 'utils/sourcebooks/types';
 
 type IPCRendererListener = Parameters<typeof ipcRenderer.on>[1];
 const ipc = {
@@ -267,6 +279,113 @@ const ipc = {
 
   registerLivebooksCloudSessionListener(listener: IPCRendererListener) {
     ipcRenderer.on(IPC_CHANNELS.LIVEBOOKS_CLOUD_SESSION_CHANGED, listener);
+  },
+
+  registerSourceBooksProgressListener(listener: IPCRendererListener) {
+    ipcRenderer.on(IPC_CHANNELS.SOURCEBOOKS_PROGRESS, listener);
+  },
+
+  unregisterSourceBooksProgressListener(listener: IPCRendererListener) {
+    ipcRenderer.removeListener(IPC_CHANNELS.SOURCEBOOKS_PROGRESS, listener);
+  },
+
+  /** Source book archive (user-facing: QBD Archive) sidecar access. */
+  sourcebooks: {
+    async getStatus(booksDbPath: string) {
+      return (await ipcRenderer.invoke(
+        IPC_ACTIONS.SOURCEBOOKS_GET_STATUS,
+        booksDbPath
+      )) as SourceBookStatus;
+    },
+
+    async listCloudExports() {
+      return (await ipcRenderer.invoke(
+        IPC_ACTIONS.SOURCEBOOKS_LIST_CLOUD_EXPORTS
+      )) as
+        | { ok: true; exports: CloudQbdExportSummary[] }
+        | { ok: false; error: string };
+    },
+
+    async pullFromCloud(payload: {
+      booksDbPath: string;
+      exportId: string;
+      companyName?: string;
+      exportedAt?: string;
+    }) {
+      return (await ipcRenderer.invoke(
+        IPC_ACTIONS.SOURCEBOOKS_PULL_CLOUD,
+        payload
+      )) as SourceBookOpResult;
+    },
+
+    async attachLocalZip(payload: { booksDbPath: string; zipPath: string }) {
+      return (await ipcRenderer.invoke(
+        IPC_ACTIONS.SOURCEBOOKS_ATTACH_LOCAL,
+        payload
+      )) as SourceBookOpResult;
+    },
+
+    async detach(booksDbPath: string) {
+      return (await ipcRenderer.invoke(
+        IPC_ACTIONS.SOURCEBOOKS_DETACH,
+        booksDbPath
+      )) as SourceBookOpResult;
+    },
+
+    async search(booksDbPath: string, request: SourceBookSearchRequest) {
+      return (await ipcRenderer.invoke(
+        IPC_ACTIONS.SOURCEBOOKS_SEARCH,
+        booksDbPath,
+        request
+      )) as SourceBookSearchResult;
+    },
+
+    async listRecords(booksDbPath: string, request: SourceBookListRequest) {
+      return (await ipcRenderer.invoke(
+        IPC_ACTIONS.SOURCEBOOKS_LIST_RECORDS,
+        booksDbPath,
+        request
+      )) as SourceBookListResult;
+    },
+
+    async getRecord(booksDbPath: string, ref: { id?: number; qbId?: string }) {
+      return (await ipcRenderer.invoke(
+        IPC_ACTIONS.SOURCEBOOKS_GET_RECORD,
+        booksDbPath,
+        ref
+      )) as SourceBookRecordDetail | null;
+    },
+
+    async listSnapshots(booksDbPath: string) {
+      return (await ipcRenderer.invoke(
+        IPC_ACTIONS.SOURCEBOOKS_LIST_SNAPSHOTS,
+        booksDbPath
+      )) as string[];
+    },
+
+    async getSnapshot(booksDbPath: string, name: string) {
+      return (await ipcRenderer.invoke(
+        IPC_ACTIONS.SOURCEBOOKS_GET_SNAPSHOT,
+        booksDbPath,
+        name
+      )) as SourceBookSnapshot | null;
+    },
+
+    async markCopied(booksDbPath: string, copied: SourceBookCopiedRecord) {
+      return (await ipcRenderer.invoke(
+        IPC_ACTIONS.SOURCEBOOKS_MARK_COPIED,
+        booksDbPath,
+        copied
+      )) as boolean;
+    },
+
+    async getCopied(booksDbPath: string, qbId: string) {
+      return (await ipcRenderer.invoke(
+        IPC_ACTIONS.SOURCEBOOKS_GET_COPIED,
+        booksDbPath,
+        qbId
+      )) as SourceBookCopiedRecord | null;
+    },
   },
 
   registerMainProcessErrorListener(listener: IPCRendererListener) {

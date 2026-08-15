@@ -1,7 +1,9 @@
 import { t } from 'fyo';
 import { routeFilters } from 'src/utils/filters';
 import { isUsCaCompany } from 'utils/regional';
+import { entityTypeLabel } from 'utils/sourcebooks/entityTypes';
 import { fyo } from '../initFyo';
+import { refreshSourceBookStatus } from './sourcebooks';
 import { SidebarConfig, SidebarItem, SidebarRoot } from './types';
 import {
   getMemorizedReportPath,
@@ -222,6 +224,72 @@ async function getReportSidebarWithMemorized(): Promise<SidebarRoot> {
   return sidebar;
 }
 
+/**
+ * QBD Archive (internal: Source book archive). Empty state routes to the
+ * setup wizard; once an archive is attached the sidebar shows the archive
+ * sections instead of the wizard.
+ */
+async function getSourceBooksSidebar(): Promise<SidebarRoot> {
+  const root: SidebarRoot = {
+    label: t`QBD Archive`,
+    name: 'source-books',
+    icon: 'general',
+    route: '/source-books',
+  };
+
+  let attached = false;
+  let snapshotNames: string[] = [];
+  try {
+    const status = await refreshSourceBookStatus();
+    attached = status.attached;
+    snapshotNames = status.snapshotNames ?? [];
+  } catch {
+    /* no open book yet — show the root only */
+  }
+  if (!attached) {
+    return root;
+  }
+
+  const items: SidebarItem[] = [
+    {
+      label: t`Search & Overview`,
+      name: 'source-books-overview',
+      route: '/source-books',
+    },
+    {
+      label: t`Customers`,
+      name: 'source-books-customers',
+      route: '/source-books/list/customer',
+    },
+    {
+      label: t`Vendors`,
+      name: 'source-books-vendors',
+      route: '/source-books/list/vendor',
+    },
+    {
+      label: t`Items`,
+      name: 'source-books-items',
+      route: '/source-books/list/item*',
+    },
+    {
+      label: t`Accounts`,
+      name: 'source-books-accounts',
+      route: '/source-books/list/account',
+    },
+  ];
+  for (const name of snapshotNames) {
+    items.push({
+      label: entityTypeLabel(name),
+      name: `source-books-report-${name}`,
+      route: `/source-books/report/${encodeURIComponent(name)}`,
+      indent: true,
+    });
+  }
+
+  root.items = items;
+  return root;
+}
+
 async function getCompleteSidebar(): Promise<SidebarConfig> {
   return [
     {
@@ -428,6 +496,7 @@ async function getCompleteSidebar(): Promise<SidebarConfig> {
       ] as SidebarItem[],
     },
     await getReportSidebarWithMemorized(),
+    await getSourceBooksSidebar(),
     getInventorySidebar(),
     getPOSSidebar(),
     getRegionalSidebar(),

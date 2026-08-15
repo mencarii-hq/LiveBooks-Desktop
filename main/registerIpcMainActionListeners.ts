@@ -99,7 +99,7 @@ async function readJsonBody(
   }
 }
 
-async function refreshLivebooksCloudTokens(
+export async function refreshLivebooksCloudTokens(
   origin: string
 ): Promise<LivebooksCloudTokenPair | null> {
   if (livebooksCloudRefreshInFlight) {

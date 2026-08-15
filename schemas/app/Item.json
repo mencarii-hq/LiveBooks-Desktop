@@ -196,6 +196,22 @@
       "default": false,
       "section": "Default",
       "readOnly": true
+    },
+    {
+      "fieldname": "sourceId",
+      "label": "QBD Source ID",
+      "fieldtype": "Data",
+      "hidden": true,
+      "section": "Default",
+      "readOnly": true
+    },
+    {
+      "fieldname": "sourceArchiveId",
+      "label": "QBD Archive ID",
+      "fieldtype": "Data",
+      "hidden": true,
+      "section": "Default",
+      "readOnly": true
     }
   ],
   "quickEditFields": [

@@ -396,6 +396,7 @@ import { openFeedbackSurvey } from 'src/utils/feedbackSurvey';
 import { livebooksDesktopDisplayName } from 'utils/livebooksAppEnv';
 import { REGIONAL_LABELS_CHANGED_EVENT } from 'utils/regional';
 import { MEMORIZED_REPORTS_CHANGED_EVENT } from 'src/utils/memorizedReports';
+import { SOURCEBOOKS_CHANGED_EVENT } from 'src/utils/sourcebooks';
 import { defineComponent, inject } from 'vue';
 import router from '../router';
 import Button from './Button.vue';
@@ -658,6 +659,10 @@ export default defineComponent({
       MEMORIZED_REPORTS_CHANGED_EVENT,
       this.onRegionalLabelsChangedBound
     );
+    document.addEventListener(
+      SOURCEBOOKS_CHANGED_EVENT,
+      this.onRegionalLabelsChangedBound
+    );
 
     this.unsubscribeLivebooksSubscription = subscribeLivebooksSubscription(
       (s) => this.applyLivebooksSubscriptionSnapshot(s)
@@ -691,6 +696,10 @@ export default defineComponent({
       );
       document.removeEventListener(
         MEMORIZED_REPORTS_CHANGED_EVENT,
+        this.onRegionalLabelsChangedBound
+      );
+      document.removeEventListener(
+        SOURCEBOOKS_CHANGED_EVENT,
         this.onRegionalLabelsChangedBound
       );
     }

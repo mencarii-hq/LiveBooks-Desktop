@@ -170,6 +170,20 @@
       "fieldtype": "Text",
       "readOnly": true,
       "description": "JSON list of check numbers voided on this account. Voided numbers are never reused."
+    },
+    {
+      "fieldname": "sourceId",
+      "label": "QBD Source ID",
+      "fieldtype": "Data",
+      "hidden": true,
+      "readOnly": true
+    },
+    {
+      "fieldname": "sourceArchiveId",
+      "label": "QBD Archive ID",
+      "fieldtype": "Data",
+      "hidden": true,
+      "readOnly": true
     }
   ],
   "quickEditFields": [

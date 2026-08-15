@@ -94,6 +94,33 @@
         <StatusPill v-if="hasDoc" :doc="doc" />
       </FormHeader>
 
+      <!-- Provenance for rows copied from the QBD Archive -->
+      <div
+        v-if="hasDoc && archiveSourceId"
+        class="
+          flex
+          items-center
+          gap-2
+          px-4
+          py-1.5
+          text-xs
+          bg-yellow-50
+          dark:bg-gray-875
+          text-gray-700
+          dark:text-gray-200
+          border-b
+          dark:border-gray-800
+        "
+      >
+        <span>{{ t`Copied from QuickBooks archive` }}</span>
+        <button
+          class="underline text-blue-600 dark:text-blue-400"
+          @click="openArchiveSource"
+        >
+          {{ t`View archive document` }}
+        </button>
+      </div>
+
       <SmartFillBox
         v-if="isParty && hasDoc && !isWorkforceParty"
         :doc="doc"
@@ -389,6 +416,13 @@ export default defineComponent({
     hasDoc(): boolean {
       return this.docOrNull instanceof Doc;
     },
+    archiveSourceId(): string {
+      if (!this.hasDoc) {
+        return '';
+      }
+      const sourceId = this.doc.get('sourceId');
+      return typeof sourceId === 'string' ? sourceId : '';
+    },
     isParty(): boolean {
       return this.schemaName === ModelNameEnum.Party;
     },
@@ -589,6 +623,14 @@ export default defineComponent({
   },
   methods: {
     routeTo,
+    openArchiveSource() {
+      if (!this.archiveSourceId) {
+        return;
+      }
+      void routeTo(
+        `/source-books/doc/qb/${encodeURIComponent(this.archiveSourceId)}`
+      );
+    },
     setFormViewShortcuts() {
       // Shortcuts here register after awaits in mounted(), i.e. outside the
       // pane-ownership window — associate explicitly or a side-pane form's

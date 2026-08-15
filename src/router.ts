@@ -20,6 +20,10 @@ import Settings from 'src/pages/Settings/Settings.vue';
 import TemplateBuilder from 'src/pages/TemplateBuilder/TemplateBuilder.vue';
 import CustomizeForm from 'src/pages/CustomizeForm/CustomizeForm.vue';
 import POS from 'src/pages/POS/POS.vue';
+import SourceBooksDocument from 'src/pages/SourceBooks/SourceBooksDocument.vue';
+import SourceBooksLanding from 'src/pages/SourceBooks/SourceBooksLanding.vue';
+import SourceBooksList from 'src/pages/SourceBooks/SourceBooksList.vue';
+import SourceBooksReport from 'src/pages/SourceBooks/SourceBooksReport.vue';
 import type { HistoryState } from 'vue-router';
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
 import { historyState } from './utils/refs';
@@ -245,6 +249,30 @@ const routes: RouteRecordRaw[] = [
       default: true,
       edit: (route) => route.query,
     },
+  },
+  // QBD Archive (Source book archive) — read-only sidecar views.
+  {
+    path: '/source-books',
+    name: 'QBD Archive',
+    component: SourceBooksLanding,
+  },
+  {
+    path: '/source-books/list/:entityType',
+    name: 'QBD Archive List',
+    component: SourceBooksList,
+    props: true,
+  },
+  {
+    path: '/source-books/doc/:kind/:value',
+    name: 'QBD Archive Document',
+    component: SourceBooksDocument,
+    props: true,
+  },
+  {
+    path: '/source-books/report/:name',
+    name: 'QBD Archive Report',
+    component: SourceBooksReport,
+    props: true,
   },
   {
     path: '/pos',

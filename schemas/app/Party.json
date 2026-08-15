@@ -133,6 +133,20 @@
       "label": "Outstanding Amount",
       "fieldtype": "Currency",
       "hidden": true
+    },
+    {
+      "fieldname": "sourceId",
+      "label": "QBD Source ID",
+      "fieldtype": "Data",
+      "hidden": true,
+      "readOnly": true
+    },
+    {
+      "fieldname": "sourceArchiveId",
+      "label": "QBD Archive ID",
+      "fieldtype": "Data",
+      "hidden": true,
+      "readOnly": true
     }
   ],
   "quickEditFields": [

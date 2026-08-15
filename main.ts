@@ -21,6 +21,7 @@ import registerAppLifecycleListeners from './main/registerAppLifecycleListeners'
 import registerAutoUpdaterListeners from './main/registerAutoUpdaterListeners';
 import registerIpcMainActionListeners from './main/registerIpcMainActionListeners';
 import registerIpcMainMessageListeners from './main/registerIpcMainMessageListeners';
+import registerSourceBookIpcHandlers from './main/registerSourceBookIpcHandlers';
 import {
   applyMacShellDisplayName,
   livebooksDesktopShellDisplayName,
@@ -165,6 +166,7 @@ export class Main {
     registerLivebooksDeepLinkListeners();
     registerIpcMainMessageListeners(this);
     registerIpcMainActionListeners(this);
+    registerSourceBookIpcHandlers(this);
     registerAutoUpdaterListeners(this);
     registerAppLifecycleListeners(this);
     registerProcessListeners(this);
