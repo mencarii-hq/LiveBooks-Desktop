@@ -180,28 +180,38 @@ export class SourceBookStore {
       this.closeDb(booksDbPath);
       await fs.ensureDir(paths.sidecar);
 
-      // Copy the source ZIP into the sidecar unless it was downloaded there.
-      const sameFile =
-        fs.existsSync(paths.zip) &&
-        fs.existsSync(zipSource) &&
-        (await fs.stat(paths.zip)).ino === (await fs.stat(zipSource)).ino;
-      if (!sameFile && zipSource !== paths.zip) {
-        onProgress?.({ stage: 'copying' });
-        await fs.copy(zipSource, paths.zip, { overwrite: true });
-      }
+      // Stage the ZIP and index it from there. Only promote archive.zip after
+      // the index is built, so a failed attach/replace cannot pair a new ZIP
+      // with the previous (or missing) index.
+      const stagingZip = `${paths.zip}.staging`;
+      try {
+        const alreadyStaged =
+          zipSource === stagingZip ||
+          (fs.existsSync(stagingZip) &&
+            fs.existsSync(zipSource) &&
+            (await fs.stat(stagingZip)).ino === (await fs.stat(zipSource)).ino);
+        if (!alreadyStaged) {
+          onProgress?.({ stage: 'copying' });
+          await fs.copy(zipSource, stagingZip, { overwrite: true });
+        }
 
-      const fullMeta: SourceBookMeta = {
-        ...meta,
-        archiveId: randomUUID(),
-        attachedAt: new Date().toISOString(),
-      };
-      await buildIndex({
-        zipPath: paths.zip,
-        indexPath: paths.index,
-        meta: fullMeta,
-        onProgress,
-      });
-      onProgress?.({ stage: 'done' });
+        const fullMeta: SourceBookMeta = {
+          ...meta,
+          archiveId: randomUUID(),
+          attachedAt: new Date().toISOString(),
+        };
+        await buildIndex({
+          zipPath: stagingZip,
+          indexPath: paths.index,
+          meta: fullMeta,
+          onProgress,
+        });
+        await fs.move(stagingZip, paths.zip, { overwrite: true });
+        onProgress?.({ stage: 'done' });
+      } catch (err) {
+        await fs.remove(stagingZip).catch(() => undefined);
+        throw err;
+      }
     } finally {
       this.busy.delete(paths.sidecar);
     }

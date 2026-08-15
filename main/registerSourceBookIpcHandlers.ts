@@ -74,11 +74,14 @@ export default function registerSourceBookIpcHandlers(main: Main) {
       return await asOpResult(booksDbPath, async () => {
         const paths = sourceBookStore.paths(booksDbPath);
         await fs.ensureDir(paths.sidecar);
+        // Download to staging — never overwrite archive.zip until indexing
+        // succeeds inside attachZip.
+        const stagingZip = `${paths.zip}.staging`;
 
         sendProgress({ stage: 'downloading', bytes: 0 });
         const download = await downloadCloudQbdExportZip({
           exportId,
-          destPath: paths.zip,
+          destPath: stagingZip,
           onBytes: (bytes) => sendProgress({ stage: 'downloading', bytes }),
         });
         if (!download.ok) {
@@ -87,7 +90,7 @@ export default function registerSourceBookIpcHandlers(main: Main) {
 
         await sourceBookStore.attachZip({
           booksDbPath,
-          zipSource: paths.zip,
+          zipSource: stagingZip,
           meta: { origin: 'cloud', exportId, companyName, exportedAt },
           onProgress: sendProgress,
         });

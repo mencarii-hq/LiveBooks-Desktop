@@ -38,8 +38,23 @@ export function isSourceBookAttachedSync(): boolean {
   return !!cachedStatus?.attached;
 }
 
+function sourceBookStatusChanged(
+  previous: SourceBookStatus,
+  next: SourceBookStatus
+): boolean {
+  if (previous.attached !== next.attached) {
+    return true;
+  }
+  if ((previous.meta?.archiveId ?? '') !== (next.meta?.archiveId ?? '')) {
+    return true;
+  }
+  const prevSnaps = (previous.snapshotNames ?? []).join('\0');
+  const nextSnaps = (next.snapshotNames ?? []).join('\0');
+  return prevSnaps !== nextSnaps;
+}
+
 export async function refreshSourceBookStatus(): Promise<SourceBookStatus> {
-  const wasAttached = cachedStatus?.attached;
+  const previous = cachedStatus;
   let status: SourceBookStatus = { attached: false };
   try {
     status = await ipc.sourcebooks.getStatus(getBooksDbPath());
@@ -47,7 +62,9 @@ export async function refreshSourceBookStatus(): Promise<SourceBookStatus> {
     /* no open book; treat as unattached */
   }
   cachedStatus = status;
-  if (wasAttached !== undefined && wasAttached !== status.attached) {
+  // Fire on attach, detach, *and* replace (new archiveId / snapshots). Skip
+  // the first cache fill so sidebar boot does not loop on its own refresh.
+  if (previous && sourceBookStatusChanged(previous, status)) {
     document.dispatchEvent(new CustomEvent(SOURCEBOOKS_CHANGED_EVENT));
   }
   return status;

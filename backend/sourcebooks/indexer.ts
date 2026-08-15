@@ -168,6 +168,7 @@ export async function buildIndex(options: {
   const db = new BetterSqlite3(tmpPath);
   const zip = new StreamZip.async({ file: zipPath });
 
+  let built = false;
   try {
     db.pragma('journal_mode = MEMORY');
     db.pragma('synchronous = OFF');
@@ -313,9 +314,13 @@ export async function buildIndex(options: {
 
     db.pragma('journal_mode = DELETE');
     db.pragma('synchronous = FULL');
+    built = true;
   } finally {
     await zip.close().catch(() => undefined);
     db.close();
+    if (!built) {
+      await fs.remove(tmpPath).catch(() => undefined);
+    }
   }
 
   await fs.move(tmpPath, indexPath, { overwrite: true });

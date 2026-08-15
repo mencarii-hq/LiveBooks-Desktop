@@ -551,6 +551,44 @@ test('sourcebooks: index build, search, links, snapshots, copy registry', async 
       'replace does not union'
     );
 
+    // Failed replace must not promote a new ZIP over the working archive.
+    const zipBefore = await fs.readFile(store.paths(booksDbPath).zip);
+    const junkZip = path.join(tmpDir, 'junk.zip');
+    await fs.writeFile(junkZip, 'not a zip');
+    await store
+      .attachZip({
+        booksDbPath,
+        zipSource: junkZip,
+        meta: { origin: 'local' },
+      })
+      .then(
+        () => t.fail('junk zip should not attach'),
+        () => t.pass('junk zip rejected')
+      );
+    const afterFailed = store.getStatus(booksDbPath);
+    t.equal(afterFailed.attached, true, 'previous archive still attached');
+    t.equal(
+      afterFailed.meta?.archiveId,
+      replaced.meta?.archiveId,
+      'failed replace keeps archive id'
+    );
+    t.equal(
+      (afterFailed.entityCounts ?? []).find((c) => c.entityType === 'customer')
+        ?.count,
+      3,
+      'failed replace keeps previous index'
+    );
+    t.deepEqual(
+      await fs.readFile(store.paths(booksDbPath).zip),
+      zipBefore,
+      'failed replace leaves archive.zip unchanged'
+    );
+    t.equal(
+      await fs.pathExists(`${store.paths(booksDbPath).zip}.staging`),
+      false,
+      'staging zip cleaned up'
+    );
+
     // Detach removes the sidecar
     await store.detach(booksDbPath);
     t.equal(store.getStatus(booksDbPath).attached, false, 'detached');
