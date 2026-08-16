@@ -57,6 +57,33 @@
       "section": "Default"
     },
     {
+      "fieldname": "hideHomeWorkflowMap",
+      "label": "Show Dashboard instead of Home",
+      "fieldtype": "Check",
+      "default": false,
+      "hidden": true,
+      "description": "Opens the Dashboard on launch instead of the Home workflow map. Home stays in the sidebar.",
+      "section": "Default"
+    },
+    {
+      "fieldname": "desktopTheme",
+      "label": "Desktop theme",
+      "fieldtype": "Select",
+      "options": [
+        {
+          "label": "Classic theme",
+          "value": "classic"
+        },
+        {
+          "label": "Modern theme",
+          "value": "modern"
+        }
+      ],
+      "default": "classic",
+      "description": "Classic theme: For anyone who already keeps books on the desktop. Same names, same menus, same home. Modern theme: LiveBooks as it was designed. Original terms, simpler grouping, dashboard first.",
+      "section": "Theme"
+    },
+    {
       "fieldname": "version",
       "label": "Version",
       "fieldtype": "Data",
@@ -185,6 +212,7 @@
     "dateFormat",
     "currency",
     "displayPrecision",
-    "hideGetStarted"
+    "hideGetStarted",
+    "desktopTheme"
   ]
 }

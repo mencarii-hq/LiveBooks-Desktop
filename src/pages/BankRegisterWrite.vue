@@ -1,10 +1,13 @@
 <template>
   <div class="flex flex-col overflow-y-hidden h-full">
-    <PageHeader :title="t`Write Entry`">
+    <PageHeader :title="pageTitle">
       <Button :disabled="saving" @click="memorizeCurrent">
         {{ t`Schedule only…` }}
       </Button>
-      <Button type="primary" :disabled="saving" @click="submitEntry">
+      <Button :disabled="saving" @click="submitEntry({ keepOpen: true })">
+        {{ t`Save & New` }}
+      </Button>
+      <Button type="primary" :disabled="saving" @click="submitEntry()">
         {{
           saving
             ? t`Saving…`
@@ -51,9 +54,25 @@
             :border="true"
             size="small"
             :show-label="true"
+            :df="paymentTypeField"
+            :value="form.paymentType"
+            @change="onPaymentTypeChange"
+          />
+          <FormControl
+            :border="true"
+            size="small"
+            :show-label="true"
+            :df="paymentMethodField"
+            :value="form.paymentMethod"
+            @change="(v) => (form.paymentMethod = String(v || ''))"
+          />
+          <FormControl
+            :border="true"
+            size="small"
+            :show-label="true"
             :df="partyField"
             :value="form.party"
-            @change="(v) => (form.party = String(v || ''))"
+            @change="onPartyChange"
           />
           <div v-if="!splitEnabled">
             <FormControl
@@ -176,22 +195,6 @@
             </div>
           </div>
           <FormControl
-            :border="true"
-            size="small"
-            :show-label="true"
-            :df="paymentTypeField"
-            :value="form.paymentType"
-            @change="(v) => (form.paymentType = (v as 'Pay' | 'Receive') || 'Pay')"
-          />
-          <FormControl
-            :border="true"
-            size="small"
-            :show-label="true"
-            :df="paymentMethodField"
-            :value="form.paymentMethod"
-            @change="(v) => (form.paymentMethod = String(v || ''))"
-          />
-          <FormControl
             v-if="canQueue && !form.printLater"
             :border="true"
             size="small"
@@ -240,7 +243,7 @@
               type="checkbox"
               class="h-4 w-4"
             />
-            {{ t`With this entry, also create a recurring schedule` }}
+            {{ t`With this entry, also create a memorized transaction` }}
           </label>
         </div>
 
@@ -249,12 +252,12 @@
           class="mt-3 text-sm text-gray-500 dark:text-gray-400"
         >
           {{
-            t`Credit card: Charge increases the card balance; Payment decreases it (pay the card from this register). To pay the card from a bank, write a Payment on the bank register and categorize it to this card.`
+            t`Credit card: Charge increases the card balance; Payment received decreases it (pay the card from this register). To pay the card from a bank, write a Payment on the bank register and categorize it to this card.`
           }}
         </p>
         <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
           {{
-            t`Post to register adds this payment now. Schedule only creates a template with no payment. Check “also create a recurring schedule” to do both — run schedules later from Recurring Transactions.`
+            t`Post to register adds this payment now. Schedule only creates a template with no payment. Check “also create a recurring schedule” to do both — run schedules later from Memorized Transactions.`
           }}
         </p>
       </div>
@@ -279,14 +282,17 @@ import { handleErrorWithDialog } from 'src/errorHandling';
 import { showDialog, showToast } from 'src/utils/interactive';
 import {
   createRegisterPayment,
+  memorizeFieldsError,
   memorizeRegisterFields,
   resolveDefaultPaymentMethod,
 } from 'src/utils/memorizedTransactions';
+import { partyRoleFitsPaymentType } from 'src/utils/registerRows';
 import {
   getLastRegisterBankAccount,
   setLastRegisterBankAccount,
 } from 'src/utils/registerBankAccount';
 import { isUuidDocId } from 'utils/ids';
+import { getDesktopTheme } from 'src/utils/qbdFamiliarity';
 import { routeTo } from 'src/utils/ui';
 import { defineComponent } from 'vue';
 
@@ -298,6 +304,8 @@ export default defineComponent({
   components: { PageHeader, Button, FormControl },
   props: {
     account: { type: String, default: '' },
+    type: { type: String, default: '' },
+    fromMemorized: { type: String, default: '' },
   },
   data() {
     return {
@@ -306,6 +314,8 @@ export default defineComponent({
       accountTypeById: {} as Record<string, string>,
       paymentMethods: [] as { name: string; type?: string }[],
       saving: false,
+      boundSaveNew: null as ((e: KeyboardEvent) => void) | null,
+      recallingParty: false,
       // Bump after save so FormControls remount with cleared values.
       formKey: 0,
       // #8: split the category side into multiple lines.
@@ -345,6 +355,19 @@ export default defineComponent({
         this.form.paymentType === 'Pay'
       );
     },
+    isDepositMode(): boolean {
+      const fromProp = this.type === 'deposit';
+      const fromQuery = String(this.$route.query.type ?? '') === 'deposit';
+      return fromProp || fromQuery;
+    },
+    pageTitle(): string {
+      if (getDesktopTheme(fyo.singles.SystemSettings) === 'modern') {
+        return this.t`Write Entry`;
+      }
+      return this.isDepositMode
+        ? this.t`Record Deposits`
+        : this.t`Write Checks`;
+    },
     isCreditCardRegister(): boolean {
       return isCreditCardAccountType(this.accountTypeById[this.bankAccount]);
     },
@@ -377,12 +400,13 @@ export default defineComponent({
     },
     partyField(): Field {
       const pay = this.form.paymentType === 'Pay';
+      const label = pay ? this.t`Payee` : this.t`Payor`;
       return {
         fieldtype: 'Link',
         target: 'Party',
         fieldname: 'party',
-        label: this.t`Payee`,
-        placeholder: this.t`Payee`,
+        label,
+        placeholder: label,
         required: true,
         create: true,
         filters: pay
@@ -435,7 +459,7 @@ export default defineComponent({
         ? this.t`Charge`
         : this.t`Payment`;
       const receiveLabel = this.isCreditCardRegister
-        ? this.t`Payment`
+        ? this.t`Pay card`
         : this.t`Deposit`;
       return {
         fieldtype: 'Select',
@@ -482,7 +506,7 @@ export default defineComponent({
     splitAccountField(): Field {
       return { ...this.categoryField, fieldname: 'splitAccount' };
     },
-    // Signed: negative amounts are withholdings that reduce the check.
+    // Signed: negative amounts are withholdings that reduce the payment.
     splitAmountField(): Field {
       return {
         fieldtype: 'Float',
@@ -510,7 +534,7 @@ export default defineComponent({
         .filter((cents) => cents > 0)
         .reduce((sum, cents) => sum + cents, 0);
     },
-    /** Absolute sum of negative lines (withholdings reducing the check). */
+    /** Absolute sum of negative lines (withholdings reducing the payment). */
     splitWithholdingsCents(): number {
       return -this.splitLineCents
         .filter((cents) => cents < 0)
@@ -553,26 +577,51 @@ export default defineComponent({
         this.form.checkNumber = '';
       }
     },
+    '$route.query.type'() {
+      this.form.paymentType = this.isDepositMode ? 'Receive' : 'Pay';
+    },
   },
   async mounted() {
+    this.boundSaveNew = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        void this.submitEntry({ keepOpen: true });
+      }
+    };
+    window.addEventListener('keydown', this.boundSaveNew);
     try {
       await this.loadAccounts();
       await this.loadPaymentMethods();
       this.applySavedBank();
       await this.applyInstrumentForAccount();
+      await this.applyMemorizedPrefill();
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('BankRegisterWrite mounted', error);
       await handleErrorWithDialog(error);
     }
   },
+  unmounted() {
+    if (this.boundSaveNew) {
+      window.removeEventListener('keydown', this.boundSaveNew);
+    }
+  },
   activated() {
+    if (this.boundSaveNew) {
+      window.addEventListener('keydown', this.boundSaveNew);
+    }
     const previousAccount = this.bankAccount;
     this.applySavedBank();
     // keep-alive re-fires this on every return. Only reset instrument
     // defaults when the bank/card actually changed (query or last-used).
     if (this.bankAccount !== previousAccount) {
       void this.applyInstrumentForAccount();
+    }
+    void this.applyMemorizedPrefill();
+  },
+  deactivated() {
+    if (this.boundSaveNew) {
+      window.removeEventListener('keydown', this.boundSaveNew);
     }
   },
   methods: {
@@ -600,13 +649,212 @@ export default defineComponent({
       if (!this.bankAccount) {
         return;
       }
-      this.form.paymentType = 'Pay';
+      this.form.paymentType = this.isDepositMode ? 'Receive' : 'Pay';
       this.form.printLater = false;
       this.form.checkNumber = '';
       this.form.paymentMethod = await resolveDefaultPaymentMethod(fyo, {
         forCreditCard: this.isCreditCardRegister,
       });
+      await this.clearCategoryIfFilterFails();
       this.formKey += 1;
+    },
+    excludedCategoryTypes(): string[] {
+      return this.isCreditCardRegister
+        ? [
+            AccountTypeEnum.CreditCard,
+            AccountTypeEnum.Receivable,
+            AccountTypeEnum.Payable,
+          ]
+        : [
+            AccountTypeEnum.Bank,
+            AccountTypeEnum.Cash,
+            AccountTypeEnum.Receivable,
+            AccountTypeEnum.Payable,
+          ];
+    },
+    async accountTypeOf(name: string): Promise<string> {
+      if (!name) {
+        return '';
+      }
+      try {
+        const rows = (await fyo.db.getAll(ModelNameEnum.Account, {
+          fields: ['accountType'],
+          filters: { name },
+          limit: 1,
+        })) as { accountType?: string }[];
+        return rows[0]?.accountType || '';
+      } catch {
+        return '';
+      }
+    },
+    async clearCategoryIfFilterFails() {
+      const excluded = this.excludedCategoryTypes();
+      const fails = async (accountName: string) => {
+        if (!accountName) {
+          return false;
+        }
+        const type = await this.accountTypeOf(accountName);
+        return !!type && excluded.includes(type);
+      };
+      if (await fails(this.form.categoryAccount)) {
+        this.form.categoryAccount = '';
+      }
+      if (this.splitEnabled) {
+        const keep: typeof this.splitLines = [];
+        for (const line of this.splitLines) {
+          if (!(await fails(line.account))) {
+            keep.push(line);
+          }
+        }
+        if (keep.length !== this.splitLines.length) {
+          this.splitLines = keep;
+          if (this.splitLines.length < 2) {
+            this.splitEnabled = false;
+            this.splitLines = [];
+          }
+        }
+      }
+    },
+    async onPaymentTypeChange(value: unknown) {
+      this.form.paymentType = (value as 'Pay' | 'Receive') || 'Pay';
+      await this.clearPartyIfRoleMismatch();
+    },
+    async clearPartyIfRoleMismatch() {
+      const party = this.form.party.trim();
+      if (!party) {
+        return;
+      }
+      try {
+        const role = (await fyo.getValue(
+          ModelNameEnum.Party,
+          party,
+          'role'
+        )) as string | undefined;
+        if (!partyRoleFitsPaymentType(role, this.form.paymentType)) {
+          this.form.party = '';
+          this.formKey += 1;
+        }
+      } catch {
+        /* leave party; submit backstop rejects a bad role */
+      }
+    },
+    async onPartyChange(value: unknown) {
+      this.form.party = String(value || '');
+      await this.recallLastForParty();
+    },
+    async recallLastForParty() {
+      const party = this.form.party.trim();
+      if (!party || !this.bankAccount || this.recallingParty) {
+        return;
+      }
+      this.recallingParty = true;
+      try {
+        const pays = (await fyo.db.getAll(ModelNameEnum.Payment, {
+          filters: { party, cancelled: false },
+          fields: [
+            'name',
+            'date',
+            'paymentType',
+            'account',
+            'paymentAccount',
+            'amount',
+            'memo',
+            'paymentMethod',
+          ],
+          orderBy: 'date',
+          order: 'desc',
+          limit: 20,
+        })) as {
+          paymentType?: string;
+          account?: string;
+          paymentAccount?: string;
+          amount?: { float?: number } | number;
+          memo?: string;
+          paymentMethod?: string;
+        }[];
+        const last = pays.find((p) => {
+          const bank =
+            p.paymentType === 'Receive' ? p.paymentAccount : p.account;
+          return bank === this.bankAccount;
+        });
+        if (!last) {
+          return;
+        }
+        const category =
+          last.paymentType === 'Pay' ? last.paymentAccount : last.account;
+        const amt =
+          typeof last.amount === 'number'
+            ? last.amount
+            : Number(last.amount?.float ?? 0);
+        if (category) {
+          this.form.categoryAccount = category;
+        }
+        if (amt > 0) {
+          this.form.amount = amt;
+        }
+        if (last.memo) {
+          this.form.memo = last.memo;
+        }
+        if (last.paymentMethod) {
+          this.form.paymentMethod = last.paymentMethod;
+        }
+        this.formKey += 1;
+      } catch {
+        /* recall is best-effort */
+      } finally {
+        this.recallingParty = false;
+      }
+    },
+    async applyMemorizedPrefill() {
+      const name =
+        this.fromMemorized || String(this.$route.query.fromMemorized ?? '');
+      if (!name) {
+        return;
+      }
+      try {
+        const mt = await fyo.doc.getDoc(
+          ModelNameEnum.MemorizedTransaction,
+          name
+        );
+        const paymentType =
+          (mt.get('paymentType') as 'Pay' | 'Receive') || 'Pay';
+        const fromAccount = String(mt.get('fromAccount') || '');
+        const toAccount = String(mt.get('toAccount') || '');
+        this.form.paymentType = paymentType;
+        this.form.party = String(mt.get('party') || '');
+        this.form.categoryAccount =
+          paymentType === 'Pay' ? toAccount : fromAccount;
+        const amt = mt.get('amount') as { float?: number } | number | undefined;
+        this.form.amount =
+          typeof amt === 'number' ? amt : Number(amt?.float ?? 0);
+        this.form.memo = String(mt.get('memo') || '');
+        this.form.paymentMethod = String(mt.get('paymentMethod') || '');
+        this.form.checkNumber = '';
+        this.form.printLater = false;
+        this.form.alsoRecurring = false;
+        const splits =
+          (mt.get('splits') as
+            | {
+                account?: string;
+                amount?: { float?: number };
+                description?: string;
+              }[]
+            | undefined) ?? [];
+        if (splits.length >= 2) {
+          this.splitEnabled = true;
+          this.splitLines = splits.map((s) => ({
+            account: s.account || '',
+            amount:
+              typeof s.amount === 'number'
+                ? s.amount
+                : Number(s.amount?.float ?? 0),
+            description: s.description || '',
+          }));
+        }
+        this.formKey += 1;
+      } catch (error) {
+        await handleErrorWithDialog(error);
+      }
     },
     async loadAccounts() {
       const banks = (await fyo.db.getAll(ModelNameEnum.Account, {
@@ -684,7 +932,7 @@ export default defineComponent({
           Number(line.amount) === 0
         ) {
           return this
-            .t`Every split line needs a nonzero amount. Negative amounts are plugs that reduce the check.`;
+            .t`Every split line needs a nonzero amount. Negative amounts are plugs that reduce the payment.`;
         }
       }
       if (this.splitGrossCents <= 0) {
@@ -696,7 +944,7 @@ export default defineComponent({
       }
       if (this.splitRemainder !== 0) {
         return this
-          .t`Split lines must add up to the check amount. Remaining: ${this.formattedSplitRemainder}`;
+          .t`Split lines must add up to the payment amount. Remaining: ${this.formattedSplitRemainder}`;
       }
       return '';
     },
@@ -723,13 +971,21 @@ export default defineComponent({
     showFormError(message: string) {
       showToast({ type: 'error', message, duration: 'long' });
     },
-    async submitEntry() {
+    async submitEntry(opts?: { keepOpen?: boolean }) {
       if (!this.bankAccount) {
         this.showFormError(this.t`Select a bank or credit card account.`);
         return;
       }
+      if (!this.form.date) {
+        this.showFormError(this.t`Date is required.`);
+        return;
+      }
       if (!this.form.party?.trim()) {
-        this.showFormError(this.t`Payee is required.`);
+        this.showFormError(
+          this.form.paymentType === 'Pay'
+            ? this.t`Payee is required.`
+            : this.t`Payor is required.`
+        );
         return;
       }
       if (!this.splitEnabled && !this.form.categoryAccount) {
@@ -772,20 +1028,46 @@ export default defineComponent({
         };
         await createRegisterPayment(fyo, fields);
         if (this.form.alsoRecurring) {
-          await memorizeRegisterFields(fyo, fields, { openEditor: false });
+          try {
+            const scheduled = await memorizeRegisterFields(fyo, fields, {
+              openEditor: false,
+            });
+            if (!scheduled) {
+              showToast({
+                type: 'warning',
+                message: this
+                  .t`Payment posted; scheduling failed. Open Memorized Transactions to add the template.`,
+                duration: 'long',
+              });
+            } else {
+              showToast({
+                type: 'success',
+                message: this
+                  .t`Entry saved to ${this.registerTitle}; memorized transaction created`,
+              });
+            }
+          } catch (schedError) {
+            showToast({
+              type: 'warning',
+              message: this
+                .t`Payment posted; scheduling failed. Open Memorized Transactions to add the template.`,
+              duration: 'long',
+            });
+            await handleErrorWithDialog(schedError);
+          }
+        } else {
+          showToast({
+            type: 'success',
+            message: this.t`Entry saved to ${this.registerTitle}`,
+          });
         }
-        showToast({
-          type: 'success',
-          message: this.form.alsoRecurring
-            ? this
-                .t`Entry saved to ${this.registerTitle}; recurring template created`
-            : this.t`Entry saved to ${this.registerTitle}`,
-        });
         setLastRegisterBankAccount(this.bankAccount);
         // keep-alive caches this page — clear entry fields before leaving so
         // the next Write Entry visit is blank (bank / method defaults stay).
         this.resetFormAfterSave();
-        await routeTo('/bank-register');
+        if (!opts?.keepOpen) {
+          await routeTo('/bank-register');
+        }
       } catch (error) {
         await handleErrorWithDialog(error);
         this.showFormError(
@@ -802,7 +1084,7 @@ export default defineComponent({
         party: '',
         categoryAccount: '',
         amount: 0,
-        paymentType: 'Pay',
+        paymentType: this.isDepositMode ? 'Receive' : 'Pay',
         memo: '',
         paymentMethod,
         printLater: false,
@@ -814,8 +1096,19 @@ export default defineComponent({
       this.formKey += 1;
     },
     async memorizeCurrent() {
+      if (this.saving) {
+        return;
+      }
       if (!this.bankAccount) {
         this.showFormError(this.t`Select a bank or credit card account.`);
+        return;
+      }
+      const precheck = memorizeFieldsError({
+        party: this.form.party,
+        amount: this.form.amount,
+      });
+      if (precheck) {
+        this.showFormError(precheck);
         return;
       }
       if (this.splitEnabled) {
@@ -828,7 +1121,7 @@ export default defineComponent({
       const proceed = (await showDialog({
         title: this.t`Schedule only?`,
         detail: this
-          .t`This creates a reusable schedule under Recurring Transactions. It does not post a payment to the Check Register. To post now and also schedule, use Post to register with “also create a recurring schedule” checked.`,
+          .t`This creates a reusable schedule under Memorized Transactions. It does not post a payment to the Check Register. To post now and also schedule, use Post to register with “also create a recurring schedule” checked.`,
         type: 'info',
         buttons: [
           { label: this.t`Cancel`, action: () => false, isEscape: true },
@@ -842,6 +1135,7 @@ export default defineComponent({
       if (!proceed) {
         return;
       }
+      this.saving = true;
       try {
         const payee = this.form.party.trim();
         await memorizeRegisterFields(fyo, {
@@ -858,6 +1152,8 @@ export default defineComponent({
         });
       } catch (error) {
         await handleErrorWithDialog(error);
+      } finally {
+        this.saving = false;
       }
     },
   },

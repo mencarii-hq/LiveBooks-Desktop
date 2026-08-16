@@ -1,6 +1,7 @@
 import ChartOfAccounts from 'src/pages/ChartOfAccounts.vue';
 import CommonForm from 'src/pages/CommonForm/CommonForm.vue';
 import Dashboard from 'src/pages/Dashboard/Dashboard.vue';
+import HomeWorkflowMap from 'src/pages/HomeWorkflowMap.vue';
 import GetStarted from 'src/pages/GetStarted.vue';
 import BankFeedHub from 'src/pages/BankFeedHub.vue';
 import BankReconcile from 'src/pages/BankReconcile.vue';
@@ -32,6 +33,12 @@ import { routeFilters } from './utils/filters';
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
+    name: 'Home',
+    component: HomeWorkflowMap,
+  },
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
     component: Dashboard,
   },
   {
@@ -75,7 +82,7 @@ const routes: RouteRecordRaw[] = [
           const title = String(pageTitle);
           if (title === 'Customers') {
             Object.assign(filters, routeFilters.Customers);
-          } else if (title === 'Suppliers') {
+          } else if (title === 'Suppliers' || title === 'Vendors') {
             Object.assign(filters, routeFilters.Suppliers);
           } else if (title === 'Employees') {
             Object.assign(filters, routeFilters.Employees);
@@ -199,8 +206,17 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/bank-register/write',
-    name: 'Write Entry',
+    name: 'Write Checks',
     component: BankRegisterWrite,
+    props: (route) => ({
+      account:
+        typeof route.query.account === 'string' ? route.query.account : '',
+      type: typeof route.query.type === 'string' ? route.query.type : '',
+      fromMemorized:
+        typeof route.query.fromMemorized === 'string'
+          ? route.query.fromMemorized
+          : '',
+    }),
   },
   {
     path: '/checks-to-print',
@@ -307,7 +323,7 @@ export function getSavedLastRoute(): string | null {
   return savedLastRoute;
 }
 
-/** Call once desk is ready to restore so `/` (Dashboard) may be persisted. */
+/** Call once desk is ready to restore so `/` (Home) may be persisted. */
 export function enableRoutePersistence(): void {
   deskRouteReady = true;
 }

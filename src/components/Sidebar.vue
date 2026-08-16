@@ -106,6 +106,57 @@
     <!-- Report Issue and DB Switcher -->
     <div class="window-no-drag shrink-0 flex flex-col gap-2 px-4">
       <hr class="border-white border-opacity-20" />
+      <div
+        class="flex items-center gap-1 -mx-1 px-1 py-0.5"
+        data-testid="sidebar-theme-toggle"
+      >
+        <button
+          class="
+            flex-1
+            text-sm text-white
+            rounded
+            py-0.5
+            px-1
+            hover:bg-green-800
+          "
+          :class="
+            desktopTheme === 'classic'
+              ? 'bg-green-800 font-medium'
+              : 'text-white/80'
+          "
+          type="button"
+          :title="
+            t`For anyone comfortable keeping books on the desktop. Designed around a familiar workflow home page.`
+          "
+          data-testid="sidebar-theme-classic"
+          @click="setDesktopTheme('classic')"
+        >
+          {{ t`Classic` }}
+        </button>
+        <button
+          class="
+            flex-1
+            text-sm text-white
+            rounded
+            py-0.5
+            px-1
+            hover:bg-green-800
+          "
+          :class="
+            desktopTheme === 'modern'
+              ? 'bg-green-800 font-medium'
+              : 'text-white/80'
+          "
+          type="button"
+          :title="
+            t`The LiveBooks design — dashboard first, so you can focus on what matters.`
+          "
+          data-testid="sidebar-theme-modern"
+          @click="setDesktopTheme('modern')"
+        >
+          {{ t`Modern` }}
+        </button>
+      </div>
       <button
         class="
           flex
@@ -365,8 +416,15 @@
 </template>
 <script lang="ts">
 import { t } from 'fyo';
-import { reportIssue } from 'src/errorHandling';
+import { handleErrorWithDialog, reportIssue } from 'src/errorHandling';
 import { fyo } from 'src/initFyo';
+import {
+  DASHBOARD_PATH,
+  HOME_PATH,
+  getDesktopTheme,
+  persistDesktopTheme,
+  type DesktopTheme,
+} from 'src/utils/qbdFamiliarity';
 import { showDialog, showToast } from 'src/utils/interactive';
 import {
   getLivebooksCloudSessionSummary,
@@ -388,6 +446,7 @@ import { SidebarConfig, SidebarItem, SidebarRoot } from 'src/utils/types';
 import {
   handleWindowDragDoubleClick,
   openRouteInSidePane,
+  routeTo,
   routeToMain,
   toggleSidebar,
 } from 'src/utils/ui';
@@ -524,6 +583,8 @@ export default defineComponent({
       resolvingItemHighlight: '',
       // List path that opened the current Item edit (Sales vs Purchase vs Common).
       lastItemListPath: '',
+      // SystemSettings is not Vue-reactive; keep the toggle in component state.
+      appliedDesktopTheme: getDesktopTheme(fyo.singles.SystemSettings) as DesktopTheme,
     } as {
       companyName: string;
       groups: SidebarConfig;
@@ -547,6 +608,7 @@ export default defineComponent({
       lastPartyListPath: string;
       resolvingItemHighlight: string;
       lastItemListPath: string;
+      appliedDesktopTheme: DesktopTheme;
     };
   },
   computed: {
@@ -577,6 +639,9 @@ export default defineComponent({
         this.fyo.store.appEnv,
         this.livebooksCloudShowProBranding
       );
+    },
+    desktopTheme(): DesktopTheme {
+      return this.appliedDesktopTheme;
     },
     livebooksCloudManageButtonTitle(): string {
       if (!this.livebooksCloudSignedIn) {
@@ -723,6 +788,20 @@ export default defineComponent({
     giveFeedback() {
       openFeedbackSurvey(fyo);
     },
+    async setDesktopTheme(theme: DesktopTheme) {
+      if (theme === this.desktopTheme) {
+        return;
+      }
+      try {
+        await persistDesktopTheme(fyo, theme);
+        this.appliedDesktopTheme = theme;
+        this.groups = await getSidebarConfig();
+        this.setActiveGroup();
+        await routeTo(theme === 'modern' ? DASHBOARD_PATH : HOME_PATH);
+      } catch (error) {
+        await handleErrorWithDialog(error);
+      }
+    },
     openDocumentation() {
       ipc.openLink('https://docs.frappe.io/' + docsPathRef.value);
     },
@@ -833,7 +912,14 @@ export default defineComponent({
         if (route.startsWith('/report/')) {
           return this.reportSidebarFiltersMatch(item);
         }
+        if (route === '/bank-register/write') {
+          return this.writeSidebarTypeMatch(item);
+        }
         return true;
+      }
+      // Use Register is exact; Write Checks / Make Deposits are siblings.
+      if (route === '/bank-register') {
+        return false;
       }
       if (
         !route.startsWith('/list/') &&
@@ -1086,6 +1172,20 @@ export default defineComponent({
     },
     isItemActive(item: SidebarItem) {
       return this.isSidebarRouteMatch(this.$route.path, item);
+    },
+    writeSidebarTypeMatch(item: SidebarItem) {
+      const search = item.route.includes('?')
+        ? item.route.slice(item.route.indexOf('?') + 1)
+        : '';
+      const itemType = new URLSearchParams(search).get('type');
+      const routeType =
+        typeof this.$route.query.type === 'string'
+          ? this.$route.query.type
+          : null;
+      if (itemType === 'deposit') {
+        return routeType === 'deposit';
+      }
+      return routeType !== 'deposit';
     },
     reportSidebarFiltersMatch(item: SidebarItem) {
       const search = item.route.includes('?')

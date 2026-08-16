@@ -165,6 +165,13 @@ export default defineComponent({
       const end = this.pageNo * this.count;
       return { start, end };
     },
+    goToLastPage() {
+      if (!this.itemCount || !this.count) {
+        return;
+      }
+      this.pageNo = this.maxPages;
+      this.emitIndices();
+    },
   },
 });
 </script>

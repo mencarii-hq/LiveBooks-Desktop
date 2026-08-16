@@ -172,10 +172,10 @@
                 <Button
                   type="secondary"
                   class="whitespace-nowrap"
-                  :disabled="runningName === row.name"
+                  :disabled="!!runningName"
                   @click="runMemorized(row.name as string)"
                 >
-                  {{ t`Run Now` }}
+                  {{ runningName === row.name ? t`Running…` : t`Run Now` }}
                 </Button>
               </div>
             </div>
@@ -453,30 +453,20 @@ export default defineComponent({
       }
       this.runningName = name;
       try {
-        const { runMemorizedNow } = await import(
+        const { writeEntryRouteFromMemorized } = await import(
           'src/utils/memorizedTransactions'
         );
-        const { showToast } = await import('src/utils/interactive');
         const { handleErrorWithDialog } = await import('src/errorHandling');
         const { ModelNameEnum } = await import('models/types');
+        const { routeTo } = await import('src/utils/ui');
         const mt = await fyo.doc.getDoc(
           ModelNameEnum.MemorizedTransaction,
           name
         );
         try {
-          const payment = await runMemorizedNow(fyo, mt);
-          const { routeTo } = await import('src/utils/ui');
-          const paymentName = String(payment.name ?? '');
-          showToast({
-            type: 'success',
-            message: fyo.t`Created recurring payment`,
-            actionText: fyo.t`View Payment`,
-            action: () => {
-              if (paymentName) {
-                void routeTo(`/edit/Payment/${paymentName}`);
-              }
-            },
-          });
+          // Review-then-post: open Write Entry prefilled. Never copy a
+          // stored check # (blank / next-number on the form).
+          await routeTo(writeEntryRouteFromMemorized(mt));
         } catch (error) {
           await handleErrorWithDialog(error, mt, true, true);
         }

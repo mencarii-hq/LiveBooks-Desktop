@@ -74,6 +74,10 @@ export type ConfigMap = {
   feedbackSurveyDismissed?: boolean;
   /** Bank Feed Online: auto-stage new import batches into Account Activity. */
   plaidAutoStageImportBatches?: boolean;
+  /** Home workflow map: node id -> click count (local measure). */
+  homeMapNodeClicks?: Record<string, number>;
+  /** Home workflow map: user chose Dashboard as launch screen. */
+  homeMapOptOut?: boolean;
 };
 
 export interface ConfigFile {

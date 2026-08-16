@@ -208,15 +208,16 @@ export default {
         return;
       }
 
-      if (!e.target.value || this.focInp) {
-        e.target.value = null;
+      // focInp is a one-shot focus quirk: clear the flag and fall through so
+      // empty / first keystroke still refreshes suggestions and reopens the list.
+      if (this.focInp) {
         this.focInp = false;
-        toggleDropdown(false);
-        return;
       }
 
-      this.setLinkValue(e.target.value, true);
-      this.updateSuggestions(e.target.value);
+      const keyword = e.target.value ?? '';
+      this.setLinkValue(keyword, true);
+      this.updateSuggestions(keyword);
+      toggleDropdown(true);
     },
     async onBlur(label, toggleDropdown) {
       this.isFocused = false;

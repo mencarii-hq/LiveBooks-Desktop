@@ -51,6 +51,7 @@ export async function setupDummyInstance(
     fiscalYearStart: getFiscalYear('01-01', true)!.toISOString(),
     fiscalYearEnd: getFiscalYear('12-31', false)!.toISOString(),
     chartOfAccounts: 'United States - Chart of Accounts',
+    desktopTheme: 'classic' as const,
   };
   await setupInstance(dbPath, options, fyo);
   fyo.store.skipTelemetryLogging = true;

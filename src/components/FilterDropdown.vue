@@ -242,6 +242,10 @@ export default defineComponent({
       type: Array as PropType<string[]>,
       default: () => [],
     },
+    fieldLabels: {
+      type: Object as PropType<Record<string, string>>,
+      default: () => ({}),
+    },
   },
   emits: ['change'],
   data() {
@@ -342,7 +346,7 @@ export default defineComponent({
     },
     fieldOptions(): { label: string; value: string }[] {
       return this.fields.map((df) => ({
-        label: df.label,
+        label: this.fieldLabels[df.fieldname] || df.label,
         value: df.fieldname,
       }));
     },

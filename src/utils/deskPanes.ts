@@ -3,13 +3,16 @@
  */
 import { ref } from 'vue';
 import type { RouteLocationRaw } from 'vue-router';
+import { writeScreenTitle } from './qbdFamiliarity';
 
 export const MAIN_PANE_ID = 'main';
 export const MAX_CHILD_PANES = 2;
 export const PANE_STORAGE_KEY = 'livebooks-desk-panes';
 export const PANE_WIDTH_STORAGE_KEY = 'livebooks-desk-pane-width-px';
 export const PANE_MIN_PX = 320;
-export const PANE_MAX_PX = 900;
+/** Live max is 50% of the desk; this is only a fallback when width is unknown. */
+export const PANE_MAX_RATIO = 0.5;
+export const PANE_MAX_PX = 2400;
 export const PANE_DEFAULT_PX = 480;
 
 export type PaneKind =
@@ -20,6 +23,7 @@ export type PaneKind =
   | 'register-write'
   | 'coa'
   | 'dashboard'
+  | 'home'
   | 'get-started'
   | 'bank-feeds'
   | 'bank-reconcile'
@@ -202,6 +206,10 @@ function namedRoutePath(
   const map: Record<string, string> = {
     'Check Register': '/bank-register',
     'Write Entry': '/bank-register/write',
+    'Write Checks': '/bank-register/write',
+    'Record Deposits': '/bank-register/write?type=deposit',
+    Home: '/',
+    Dashboard: '/dashboard',
     'Chart Of Accounts': '/chart-of-accounts',
     'Bank feeds': '/bank-feeds',
     'Reconcile Hub': '/reconcile',
@@ -311,12 +319,17 @@ export function parsePathToPaneDraft(
 
   if (head === 'bank-register' && a === 'write') {
     const account = cleanQuery.account ?? '';
+    const type = cleanQuery.type ?? '';
+    const fromMemorized = cleanQuery.fromMemorized ?? '';
+    const isDeposit = type === 'deposit';
     return {
       kind: 'register-write',
-      title: 'Write Entry',
-      path: '/bank-register/write',
-      identity: `register-write:${account}`,
-      props: { account },
+      title: writeScreenTitle(isDeposit),
+      path: isDeposit
+        ? '/bank-register/write?type=deposit'
+        : '/bank-register/write',
+      identity: `register-write:${account}:${type}:${fromMemorized}`,
+      props: { account, type, fromMemorized },
     };
   }
 
@@ -332,9 +345,19 @@ export function parsePathToPaneDraft(
 
   if (path === '/' || path === '') {
     return {
+      kind: 'home',
+      title: 'Home',
+      path: '/',
+      identity: 'home',
+      props: {},
+    };
+  }
+
+  if (path === '/dashboard') {
+    return {
       kind: 'dashboard',
       title: 'Dashboard',
-      path: '/',
+      path: '/dashboard',
       identity: 'dashboard',
       props: {},
     };

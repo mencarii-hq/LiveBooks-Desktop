@@ -34,6 +34,7 @@ import BankRegister from 'src/pages/BankRegister.vue';
 import BankRegisterWrite from 'src/pages/BankRegisterWrite.vue';
 import ChartOfAccounts from 'src/pages/ChartOfAccounts.vue';
 import Dashboard from 'src/pages/Dashboard/Dashboard.vue';
+import HomeWorkflowMap from 'src/pages/HomeWorkflowMap.vue';
 import GetStarted from 'src/pages/GetStarted.vue';
 import BankFeedHub from 'src/pages/BankFeedHub.vue';
 import BankReconcile from 'src/pages/BankReconcile.vue';
@@ -62,6 +63,7 @@ const kindMap: Record<PaneKind, Component | null> = {
   'register-write': BankRegisterWrite,
   coa: ChartOfAccounts,
   dashboard: Dashboard,
+  home: HomeWorkflowMap,
   'get-started': GetStarted,
   'bank-feeds': BankFeedHub,
   'bank-reconcile': BankReconcile,

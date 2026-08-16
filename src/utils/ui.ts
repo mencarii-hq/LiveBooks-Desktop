@@ -1061,7 +1061,7 @@ export function getDocTypeLabel(doc: Doc): string {
       return t`Customer`;
     }
     if (role === 'Supplier') {
-      return t`Supplier`;
+      return t`Vendor`;
     }
   }
 

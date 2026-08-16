@@ -334,7 +334,7 @@ export default defineComponent({
         return this.t`Customer`;
       }
       if (role === 'Supplier') {
-        return this.t`Supplier`;
+        return this.t`Vendor`;
       }
       return label;
     },

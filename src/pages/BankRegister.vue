@@ -24,6 +24,7 @@
           'cleared',
           'reconciled',
         ]"
+        :field-labels="{ party: t`Payee` }"
         @change="applyFilter"
       />
       <Button
@@ -32,6 +33,7 @@
         :padding="false"
         class="px-3"
         :disabled="!bankAccount"
+        :title="t`Write Entry`"
         @click="goWriteEntry"
       >
         <feather-icon name="plus" class="w-4 h-4" />
@@ -142,6 +144,7 @@
               </div>
               <div
                 v-else
+                ref="registerScroll"
                 class="
                   overflow-y-auto
                   dark:dark-scroll
@@ -175,12 +178,12 @@
                     <Row
                       gap="0.5rem"
                       class="
-                        cursor-pointer
                         text-gray-900
                         dark:text-gray-300
                         flex-1
                         min-h-row-mid
                       "
+                      :class="{ 'cursor-pointer': !!row.paymentName }"
                       :ratio="columnRatio"
                       :grid-template-columns="gridTemplate"
                       @click="openRow(row)"
@@ -191,8 +194,11 @@
                       >
                         {{ formatRegisterDate(row.date) }}
                       </div>
-                      <div class="cell-body tabular-nums">
-                        {{ row.checkNo }}
+                      <div
+                        v-if="!isCreditCardRegister"
+                        class="cell-body tabular-nums"
+                      >
+                        {{ row.checkNo || (row.isDeposit ? 'DEP' : '') }}
                       </div>
                       <div class="cell-body">{{ row.payee }}</div>
                       <div class="cell-body" :title="row.categoryTitle">
@@ -230,6 +236,7 @@
           <div v-if="rows.length" class="mt-auto flex-shrink-0">
             <hr class="dark:border-gray-800" />
             <Paginator
+              ref="registerPaginator"
               :item-count="rows.length"
               @index-change="setPageIndices"
             />
@@ -286,6 +293,12 @@ import {
   setLastRegisterBankAccount,
 } from 'src/utils/registerBankAccount';
 import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
+import {
+  endOfTodayISO,
+  ledgerSignedBalanceForAccount,
+} from 'src/utils/bankAccountSettings';
+import { compareRegisterAles } from 'src/utils/registerRows';
+import { showToast } from 'src/utils/interactive';
 import { commonDocCancel, getActionsForDoc, routeTo } from 'src/utils/ui';
 import { Action } from 'fyo/model/types';
 import { Payment } from 'models/baseModels/Payment/Payment';
@@ -334,6 +347,7 @@ type RegisterRow = {
   paymentName?: string;
   canSetCheck?: boolean;
   canVoid?: boolean;
+  isDeposit?: boolean;
 };
 
 export default defineComponent({
@@ -379,6 +393,9 @@ export default defineComponent({
       return this.rows.slice(this.pageStart, this.pageEnd);
     },
     columnRatio(): number[] {
+      if (this.isCreditCardRegister) {
+        return COLUMN_RATIO.filter((_, i) => COLUMN_IDS[i] !== 'checkNo');
+      }
       return COLUMN_RATIO;
     },
     /** CreditCard register: Charge (credit↑) / Payment (debit↓); bank keeps Payment/Deposit. */
@@ -395,25 +412,33 @@ export default defineComponent({
         ? this.t`Charge`
         : this.t`Payment`;
       const inflow = this.isCreditCardRegister
-        ? this.t`Payment`
+        ? this.t`Payment received`
         : this.t`Deposit`;
-      return [
+      const cols: { id: ColumnId; label: string; class: string }[] = [
         { id: 'date', label: this.t`Date`, class: '' },
-        { id: 'checkNo', label: this.t`Check No.`, class: '' },
+      ];
+      if (!this.isCreditCardRegister) {
+        cols.push({ id: 'checkNo', label: this.t`Check No.`, class: '' });
+      }
+      cols.push(
         { id: 'payee', label: this.t`Payee`, class: '' },
         { id: 'category', label: this.t`Category`, class: '' },
         { id: 'memo', label: this.t`Memo`, class: '' },
         { id: 'payment', label: outflow, class: '' },
         { id: 'deposit', label: inflow, class: '' },
         { id: 'balance', label: this.t`Balance`, class: '' },
-        { id: 'actions', label: this.t`Actions`, class: 'pe-4' },
-      ];
+        { id: 'actions', label: this.t`Actions`, class: 'pe-4' }
+      );
+      return cols;
     },
     gridTemplate(): string | null {
       if (!this.columnWidths) {
         return null;
       }
-      return gridTemplateFromWidths(this.columnWidths);
+      const widths = this.isCreditCardRegister
+        ? this.columnWidths.filter((_, i) => COLUMN_IDS[i] !== 'checkNo')
+        : this.columnWidths;
+      return gridTemplateFromWidths(widths);
     },
     tableWidthStyle(): Record<string, string> {
       if (!this.columnWidths) {
@@ -422,7 +447,10 @@ export default defineComponent({
       // Narrow window: keep the resized widths and scroll horizontally
       // (header and body share this container so they stay in sync).
       const { gapPx, indexPx } = this.measureTableChrome();
-      const total = minWidthPxFromColumns(this.columnWidths, gapPx, indexPx);
+      const widths = this.isCreditCardRegister
+        ? this.columnWidths.filter((_, i) => COLUMN_IDS[i] !== 'checkNo')
+        : this.columnWidths;
+      const total = minWidthPxFromColumns(widths, gapPx, indexPx);
       return { minWidth: `${total}px` };
     },
     bankAccountField(): Field {
@@ -730,6 +758,7 @@ export default defineComponent({
           fields: [
             'name',
             'date',
+            'created',
             'party',
             'debit',
             'credit',
@@ -737,11 +766,12 @@ export default defineComponent({
             'referenceName',
             'reverted',
           ],
-          orderBy: 'date',
+          orderBy: ['date', 'created'],
           order: 'asc',
         })) as {
           name: string;
           date: string;
+          created?: string;
           party?: string;
           debit?: { float?: number } | number;
           credit?: { float?: number } | number;
@@ -768,6 +798,7 @@ export default defineComponent({
             checkNo: string;
             canSetCheck: boolean;
             canVoid: boolean;
+            isDeposit: boolean;
           }
         >();
 
@@ -866,12 +897,15 @@ export default defineComponent({
             const hasNumber = !!(p.referenceId || '').trim();
             paymentMap.set(p.name, {
               memo: p.memo || '',
-              checkNo: (p.referenceId || '').trim(),
+              // Only Check methods show a number; Bank-method names must not
+              // leak into Check No. (legacy rows may still have a seeded ref).
+              checkNo: isCheck ? (p.referenceId || '').trim() : '',
               category,
               categoryTitle,
               party: p.party || '',
               canSetCheck: isPayCheck,
               canVoid: isPayCheck && hasNumber && !p.printLater,
+              isDeposit: p.paymentType === 'Receive',
             });
           }
         }
@@ -886,6 +920,7 @@ export default defineComponent({
         ];
         const partyNames = await getPartyNameMap(fyo, partyIds);
 
+        ales.sort(compareRegisterAles);
         let balance = 0;
         const rows: RegisterRow[] = [];
         for (const ale of ales) {
@@ -922,9 +957,10 @@ export default defineComponent({
                 : undefined,
             canSetCheck: payInfo?.canSetCheck,
             canVoid: payInfo?.canVoid,
+            isDeposit: payInfo?.isDeposit,
           });
         }
-        this.rows = rows.reverse();
+        this.rows = rows;
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('BankRegister loadRows', error);
@@ -932,7 +968,24 @@ export default defineComponent({
         await handleErrorWithDialog(error);
       } finally {
         this.loading = false;
+        await this.$nextTick();
+        this.jumpToLatestPage();
       }
+    },
+    jumpToLatestPage() {
+      if (!this.rows.length) {
+        return;
+      }
+      const paginator = this.$refs.registerPaginator as
+        | { goToLastPage?: () => void }
+        | undefined;
+      paginator?.goToLastPage?.();
+      void this.$nextTick(() => {
+        const el = this.$refs.registerScroll as HTMLElement | undefined;
+        if (el) {
+          el.scrollTop = el.scrollHeight;
+        }
+      });
     },
     async openRow(row: RegisterRow) {
       if (row.paymentName) {
@@ -1012,68 +1065,22 @@ export default defineComponent({
         return;
       }
       try {
-        const endOfToday = DateTime.now().endOf('day').toISO();
-        const ales = (await fyo.db.getAll(ModelNameEnum.AccountingLedgerEntry, {
-          filters: {
-            account: this.bankAccount,
-            reverted: false,
-            date: ['<=', endOfToday],
-          },
-          fields: ['debit', 'credit', 'referenceType', 'referenceName'],
-        })) as {
-          debit?: { float?: number } | number;
-          credit?: { float?: number } | number;
-          referenceType?: string;
-          referenceName?: string;
-        }[];
-
-        const paymentNames = [
-          ...new Set(
-            ales
-              .filter((a) => a.referenceType === ModelNameEnum.Payment)
-              .map((a) => a.referenceName!)
-              .filter(Boolean)
-          ),
-        ];
-        const cancelled = new Set<string>();
-        if (paymentNames.length) {
-          const pays = (await fyo.db.getAll(ModelNameEnum.Payment, {
-            filters: { name: ['in', paymentNames] },
-            fields: ['name', 'cancelled'],
-          })) as { name: string; cancelled?: boolean }[];
-          for (const p of pays) {
-            if (p.cancelled) {
-              cancelled.add(p.name);
-            }
-          }
+        const balance = await ledgerSignedBalanceForAccount(this.bankAccount, {
+          asOf: endOfTodayISO(),
+        });
+        this.balanceAsOfToday = balance == null ? null : fyo.pesa(balance);
+        if (balance == null) {
+          showToast({
+            type: 'warning',
+            message: this.t`Could not load balance as of today.`,
+          });
         }
-
-        const money = (v: unknown) => {
-          if (v == null) return 0;
-          if (typeof v === 'number') return v;
-          if (typeof v === 'object' && v && 'float' in v) {
-            return Number((v as { float: number }).float) || 0;
-          }
-          return Number(v) || 0;
-        };
-
-        let balance = 0;
-        for (const ale of ales) {
-          if (
-            ale.referenceType === ModelNameEnum.Payment &&
-            ale.referenceName &&
-            cancelled.has(ale.referenceName)
-          ) {
-            continue;
-          }
-          balance += this.signedBalanceDelta(
-            money(ale.debit),
-            money(ale.credit)
-          );
-        }
-        this.balanceAsOfToday = fyo.pesa(balance);
       } catch {
         this.balanceAsOfToday = null;
+        showToast({
+          type: 'warning',
+          message: this.t`Could not load balance as of today.`,
+        });
       }
     },
   },

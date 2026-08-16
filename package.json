@@ -28,11 +28,13 @@
     "@codemirror/autocomplete": "^6.4.2",
     "@codemirror/lang-vue": "^0.1.1",
     "@popperjs/core": "^2.10.2",
+    "@vue-flow/core": "^1.48.2",
     "better-sqlite3": "npm:better-sqlite3-multiple-ciphers@^11.1.0",
     "bree": "^9.2.4",
     "codemirror": "^6.0.1",
     "core-js": "^3.19.0",
     "electron-store": "^8.0.1",
+    "elkjs": "^0.12.0",
     "feather-icons": "^4.28.0",
     "knex": "^2.4.0",
     "lodash": "^4.17.23",
@@ -41,7 +43,7 @@
     "node-stream-zip": "^1.16.0",
     "pesa": "^1.1.12",
     "source-map-support": "^0.5.21",
-    "vue": "^3.2.40",
+    "vue": "~3.3.13",
     "vue-router": "^4.0.12"
   },
   "devDependencies": {

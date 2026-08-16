@@ -6,6 +6,7 @@ import Dashboard from './dashboard.vue';
 import Fb from './fb.vue';
 import General from './general.vue';
 import Gst from './gst.vue';
+import History from './history.vue';
 import Inventory from './inventory.vue';
 import Invoice from './invoice.vue';
 import Item from './item.vue';
@@ -36,6 +37,7 @@ export default {
   'fb': Fb,
   'general': General,
   'gst': Gst,
+  'history': History,
   'inventory': Inventory,
   'invoice': Invoice,
   'item': Item,

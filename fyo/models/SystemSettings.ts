@@ -1,19 +1,23 @@
 import { DocValue } from 'fyo/core/types';
 import { Doc } from 'fyo/model/doc';
-import { ListsMap, ValidationMap } from 'fyo/model/types';
+import { ChangeArg, ListsMap, ValidationMap } from 'fyo/model/types';
 import { ValidationError } from 'fyo/utils/errors';
 import { t } from 'fyo/utils/translation';
 import { SelectOption } from 'schemas/types';
 import { getCountryInfo } from 'utils/misc';
 import { invalidateAndEmitRegionalLabelsChanged } from 'utils/regional';
+import { Verb } from 'fyo/telemetry/types';
 
 export default class SystemSettings extends Doc {
   _countryCodeBeforeSync?: string;
+  _hideHomeMapBeforeSync?: boolean;
   dateFormat?: string;
   locale?: string;
   displayPrecision?: number;
   internalPrecision?: number;
   hideGetStarted?: boolean;
+  hideHomeWorkflowMap?: boolean;
+  desktopTheme?: 'classic' | 'modern';
   countryCode?: string;
   currency?: string;
   version?: string;
@@ -33,9 +37,17 @@ export default class SystemSettings extends Doc {
     },
   };
 
+  async change({ changed }: ChangeArg) {
+    if (changed !== 'desktopTheme') {
+      return;
+    }
+    await this.set('hideHomeWorkflowMap', this.desktopTheme === 'modern');
+  }
+
   // eslint-disable-next-line @typescript-eslint/require-await
   async beforeSync() {
     this._countryCodeBeforeSync = this.countryCode;
+    this._hideHomeMapBeforeSync = !!this.hideHomeWorkflowMap;
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
@@ -44,6 +56,12 @@ export default class SystemSettings extends Doc {
     const after = (this.countryCode ?? '').trim().toLowerCase();
     if (before !== after) {
       invalidateAndEmitRegionalLabelsChanged();
+    }
+    if (!!this.hideHomeWorkflowMap !== !!this._hideHomeMapBeforeSync) {
+      this.fyo.telemetry.log(Verb.Completed, 'home-map-opt-out', {
+        optedOut: !!this.hideHomeWorkflowMap,
+      });
+      this.fyo.config.set('homeMapOptOut', !!this.hideHomeWorkflowMap);
     }
   }
 

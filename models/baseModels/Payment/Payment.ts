@@ -1267,7 +1267,7 @@ export class Payment extends Transactional {
         },
       },
       {
-        label: fyo.t`Recurring`,
+        label: fyo.t`Memorize`,
         group: fyo.t`Create`,
         condition: (doc) =>
           !!doc.party && !!doc.amount && !(doc as Payment).for?.length,

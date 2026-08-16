@@ -1,6 +1,6 @@
 {
   "name": "MemorizedTransaction",
-  "label": "Recurring Transaction",
+  "label": "Memorized Transaction",
   "naming": "autoincrement",
   "titleField": "title",
   "isSingle": false,
@@ -33,11 +33,11 @@
     },
     {
       "fieldname": "paymentType",
-      "label": "Payment Type",
+      "label": "Entry type",
       "fieldtype": "Select",
       "options": [
-        { "value": "Pay", "label": "Pay" },
-        { "value": "Receive", "label": "Receive" }
+        { "value": "Pay", "label": "Payment" },
+        { "value": "Receive", "label": "Deposit" }
       ],
       "required": true,
       "default": "Pay",
@@ -45,7 +45,7 @@
     },
     {
       "fieldname": "fromAccount",
-      "label": "From Account",
+      "label": "Account",
       "fieldtype": "Link",
       "target": "Account",
       "required": true,
@@ -53,7 +53,7 @@
     },
     {
       "fieldname": "toAccount",
-      "label": "To Account",
+      "label": "Category",
       "fieldtype": "Link",
       "target": "Account",
       "required": true,
@@ -106,12 +106,10 @@
     },
     {
       "fieldname": "paymentMethod",
-      "label": "Payment Method",
+      "label": "Payment method",
       "fieldtype": "Link",
       "target": "PaymentMethod",
       "default": "Cash",
-      "readOnly": true,
-      "hidden": true,
       "section": "Default"
     },
     {
@@ -132,6 +130,7 @@
     "toAccount",
     "amount",
     "memo",
+    "paymentMethod",
     "frequency",
     "nextDueDate",
     "remindDaysBefore"

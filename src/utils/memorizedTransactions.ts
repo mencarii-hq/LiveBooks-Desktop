@@ -9,6 +9,7 @@ import { handleErrorWithDialog } from 'src/errorHandling';
 import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
 import { getFormRoute, routeTo } from 'src/utils/ui';
 import { isUuidDocId } from 'utils/ids';
+import { partyRoleFitsPaymentType } from 'src/utils/registerRows';
 
 /**
  * #7 — day-scoped snooze. Dismissing "These are due" silences that exact due
@@ -17,6 +18,7 @@ import { isUuidDocId } from 'utils/ids';
  * Stored per company so alternating books on the same day keep separate dismissals.
  */
 const DUE_SNOOZE_KEY = 'memorizedDueSnooze';
+let duePromptCreateLock = false;
 
 type DueSnooze = { company: string; date: string; signature: string };
 
@@ -208,14 +210,15 @@ export async function createRegisterPayment(
     throw new Error(t`Amount must be greater than 0.`);
   }
 
-  const partyId =
-    fields.partyId || (await ensurePartyExists(fyo, fields.party));
-
   // R2: register entries default to Check when no method is supplied.
   const paymentMethod =
     fields.paymentMethod || (await resolveDefaultPaymentMethod(fyo));
 
   const paymentType = normalizeRegisterPaymentType(fields.paymentType);
+
+  const partyId =
+    fields.partyId || (await ensurePartyExists(fyo, fields.party));
+  await assertPartyFitsPaymentType(fyo, partyId, paymentType);
 
   // #8: with splits, the first positive split's account stands in for the
   // single category field so account/paymentAccount stay valid for old code
@@ -310,9 +313,8 @@ export async function createRegisterPayment(
   const methodType = (await doc.paymentMethodDoc())?.type;
   if (methodType === 'Bank') {
     doc.clearanceDate = doc.date ?? fields.date;
-    if (!String(doc.referenceId || '').trim()) {
-      doc.referenceId = paymentMethod;
-    }
+    // Leave referenceId blank for non-check methods. Seeding the method
+    // name made Transfer/Bank show up as a fake Check No. in the register.
   }
   await doc.sync();
   await doc.submit();
@@ -325,6 +327,23 @@ export async function createRegisterPayment(
   }
 
   return doc;
+}
+
+async function assertPartyFitsPaymentType(
+  fyo: Fyo,
+  partyId: string,
+  paymentType: 'Pay' | 'Receive'
+): Promise<void> {
+  const role = (await fyo.getValue(ModelNameEnum.Party, partyId, 'role')) as
+    | string
+    | undefined;
+  if (!partyRoleFitsPaymentType(role, paymentType)) {
+    throw new Error(
+      paymentType === 'Pay'
+        ? t`Payee must be a vendor, employee, contractor, or Both.`
+        : t`Payor must be a customer or Both.`
+    );
+  }
 }
 
 async function ensurePartyExists(fyo: Fyo, partyName: string): Promise<string> {
@@ -425,11 +444,42 @@ export async function memorizePayment(
   await doc.sync();
   showToast({
     type: 'success',
-    message: t`Recurring transaction saved`,
+    message: t`Memorized transaction saved`,
   });
   await routeTo(
     getFormRoute(ModelNameEnum.MemorizedTransaction, String(doc.name))
   );
+}
+
+export function memorizeFieldsError(
+  fields: Pick<RegisterPaymentFields, 'amount' | 'party'>
+): string {
+  if (!(fields.amount > 0) || !String(fields.party || '').trim()) {
+    return t`Payee and amount are required.`;
+  }
+  return '';
+}
+
+/** Route to Write Entry prefilled from a template. Check # is never copied. */
+export function writeEntryRouteFromMemorized(mt: {
+  name?: string;
+  paymentType?: string;
+  fromAccount?: string;
+  toAccount?: string;
+}): { path: string; query: Record<string, string> } {
+  const paymentType = mt.paymentType === 'Receive' ? 'Receive' : 'Pay';
+  const bankAccount =
+    paymentType === 'Pay'
+      ? String(mt.fromAccount || '')
+      : String(mt.toAccount || '');
+  return {
+    path: '/bank-register/write',
+    query: {
+      account: bankAccount,
+      type: paymentType === 'Receive' ? 'deposit' : '',
+      fromMemorized: String(mt.name || ''),
+    },
+  };
 }
 
 export async function memorizeRegisterFields(
@@ -437,10 +487,11 @@ export async function memorizeRegisterFields(
   fields: RegisterPaymentFields,
   options?: { openEditor?: boolean }
 ): Promise<boolean> {
-  if (!(fields.amount > 0) || !fields.party) {
+  const precheck = memorizeFieldsError(fields);
+  if (precheck) {
     await showDialog({
       title: t`Cannot save recurring template`,
-      detail: t`Payee and amount are required.`,
+      detail: precheck,
       type: 'error',
     });
     return false;
@@ -503,7 +554,7 @@ export async function memorizeRegisterFields(
     // Template-only path: make clear nothing hit the register.
     showToast({
       type: 'success',
-      message: t`Recurring template saved — no payment posted`,
+      message: t`Memorized transaction saved — no payment posted`,
     });
     await routeTo(
       getFormRoute(ModelNameEnum.MemorizedTransaction, String(doc.name))
@@ -586,7 +637,16 @@ export async function advanceNextDueDate(
   await mt.setAndSync('nextDueDate', computeNextDueISO(mt));
 }
 
-/** Next schedule date after posting one occurrence (see advanceNextDueDate). */
+/**
+ * Next schedule date after posting one occurrence (see advanceNextDueDate).
+ *
+ * Catch-up policy (Audit N5): this is skip-missed-periods, not catch-up.
+ * The next due is always one frequency step from today (or from a still-future
+ * due date). Overdue templates do not generate a backdated series for each
+ * missed period — only the occurrence the user posts now, then the schedule
+ * jumps forward from today. Do not change this to catch-up without an explicit
+ * product decision.
+ */
 function computeNextDueISO(mt: MemorizedTransaction | Doc): string {
   const freq = (mt.frequency as string) || 'Monthly';
   // Anchor from today (not the old nextDueDate) so same-day Run Now is
@@ -836,48 +896,56 @@ export async function maybePromptMemorizedDue(fyo: Fyo): Promise<void> {
     // schedule bump via db.update (bypasses Doc validation) so the next prompt
     // cannot double-post this period.
     const toCreate = choice === 'all' ? due : due.slice(0, 1);
+    if (duePromptCreateLock) {
+      return;
+    }
+    duePromptCreateLock = true;
     let created = 0;
-    for (const mt of toCreate) {
-      try {
-        await createPaymentFromMemorized(fyo, mt);
-      } catch (error) {
-        await handleErrorWithDialog(error, mt as Doc, true, true);
-        continue;
-      }
-
-      try {
-        await advanceNextDueDate(mt);
-      } catch (error) {
-        const nextISO = computeNextDueISO(mt);
+    try {
+      for (const mt of toCreate) {
         try {
-          await fyo.db.update(ModelNameEnum.MemorizedTransaction, {
-            name: mt.name,
-            nextDueDate: nextISO,
-          });
-          mt.nextDueDate = nextISO;
-        } catch (forceError) {
-          // eslint-disable-next-line no-console
-          console.error(
-            'advanceNextDueDate failed after payment create',
-            forceError
-          );
+          await createPaymentFromMemorized(fyo, mt);
+        } catch (error) {
           await handleErrorWithDialog(error, mt as Doc, true, true);
-          // Payment exists but schedule did not move — do not count as a
-          // successful run (avoids success toast + easy double-post).
           continue;
         }
-      }
-      created += 1;
-    }
 
-    if (created > 0) {
-      showToast({
-        type: 'success',
-        message:
-          created === 1
-            ? t`Created 1 recurring payment`
-            : t`Created ${String(created)} recurring payments`,
-      });
+        try {
+          await advanceNextDueDate(mt);
+        } catch (error) {
+          const nextISO = computeNextDueISO(mt);
+          try {
+            await fyo.db.update(ModelNameEnum.MemorizedTransaction, {
+              name: mt.name,
+              nextDueDate: nextISO,
+            });
+            mt.nextDueDate = nextISO;
+          } catch (forceError) {
+            // eslint-disable-next-line no-console
+            console.error(
+              'advanceNextDueDate failed after payment create',
+              forceError
+            );
+            await handleErrorWithDialog(error, mt as Doc, true, true);
+            // Payment exists but schedule did not move — do not count as a
+            // successful run (avoids success toast + easy double-post).
+            continue;
+          }
+        }
+        created += 1;
+      }
+
+      if (created > 0) {
+        showToast({
+          type: 'success',
+          message:
+            created === 1
+              ? t`Created 1 recurring payment`
+              : t`Created ${String(created)} recurring payments`,
+        });
+      }
+    } finally {
+      duePromptCreateLock = false;
     }
   } catch (error) {
     // Prompt is best-effort; do not block desk load.

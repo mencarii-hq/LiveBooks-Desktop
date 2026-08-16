@@ -214,7 +214,6 @@ import { getFormRoute, routeTo } from 'src/utils/ui';
 import { accountDisplayName } from 'utils/accountDisplay';
 import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
 import { isUuidDocId } from 'utils/ids';
-import { isUuidDocId } from 'utils/ids';
 import { PropType, defineComponent, inject } from 'vue';
 
 const COMPONENT_NAME = 'LinkedEntries';

@@ -1,5 +1,5 @@
 <template>
-  <div class="h-screen" style="width: var(--w-desk)">
+  <div class="flex flex-col overflow-y-hidden h-full w-full min-w-0">
     <PageHeader :title="t`Dashboard`">
       <div class="flex items-center gap-2">
         <!-- Period selector -->
@@ -43,8 +43,7 @@
     </PageHeader>
 
     <div
-      class="no-scrollbar overflow-auto dark:bg-gray-875"
-      style="height: calc(100vh - var(--h-row-largest) - 1px)"
+      class="flex-1 min-h-0 min-w-0 no-scrollbar overflow-auto dark:bg-gray-875"
     >
       <!-- Empty state: all widgets hidden -->
       <div
@@ -70,7 +69,7 @@
       </div>
 
       <!-- Widget canvas -->
-      <div v-else style="min-width: var(--w-desk-fixed)">
+      <div v-else class="w-full min-w-0">
         <template v-for="(row, idx) in visibleRows" :key="idx">
           <!-- Full-width widget -->
           <div

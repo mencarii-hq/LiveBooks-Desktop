@@ -77,6 +77,7 @@ import { updatePrintTemplates } from './utils/printTemplates';
 import { Search } from './utils/search';
 import { Shortcuts } from './utils/shortcuts';
 import { clearDeskPanes } from './utils/deskPanes';
+import { getDeskLandingPath } from './utils/qbdFamiliarity';
 import { routeTo } from './utils/ui';
 import { useKeys } from './utils/vueUtils';
 import { setDarkMode } from 'src/utils/theme';
@@ -413,7 +414,8 @@ export default defineComponent({
     },
     async setDeskRoute(): Promise<void> {
       const { onboardingComplete } = await fyo.doc.getDoc('GetStarted');
-      const { hideGetStarted } = await fyo.doc.getDoc('SystemSettings');
+      const systemSettings = await fyo.doc.getDoc('SystemSettings');
+      const { hideGetStarted } = systemSettings;
 
       // Use the boot-time snapshot — raw localStorage may already be `/`.
       const lastRoute = getSavedLastRoute();
@@ -421,7 +423,7 @@ export default defineComponent({
       if (lastRoute) {
         route = lastRoute;
       } else if (hideGetStarted || onboardingComplete) {
-        route = '/';
+        route = getDeskLandingPath(systemSettings);
       }
 
       // Allow persisting `/` and the restored route from here on.

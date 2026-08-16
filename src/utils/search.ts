@@ -125,12 +125,12 @@ function getCreateList(fyo: Fyo): SearchItem[] {
       create: createFilters.Customers,
     },
     {
-      label: t`Supplier`,
+      label: t`Vendor`,
       schemaName: ModelNameEnum.Party,
       create: createFilters.Suppliers,
     },
     {
-      label: t`Party`,
+      label: t`Name`,
       schemaName: ModelNameEnum.Party,
       create: createFilters.Party,
     },
@@ -250,13 +250,13 @@ function getListViewList(fyo: Fyo): SearchItem[] {
       filters: routeFilters.Customers,
     },
     {
-      label: t`Suppliers`,
-      route: `/list/Party/${t`Suppliers`}`,
+      label: t`Vendors`,
+      route: `/list/Party/${t`Vendors`}`,
       filters: routeFilters.Suppliers,
     },
     {
-      label: t`Party`,
-      route: `/list/Party/${t`Party`}`,
+      label: t`Name`,
+      route: `/list/Party/${t`Name`}`,
       filters: routeFilters.Party,
     },
     {

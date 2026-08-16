@@ -58,6 +58,7 @@ export function getCOAList() {
 export class SetupWizard extends Doc {
   fiscalYearEnd?: Date;
   fiscalYearStart?: Date;
+  desktopTheme?: 'classic' | 'modern';
 
   formulas: FormulaMap = {
     fiscalYearStart: {

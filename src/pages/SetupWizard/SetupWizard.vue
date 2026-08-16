@@ -18,9 +18,42 @@
       >
       </FormHeader>
 
+      <!-- Theme is the first required choice, then the rest of setup. -->
+      <div
+        v-if="hasDoc && step === 'theme'"
+        class="
+          overflow-auto
+          custom-scroll custom-scroll-thumb1
+          p-4
+          flex flex-col
+          gap-3
+        "
+      >
+        <button
+          v-for="option in themeOptions"
+          :key="option.value"
+          type="button"
+          class="text-left rounded-lg border p-4 transition-colors"
+          :class="
+            selectedTheme === option.value
+              ? 'border-green-600 bg-green-50 dark:bg-green-900/30 dark:border-green-500'
+              : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-890'
+          "
+          :data-testid="`setup-theme-${option.value}`"
+          @click="selectTheme(option.value)"
+        >
+          <p class="font-medium text-gray-900 dark:text-gray-100">
+            {{ option.title }}
+          </p>
+          <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">
+            {{ option.hint }}
+          </p>
+        </button>
+      </div>
+
       <!-- Section Container -->
       <div
-        v-if="hasDoc"
+        v-else-if="hasDoc"
         class="overflow-auto custom-scroll custom-scroll-thumb1"
       >
         <CommonFormSection
@@ -64,12 +97,28 @@
           {{ t`Loading instance...` }}
         </p>
         <Button
-          v-if="!loading"
+          v-if="!loading && step === 'details'"
+          class="w-24 border dark:border-gray-800"
+          @click="step = 'theme'"
+          >{{ t`Back` }}</Button
+        >
+        <Button
+          v-else-if="!loading"
           class="w-24 border dark:border-gray-800"
           @click="cancel"
           >{{ t`Cancel` }}</Button
         >
         <Button
+          v-if="step === 'theme'"
+          type="primary"
+          class="w-24"
+          data-testid="theme-continue-button"
+          :disabled="!selectedTheme"
+          @click="step = 'details'"
+          >{{ t`Continue` }}</Button
+        >
+        <Button
+          v-else
           type="primary"
           class="w-24"
           data-testid="submit-button"
@@ -117,13 +166,38 @@ export default defineComponent({
       docOrNull: null,
       errors: {},
       loading: false,
+      step: 'theme' as 'theme' | 'details',
     } as {
       errors: Record<string, string>;
       docOrNull: null | Doc;
       loading: boolean;
+      step: 'theme' | 'details';
     };
   },
   computed: {
+    themeOptions() {
+      return [
+        {
+          value: 'classic' as const,
+          title: this.t`Classic theme`,
+          hint: this
+            .t`For anyone comfortable keeping books on the desktop. Designed around a familiar workflow home page.`,
+        },
+        {
+          value: 'modern' as const,
+          title: this.t`Modern theme`,
+          hint: this
+            .t`The LiveBooks design — dashboard first, so you can focus on what matters.`,
+        },
+      ];
+    },
+    selectedTheme(): 'classic' | 'modern' | '' {
+      if (!this.hasDoc) {
+        return '';
+      }
+      const value = this.doc.desktopTheme;
+      return value === 'classic' || value === 'modern' ? value : '';
+    },
     hasDoc(): boolean {
       return this.docOrNull instanceof Doc;
     },
@@ -172,6 +246,12 @@ export default defineComponent({
     this.fyo.telemetry.log(Verb.Started, ModelNameEnum.SetupWizard);
   },
   methods: {
+    async selectTheme(theme: 'classic' | 'modern') {
+      if (!this.hasDoc) {
+        return;
+      }
+      await this.doc.set('desktopTheme', theme);
+    },
     async onValueChange(field: Field, value: DocValue) {
       if (!this.hasDoc) {
         return;

@@ -85,6 +85,23 @@
       "required": true
     },
     {
+      "fieldname": "desktopTheme",
+      "label": "Desktop theme",
+      "fieldtype": "Select",
+      "options": [
+        {
+          "label": "Classic theme",
+          "value": "classic"
+        },
+        {
+          "label": "Modern theme",
+          "value": "modern"
+        }
+      ],
+      "required": true,
+      "hidden": true
+    },
+    {
       "fieldname": "completed",
       "label": "Completed",
       "fieldtype": "Check",

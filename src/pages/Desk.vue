@@ -22,6 +22,7 @@ import {
   MAIN_PANE_ID,
   persistPaneWidthPx,
   PANE_MAX_PX,
+  PANE_MAX_RATIO,
   PANE_MIN_PX,
   restoreDeskPanes,
 } from 'src/utils/deskPanes';
@@ -51,15 +52,11 @@ const isPaneResizing = ref(false);
 const PANE_RESIZING_HTML_CLASS = 'desk-pane-resizing';
 
 function clampPaneWidthPx(n: number, totalWidth = deskWidthPx()): number {
-  let px = Math.min(PANE_MAX_PX, Math.max(PANE_MIN_PX, n));
-  if (totalWidth > 0) {
-    const maxForWindow = Math.max(
-      PANE_MIN_PX,
-      Math.min(PANE_MAX_PX, totalWidth * 0.55)
-    );
-    px = Math.min(maxForWindow, Math.max(PANE_MIN_PX, px));
-  }
-  return Math.round(px);
+  const maxPx =
+    totalWidth > 0
+      ? Math.max(PANE_MIN_PX, totalWidth * PANE_MAX_RATIO)
+      : PANE_MAX_PX;
+  return Math.round(Math.min(maxPx, Math.max(PANE_MIN_PX, n)));
 }
 
 function panePxFromClientX(clientX: number): number {

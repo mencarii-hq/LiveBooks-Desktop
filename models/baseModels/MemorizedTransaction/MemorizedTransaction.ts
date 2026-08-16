@@ -141,16 +141,12 @@ export class MemorizedTransaction extends Doc {
   validations: ValidationMap = {
     fromAccount: (value: DocValue) => {
       if (value && this.toAccount && value === this.toAccount) {
-        throw new ValidationError(
-          t`From Account and To Account cannot be the same.`
-        );
+        throw new ValidationError(t`Account and Category cannot be the same.`);
       }
     },
     toAccount: (value: DocValue) => {
       if (value && this.fromAccount && value === this.fromAccount) {
-        throw new ValidationError(
-          t`From Account and To Account cannot be the same.`
-        );
+        throw new ValidationError(t`Account and Category cannot be the same.`);
       }
     },
     nextDueDate: async (value: DocValue) => {

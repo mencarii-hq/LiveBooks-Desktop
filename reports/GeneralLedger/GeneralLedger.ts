@@ -362,8 +362,8 @@ export class GeneralLedger extends LedgerReport {
       {
         fieldtype: 'Link',
         target: 'Party',
-        label: t`Party`,
-        placeholder: t`Party`,
+        label: t`Name`,
+        placeholder: t`Name`,
         fieldname: 'party',
       },
       {
@@ -384,7 +384,7 @@ export class GeneralLedger extends LedgerReport {
         fieldname: 'groupBy',
         options: [
           { label: t`None`, value: 'none' },
-          { label: t`Party`, value: 'party' },
+          { label: t`Name`, value: 'party' },
           { label: t`Account`, value: 'account' },
           { label: t`Reference`, value: 'referenceName' },
         ],
@@ -444,7 +444,7 @@ export class GeneralLedger extends LedgerReport {
         width: 1.25,
       },
       {
-        label: t`Party`,
+        label: t`Name`,
         fieldtype: 'Link',
         fieldname: 'party',
       },

@@ -1,0 +1,155 @@
+import test from 'tape';
+import { ModelNameEnum } from 'models/types';
+import {
+  computeLedgerSignedBalance,
+  signedBalanceDelta,
+} from '../ledgerBalance';
+import type { LedgerAleRow } from '../ledgerBalance';
+import {
+  autocompleteInputKeyword,
+  autocompleteOnInput,
+  filterAutocompleteSuggestions,
+} from '../autocompleteInput';
+import {
+  accumulateRunningBalances,
+  compareRegisterAles,
+  partyRoleFitsPaymentType,
+} from '../registerRows';
+import {
+  memorizeFieldsError,
+  writeEntryRouteFromMemorized,
+} from '../memorizedTransactions';
+
+function ale(
+  partial: Partial<LedgerAleRow> & { debit?: number; credit?: number }
+): LedgerAleRow {
+  return {
+    debit: partial.debit ?? 0,
+    credit: partial.credit ?? 0,
+    date: partial.date,
+    reverted: partial.reverted,
+    referenceType: partial.referenceType,
+    referenceName: partial.referenceName,
+    account: partial.account,
+  };
+}
+
+test('signedBalanceDelta flips for credit (CC) roots', (t) => {
+  t.equal(signedBalanceDelta('Asset', 100, 40), 60);
+  t.equal(signedBalanceDelta('Liability', 100, 40), -60);
+  t.end();
+});
+
+test('computeLedgerSignedBalance matches register: exclude reverted, cancelled, future', (t) => {
+  const asOf = '2026-08-16T23:59:59.000';
+  const ales: LedgerAleRow[] = [
+    ale({ debit: 1000, credit: 0, date: '2026-08-01' }),
+    ale({ debit: 0, credit: 200, date: '2026-08-02', reverted: true }),
+    ale({
+      debit: 0,
+      credit: 50,
+      date: '2026-08-03',
+      referenceType: ModelNameEnum.Payment,
+      referenceName: 'PAY-CANCELLED',
+    }),
+    ale({ debit: 25, credit: 0, date: '2026-08-20' }),
+    ale({ debit: 0, credit: 10, date: '2026-08-10' }),
+  ];
+  const cancelled = new Set(['PAY-CANCELLED']);
+  const hub = computeLedgerSignedBalance(ales, 'Asset', cancelled, { asOf });
+  const register = computeLedgerSignedBalance(ales, 'Asset', cancelled, {
+    asOf,
+    excludeReverted: true,
+    excludeCancelledPayments: true,
+  });
+  t.equal(hub, 990);
+  t.equal(hub, register);
+  t.end();
+});
+
+test('computeLedgerSignedBalance CC sign-flip matches register', (t) => {
+  const asOf = '2026-08-16T23:59:59.000';
+  const ales: LedgerAleRow[] = [
+    ale({ debit: 0, credit: 500, date: '2026-08-01' }),
+    ale({ debit: 80, credit: 0, date: '2026-08-02' }),
+    ale({ debit: 0, credit: 20, date: '2026-08-20' }),
+  ];
+  const v = computeLedgerSignedBalance(ales, 'Liability', new Set(), { asOf });
+  t.equal(v, 420);
+  t.end();
+});
+
+test('autocomplete onInput empty refreshes full list and opens dropdown', (t) => {
+  const options = [
+    { label: 'Checking' },
+    { label: 'Savings' },
+    { label: 'Payroll' },
+  ];
+  const empty = autocompleteOnInput('');
+  t.equal(empty.keyword, '');
+  t.equal(empty.openDropdown, true);
+  t.deepEqual(filterAutocompleteSuggestions(options, empty.keyword), options);
+
+  const afterBackspace = autocompleteOnInput('');
+  const typed = autocompleteInputKeyword('sa');
+  t.equal(afterBackspace.openDropdown, true);
+  t.deepEqual(
+    filterAutocompleteSuggestions(options, typed).map((o) => o.label),
+    ['Savings']
+  );
+  t.end();
+});
+
+test('register ales sort oldest-first with created tie-break', (t) => {
+  const ales = [
+    { name: 'b', date: '2026-08-02', created: '2026-08-02T10:00:00' },
+    { name: 'a', date: '2026-08-01', created: '2026-08-01T12:00:00' },
+    { name: 'c', date: '2026-08-02', created: '2026-08-02T09:00:00' },
+  ];
+  const sorted = [...ales].sort(compareRegisterAles);
+  t.deepEqual(
+    sorted.map((r) => r.name),
+    ['a', 'c', 'b']
+  );
+  t.end();
+});
+
+test('running balance accumulates monotonically oldest-first', (t) => {
+  const bals = accumulateRunningBalances(
+    [
+      { debit: 100, credit: 0 },
+      { debit: 0, credit: 30 },
+      { debit: 10, credit: 0 },
+    ],
+    'Asset'
+  );
+  t.deepEqual(bals, [100, 70, 80]);
+  t.ok(bals[0] > 0);
+  t.end();
+});
+
+test('partyRoleFitsPaymentType keeps Both, clears role mismatch', (t) => {
+  t.ok(partyRoleFitsPaymentType('Both', 'Pay'));
+  t.ok(partyRoleFitsPaymentType('Both', 'Receive'));
+  t.ok(partyRoleFitsPaymentType('Supplier', 'Pay'));
+  t.notOk(partyRoleFitsPaymentType('Customer', 'Pay'));
+  t.notOk(partyRoleFitsPaymentType('Supplier', 'Receive'));
+  t.end();
+});
+
+test('memorizeFieldsError and writeEntryRouteFromMemorized', (t) => {
+  t.ok(memorizeFieldsError({ party: '', amount: 10 }));
+  t.ok(memorizeFieldsError({ party: 'Acme', amount: 0 }));
+  t.equal(memorizeFieldsError({ party: 'Acme', amount: 5 }), '');
+  const route = writeEntryRouteFromMemorized({
+    name: 'MT-1',
+    paymentType: 'Pay',
+    fromAccount: 'Bank',
+    toAccount: 'Expense',
+  });
+  t.equal(route.path, '/bank-register/write');
+  t.equal(route.query.fromMemorized, 'MT-1');
+  t.equal(route.query.account, 'Bank');
+  t.equal(route.query.type, '');
+  t.end();
+});

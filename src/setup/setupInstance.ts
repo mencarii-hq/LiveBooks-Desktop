@@ -126,7 +126,7 @@ async function updatePrintSettings(
 }
 
 async function updateSystemSettings(
-  { country, currency: companyCurrency }: SetupWizardOptions,
+  { country, currency: companyCurrency, desktopTheme }: SetupWizardOptions,
   fyo: Fyo
 ) {
   const countryInfo = getCountryInfo();
@@ -137,6 +137,7 @@ async function updateSystemSettings(
   const countryCode = getCountryCodeFromCountry(country);
   const systemSettings = await fyo.doc.getDoc('SystemSettings');
   const instanceId = getRandomString();
+  const theme = desktopTheme === 'modern' ? 'modern' : 'classic';
 
   await systemSettings.setAndSync({
     locale,
@@ -144,6 +145,8 @@ async function updateSystemSettings(
     instanceId,
     countryCode,
     version: fyo.store.appVersion,
+    desktopTheme: theme,
+    hideHomeWorkflowMap: theme === 'modern',
   });
 }
 

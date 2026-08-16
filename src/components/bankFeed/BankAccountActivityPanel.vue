@@ -557,9 +557,8 @@ import {
 import { bankPayeeKey } from 'src/utils/bankPayeeKey';
 import { fyo } from 'src/initFyo';
 import { ModelNameEnum } from 'models/types';
-import { AccountTypeEnum } from 'models/baseModels/Account/types';
-import { isCredit } from 'models/helpers';
 import { routeTo } from 'src/utils/ui';
+import { ledgerSignedBalanceForAccount } from 'src/utils/bankAccountSettings';
 import { accountDisplayName } from 'utils/accountDisplay';
 import { defineComponent } from 'vue';
 
@@ -996,31 +995,8 @@ export default defineComponent({
     async loadGlBalance() {
       this.glBalanceLabel = '';
       try {
-        const rows = (await fyo.db.getAll(ModelNameEnum.Account, {
-          fields: ['name', 'rootType'],
-          filters: {
-            name: this.accountTitle,
-            accountType: [
-              'in',
-              [AccountTypeEnum.Bank, AccountTypeEnum.CreditCard],
-            ],
-            isGroup: false,
-          },
-        })) as { name: string; rootType?: string }[];
-        const rootType = rows[0]?.rootType;
-        const totals = await fyo.db.getTotalCreditAndDebit();
-        const total = totals.find((x) => x.account === this.accountTitle);
-        if (!total) {
-          this.glBalanceLabel = fyo.format(0, 'Currency');
-          return;
-        }
-        const td = Number(total.totalDebit ?? 0);
-        const tc = Number(total.totalCredit ?? 0);
-        let v = td - tc;
-        if (rootType && isCredit(rootType)) {
-          v = tc - td;
-        }
-        this.glBalanceLabel = fyo.format(v, 'Currency');
+        const v = await ledgerSignedBalanceForAccount(this.accountTitle);
+        this.glBalanceLabel = fyo.format(v ?? 0, 'Currency');
       } catch {
         this.glBalanceLabel = '';
       }

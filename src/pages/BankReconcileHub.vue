@@ -211,8 +211,8 @@ import { t } from 'fyo';
 import { fyo } from 'src/initFyo';
 import { ModelNameEnum } from 'models/types';
 import { AccountTypeEnum } from 'models/baseModels/Account/types';
-import { isCredit } from 'models/helpers';
 import { routeTo } from 'src/utils/ui';
+import { ledgerSignedBalancesForAccounts } from 'src/utils/bankAccountSettings';
 import {
   draftInProgress,
   hasBeginningBalanceDiscrepancy,
@@ -347,30 +347,13 @@ export default defineComponent({
             )
             : {};
 
-        const totals = await fyo.db.getTotalCreditAndDebit();
-        const totalsByAccount: Record<
-          string,
-          { totalDebit: number; totalCredit: number }
-        > = {};
-        for (const row of totals) {
-          totalsByAccount[row.account] = {
-            totalDebit: Number(row.totalDebit ?? 0),
-            totalCredit: Number(row.totalCredit ?? 0),
-          };
-        }
+        const ledgerByAccount = await ledgerSignedBalancesForAccounts(
+          reconcilable.map((b) => b.name)
+        );
 
         const rows: HubRow[] = [];
         for (const b of reconcilable) {
-          const totalsRow = totalsByAccount[b.name];
-          let ledgerVal = 0;
-          if (totalsRow) {
-            const { totalCredit, totalDebit } = totalsRow;
-            ledgerVal = totalDebit - totalCredit;
-            const rt = b.rootType as Parameters<typeof isCredit>[0] | undefined;
-            if (rt && isCredit(rt)) {
-              ledgerVal = totalCredit - totalDebit;
-            }
-          }
+          const ledgerVal = ledgerByAccount[b.name] ?? 0;
           const closed = await lastReconcileFor(b.name);
           const inProgress = await draftInProgress(b.name);
           const discrepancy = await hasBeginningBalanceDiscrepancy(b.name);

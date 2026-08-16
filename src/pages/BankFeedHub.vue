@@ -77,7 +77,7 @@
             :checked="plaidAutoStageImportBatches"
             @change="togglePlaidAutoStage"
           />
-          <span>{{ t`Autostage` }}</span>
+          <span>{{ t`Auto-add` }}</span>
           <span
             class="
               inline-flex
@@ -531,7 +531,10 @@ import PlaidBankConnectionDrawer from 'src/components/bankFeed/PlaidBankConnecti
 import PlaidAccountManageDrawer from 'src/components/bankFeed/PlaidAccountManageDrawer.vue';
 import Drawer from 'src/components/Drawer.vue';
 import BankStatementImport from 'src/pages/BankStatementImport.vue';
-import { countLedgerRowsForAccount } from 'src/utils/bankAccountSettings';
+import {
+  countLedgerRowsForAccount,
+  ledgerSignedBalancesForAccounts,
+} from 'src/utils/bankAccountSettings';
 import { t } from 'fyo';
 import { fyo } from 'src/initFyo';
 import { showToast } from 'src/utils/interactive';
@@ -573,7 +576,6 @@ import {
   type PlaidLinkedAccountRow,
 } from 'src/utils/plaidLinkedAccountsApi';
 import { routeTo } from 'src/utils/ui';
-import { isCredit } from 'models/helpers';
 import { AccountTypeEnum } from 'models/baseModels/Account/types';
 import { ModelNameEnum } from 'models/types';
 import { accountDisplayName } from 'utils/accountDisplay';
@@ -665,10 +667,7 @@ export default defineComponent({
       chartSelections: {} as Record<string, string>,
       resolvedChartByPlaid: {} as Record<string, string>,
       plaidMapsFlat: [] as PlaidMapRow[],
-      totalsByAccount: {} as Record<
-        string,
-        { totalDebit: number; totalCredit: number }
-      >,
+      ledgerBalanceByAccount: {} as Record<string, number>,
       accountsLoading: false,
       hubTab: 'manual' as 'manual' | 'online',
       selectedAccount: '' as string,
@@ -1085,18 +1084,17 @@ export default defineComponent({
           accountType?: string;
         }[];
         this.chartBankAccounts = rows;
-        const totals = await fyo.db.getTotalCreditAndDebit();
-        const map: Record<string, { totalDebit: number; totalCredit: number }> =
-          {};
-        for (const row of totals) {
-          const acc = row.account;
-          map[acc] = {
-            totalDebit: Number(row.totalDebit ?? 0),
-            totalCredit: Number(row.totalCredit ?? 0),
-          };
-        }
-        this.totalsByAccount = map;
         await this.loadManualSection();
+        const names = [
+          ...new Set([
+            ...rows.map((r) => r.name),
+            ...this.manualBankAccounts.map((a) => a.name),
+            ...this.archivedManualBankAccounts.map((a) => a.name),
+          ]),
+        ];
+        this.ledgerBalanceByAccount = await ledgerSignedBalancesForAccounts(
+          names
+        );
         await this.refreshManualLedgerCounts();
       } finally {
         this.accountsLoading = false;
@@ -1123,16 +1121,10 @@ export default defineComponent({
       }
       this.toReviewByAccount = counts;
     },
-    balanceFor(name: string, rootType?: string): string {
-      const total = this.totalsByAccount[name];
-      if (!total) {
+    balanceFor(name: string): string {
+      const v = this.ledgerBalanceByAccount[name];
+      if (v == null) {
         return fyo.format(0, 'Currency');
-      }
-      const { totalCredit, totalDebit } = total;
-      const rt = rootType as Parameters<typeof isCredit>[0] | undefined;
-      let v = totalDebit - totalCredit;
-      if (rt && isCredit(rt)) {
-        v = totalCredit - totalDebit;
       }
       return fyo.format(v, 'Currency');
     },

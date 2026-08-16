@@ -25,6 +25,7 @@ export function getTestSetupWizardOptions(): SetupWizardOptions {
       getFiscalYear('04-01', false)!
     ).toISODate(),
     chartOfAccounts: 'India - Chart of Accounts',
+    desktopTheme: 'classic',
   };
 }
 

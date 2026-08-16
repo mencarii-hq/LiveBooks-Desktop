@@ -131,21 +131,21 @@ export function getGetStartedConfig(): GetStartedConfigItem[] {
         },
         {
           key: 'Add Suppliers',
-          label: t`Add Suppliers`,
+          label: t`Add Vendors`,
           icon: 'supplier',
-          description: t`Add a few suppliers to create your first purchase invoice`,
+          description: t`Add a few vendors to create your first bill`,
           action: () =>
             routeTo({
-              path: `/list/Party/${t`Suppliers`}`,
+              path: `/list/Party/${t`Vendors`}`,
               query: { filters: JSON.stringify({ role: 'Supplier' }) },
             }),
           fieldname: 'supplierCreated',
         },
         {
           key: 'Create Purchase Invoice',
-          label: t`Create Purchase Invoice`,
+          label: t`Enter Bills`,
           icon: 'purchase-invoice',
-          description: t`Create your first purchase invoice from the created supplier`,
+          description: t`Create your first bill from the created vendor`,
           action: () => routeTo('/list/PurchaseInvoice'),
           fieldname: 'billCreated',
         },
