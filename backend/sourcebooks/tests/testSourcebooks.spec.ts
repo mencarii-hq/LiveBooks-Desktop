@@ -381,6 +381,11 @@ test('sourcebooks: extractRecord normalizes single-vs-array', (t) => {
   t.equal(invoice?.idKind, 'txn');
   t.equal(invoice?.refNumber, 'INV-1001');
   t.equal(invoice?.amount, 250);
+  t.equal(
+    extractRecord({ ...invoices[0], sales_tax_total: '20.00' })?.amount,
+    270,
+    'invoice amount is subtotal + sales tax'
+  );
   t.equal(invoice?.entityName, 'Acme Corp');
   const linkKinds = invoice?.links.map((l) => `${l.kind}:${l.qbId}`).sort();
   t.deepEqual(
@@ -550,6 +555,37 @@ test('sourcebooks: index build, search, links, snapshots, copy registry', async 
       3,
       'replace does not union'
     );
+    t.equal(
+      store.getCopied(booksDbPath, 'CUST-1')?.targetName,
+      'Acme Corp',
+      'copied marker survives replace'
+    );
+    t.equal(
+      store.getRecord(booksDbPath, { qbId: 'CUST-1' })?.copiedTo?.targetSchema,
+      'Party',
+      'archive viewer still shows already-copied after replace'
+    );
+
+    // Orphaned staging junk must not be indexed just because inodes collide.
+    const staleStaging = `${store.paths(booksDbPath).zip}.staging`;
+    await fs.writeFile(staleStaging, 'stale leftover from a crashed attach');
+    const afterStale = await store.attachZip({
+      booksDbPath,
+      zipSource: zipPath,
+      meta: { origin: 'local' },
+    });
+    t.equal(afterStale.attached, true, 'stale staging is overwritten');
+    t.equal(
+      (afterStale.entityCounts ?? []).find((c) => c.entityType === 'customer')
+        ?.count,
+      3,
+      'stale staging does not replace the real ZIP'
+    );
+    t.equal(
+      store.getCopied(booksDbPath, 'CUST-1')?.targetName,
+      'Acme Corp',
+      'copied marker survives stale-staging replace'
+    );
 
     // Failed replace must not promote a new ZIP over the working archive.
     const zipBefore = await fs.readFile(store.paths(booksDbPath).zip);
@@ -569,7 +605,7 @@ test('sourcebooks: index build, search, links, snapshots, copy registry', async 
     t.equal(afterFailed.attached, true, 'previous archive still attached');
     t.equal(
       afterFailed.meta?.archiveId,
-      replaced.meta?.archiveId,
+      afterStale.meta?.archiveId,
       'failed replace keeps archive id'
     );
     t.equal(

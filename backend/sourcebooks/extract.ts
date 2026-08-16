@@ -66,6 +66,19 @@ function numField(rec: RetRecord, ...keys: string[]): number | undefined {
   return undefined;
 }
 
+/**
+ * InvoiceRet has subtotal + sales_tax_total, not total_amount. Prefer the
+ * printed total when both are present so list/search amounts include tax.
+ */
+function indexedAmount(rec: RetRecord): number | undefined {
+  const subtotal = numField(rec, 'subtotal');
+  const tax = numField(rec, 'sales_tax_total');
+  if (subtotal !== undefined && tax !== undefined) {
+    return subtotal + tax;
+  }
+  return numField(rec, ...AMOUNT_KEYS);
+}
+
 function refName(rec: RetRecord, key: string): string | undefined {
   const ref = rec[key];
   if (!isRecord(ref)) {
@@ -211,7 +224,7 @@ export function extractRecord(raw: unknown): ExtractedRecord | null {
     name: strField(rec, 'full_name', 'name', 'company_name'),
     refNumber: strField(rec, 'ref_number'),
     txnDate: strField(rec, 'txn_date'),
-    amount: numField(rec, ...AMOUNT_KEYS),
+    amount: indexedAmount(rec),
     memo: strField(rec, 'memo'),
     parentId,
     entityName,

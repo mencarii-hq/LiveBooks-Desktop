@@ -177,20 +177,18 @@ export class SourceBookStore {
 
     this.busy.add(paths.sidecar);
     try {
+      const previousCopied = this.snapshotCopiedRecords(booksDbPath);
       this.closeDb(booksDbPath);
       await fs.ensureDir(paths.sidecar);
 
       // Stage the ZIP and index it from there. Only promote archive.zip after
       // the index is built, so a failed attach/replace cannot pair a new ZIP
-      // with the previous (or missing) index.
+      // with the previous (or missing) index. Trust zipSource === staging
+      // (Cloud download writes there); never use inode equality — on Windows
+      // ino can be 0 and a crash-orphaned staging file would be indexed.
       const stagingZip = `${paths.zip}.staging`;
       try {
-        const alreadyStaged =
-          zipSource === stagingZip ||
-          (fs.existsSync(stagingZip) &&
-            fs.existsSync(zipSource) &&
-            (await fs.stat(stagingZip)).ino === (await fs.stat(zipSource)).ino);
-        if (!alreadyStaged) {
+        if (zipSource !== stagingZip) {
           onProgress?.({ stage: 'copying' });
           await fs.copy(zipSource, stagingZip, { overwrite: true });
         }
@@ -207,6 +205,11 @@ export class SourceBookStore {
           onProgress,
         });
         await fs.move(stagingZip, paths.zip, { overwrite: true });
+        this.restoreCopiedRecords(
+          booksDbPath,
+          previousCopied,
+          fullMeta.archiveId
+        );
         onProgress?.({ stage: 'done' });
       } catch (err) {
         await fs.remove(stagingZip).catch(() => undefined);
@@ -484,6 +487,57 @@ export class SourceBookStore {
       .prepare('SELECT name, data FROM report_snapshots WHERE name = ?')
       .get(name) as { name: string; data: string } | undefined;
     return row ?? null;
+  }
+
+  private snapshotCopiedRecords(booksDbPath: string): SourceBookCopiedRecord[] {
+    const db = this.openDb(booksDbPath);
+    if (!db) {
+      return [];
+    }
+    const rows = db.prepare('SELECT * FROM copied_records').all() as {
+      qb_id: string;
+      archive_id: string;
+      target_schema: string;
+      target_name: string;
+      copied_at: string;
+    }[];
+    return rows.map((row) => ({
+      qbId: row.qb_id,
+      archiveId: row.archive_id,
+      targetSchema: row.target_schema,
+      targetName: row.target_name,
+      copiedAt: row.copied_at,
+    }));
+  }
+
+  private restoreCopiedRecords(
+    booksDbPath: string,
+    copied: SourceBookCopiedRecord[],
+    archiveId: string
+  ): void {
+    if (!copied.length) {
+      return;
+    }
+    const db = this.openDb(booksDbPath);
+    if (!db) {
+      return;
+    }
+    const insert = db.prepare(
+      `INSERT OR REPLACE INTO copied_records
+        (qb_id, archive_id, target_schema, target_name, copied_at)
+       VALUES (?, ?, ?, ?, ?)`
+    );
+    db.transaction(() => {
+      for (const row of copied) {
+        insert.run(
+          row.qbId,
+          archiveId,
+          row.targetSchema,
+          row.targetName,
+          row.copiedAt
+        );
+      }
+    })();
   }
 
   markCopied(booksDbPath: string, copied: SourceBookCopiedRecord): void {
