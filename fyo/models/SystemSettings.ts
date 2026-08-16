@@ -38,10 +38,10 @@ export default class SystemSettings extends Doc {
   };
 
   async change({ changed }: ChangeArg) {
-    if (changed !== 'desktopTheme') {
+    if (changed !== 'desktopTheme' || this.desktopTheme !== 'modern') {
       return;
     }
-    await this.set('hideHomeWorkflowMap', this.desktopTheme === 'modern');
+    await this.set('hideHomeWorkflowMap', true);
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await

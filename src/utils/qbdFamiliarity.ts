@@ -168,10 +168,7 @@ export function getDeskLandingPath(
     hideHomeWorkflowMap?: boolean | null;
   } | null
 ): string {
-  if (getDesktopTheme(settings) === 'modern') {
-    return DASHBOARD_PATH;
-  }
-  if (settings?.desktopTheme !== 'classic' && settings?.hideHomeWorkflowMap) {
+  if (getDesktopTheme(settings) === 'modern' || settings?.hideHomeWorkflowMap) {
     return DASHBOARD_PATH;
   }
   return HOME_PATH;
@@ -189,8 +186,8 @@ export function writeScreenTitle(
 
 /**
  * QBD Home process map: swimlanes + flowchart edges + Company/Banking grids.
- * Only real LiveBooks screens. Home-map, Banking menu, and page title
- * all use Record Deposits.
+ * Only real LiveBooks screens. Home-map node and page title stay
+ * Record Deposits; the Banking menu item is Make Deposits (real QBD uses both).
  */
 export function getHomeMap(): HomeMap {
   const nodes: HomeMapNode[] = [
@@ -346,17 +343,33 @@ export function logHomeMapOptOut(fyo: Fyo, optedOut: boolean): void {
   fyo.config.set('homeMapOptOut', optedOut);
 }
 
+export function shouldShowQbdRenameNotice(
+  fyo: Fyo,
+  settings?: { desktopTheme?: string | null } | null
+): boolean {
+  if (getDesktopTheme(settings) !== 'classic') {
+    return false;
+  }
+  return !fyo.config.get('qbdRenameNoticeDismissed');
+}
+
+export function dismissQbdRenameNotice(fyo: Fyo): void {
+  fyo.config.set('qbdRenameNoticeDismissed', true);
+}
+
 /**
- * Persist the company-scoped desktop theme. hideHomeWorkflowMap stays in sync
- * for older landing checks. Telemetry is logged by SystemSettings.afterSync.
+ * Persist the company-scoped desktop theme. Modern always lands on the
+ * Dashboard. Classic keeps any existing Home-map opt-out.
+ * Telemetry is logged by SystemSettings.afterSync.
  */
 export async function persistDesktopTheme(
   fyo: Fyo,
   theme: DesktopTheme
 ): Promise<void> {
   const settings = await fyo.doc.getDoc('SystemSettings');
-  await settings.setAndSync({
-    desktopTheme: theme,
-    hideHomeWorkflowMap: theme === 'modern',
-  });
+  await settings.setAndSync(
+    theme === 'modern'
+      ? { desktopTheme: theme, hideHomeWorkflowMap: true }
+      : { desktopTheme: theme }
+  );
 }

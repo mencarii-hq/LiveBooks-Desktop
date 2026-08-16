@@ -44,4 +44,5 @@ module.exports = {
   livebooksCloudMfaStepUpUrl: () =>
     `${getLivebooksCloudOrigin()}/account/security/step_up`,
   livebooksCloudFeedbackUrl: () => `${getLivebooksCloudOrigin()}/feedback`,
+  livebooksCloudQbdExportUrl: () => `${getLivebooksCloudOrigin()}/qbd_exports`,
 };

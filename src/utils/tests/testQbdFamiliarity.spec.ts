@@ -19,6 +19,8 @@ import {
   logHomeMapNodeClick,
   logHomeMapOptOut,
   persistDesktopTheme,
+  shouldShowQbdRenameNotice,
+  dismissQbdRenameNotice,
   writeScreenTitle,
 } from '../qbdFamiliarity';
 import { parsePathToPaneDraft } from '../deskPanes';
@@ -76,6 +78,13 @@ test('desktop theme helpers default existing companies to classic', (t) => {
   t.equal(getDeskLandingPath({ desktopTheme: 'classic' }), HOME_PATH);
   t.equal(getDeskLandingPath({ desktopTheme: 'modern' }), DASHBOARD_PATH);
   t.equal(getDeskLandingPath({ hideHomeWorkflowMap: true }), DASHBOARD_PATH);
+  t.equal(
+    getDeskLandingPath({
+      desktopTheme: 'classic',
+      hideHomeWorkflowMap: true,
+    }),
+    DASHBOARD_PATH
+  );
   t.equal(getDeskLandingPath({}), HOME_PATH);
   t.end();
 });
@@ -285,9 +294,26 @@ test('theme toggle is reversible and not a one-way opt-out', async (t) => {
   await persistDesktopTheme(fyo as never, 'modern');
   t.deepEqual(synced, [
     { desktopTheme: 'modern', hideHomeWorkflowMap: true },
-    { desktopTheme: 'classic', hideHomeWorkflowMap: false },
+    { desktopTheme: 'classic' },
     { desktopTheme: 'modern', hideHomeWorkflowMap: true },
   ]);
   t.equal(telemetryCalls, 0);
+  t.end();
+});
+
+test('rename notice is one-shot and classic-only', (t) => {
+  const store = new Map<string, unknown>();
+  const fyo = {
+    config: {
+      get: (key: string) => store.get(key),
+      set: (key: string, value: unknown) => {
+        store.set(key, value);
+      },
+    },
+  };
+  t.ok(shouldShowQbdRenameNotice(fyo as never, { desktopTheme: 'classic' }));
+  t.notOk(shouldShowQbdRenameNotice(fyo as never, { desktopTheme: 'modern' }));
+  dismissQbdRenameNotice(fyo as never);
+  t.notOk(shouldShowQbdRenameNotice(fyo as never, { desktopTheme: 'classic' }));
   t.end();
 });

@@ -78,6 +78,8 @@ export type ConfigMap = {
   homeMapNodeClicks?: Record<string, number>;
   /** Home workflow map: user chose Dashboard as launch screen. */
   homeMapOptOut?: boolean;
+  /** One-time 1.0.6 QBD vocabulary rename notice. */
+  qbdRenameNoticeDismissed?: boolean;
 };
 
 export interface ConfigFile {

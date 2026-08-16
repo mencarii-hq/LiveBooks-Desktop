@@ -548,7 +548,7 @@ export async function getClassicSidebar(): Promise<SidebarConfig> {
           route: USE_REGISTER_PATH,
         },
         {
-          label: t`Record Deposits`,
+          label: t`Make Deposits`,
           name: 'make-deposits',
           route: MAKE_DEPOSITS_PATH,
         },

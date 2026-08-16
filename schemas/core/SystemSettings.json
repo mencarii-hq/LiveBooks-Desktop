@@ -61,7 +61,7 @@
       "label": "Show Dashboard instead of Home",
       "fieldtype": "Check",
       "default": false,
-      "hidden": true,
+      "hidden": false,
       "description": "Opens the Dashboard on launch instead of the Home workflow map. Home stays in the sidebar.",
       "section": "Default"
     },

@@ -10,6 +10,7 @@ import {
 } from 'src/utils/plaidBackgroundSync';
 import PlaidBankSyncMfaBanner from 'src/components/PlaidBankSyncMfaBanner.vue';
 import PlaidSyncStatusBanner from 'src/components/PlaidSyncStatusBanner.vue';
+import QbdRenameNoticeBanner from 'src/components/QbdRenameNoticeBanner.vue';
 import ContextMenu from 'src/components/ContextMenu.vue';
 import DeskChildPane from 'src/components/DeskChildPane.vue';
 import Sidebar from '../components/Sidebar.vue';
@@ -379,6 +380,7 @@ watch(focusedPaneId, (id) => {
         @verified="onPlaidMfaVerified"
       />
       <PlaidSyncStatusBanner class="shrink-0 mx-4 mt-2" />
+      <QbdRenameNoticeBanner class="shrink-0 mx-4 mt-2" />
       <div class="flex flex-1 min-h-0 overflow-hidden">
         <div
           class="flex flex-1 min-h-0 min-w-0 overflow-hidden"

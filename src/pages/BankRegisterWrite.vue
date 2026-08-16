@@ -316,6 +316,8 @@ export default defineComponent({
       saving: false,
       boundSaveNew: null as ((e: KeyboardEvent) => void) | null,
       recallingParty: false,
+      // Last memorized template applied; skip re-prefill on keep-alive.
+      appliedMemorizedName: '',
       // Bump after save so FormControls remount with cleared values.
       formKey: 0,
       // #8: split the category side into multiple lines.
@@ -808,7 +810,7 @@ export default defineComponent({
     async applyMemorizedPrefill() {
       const name =
         this.fromMemorized || String(this.$route.query.fromMemorized ?? '');
-      if (!name) {
+      if (!name || this.appliedMemorizedName === name) {
         return;
       }
       try {
@@ -820,6 +822,12 @@ export default defineComponent({
           (mt.get('paymentType') as 'Pay' | 'Receive') || 'Pay';
         const fromAccount = String(mt.get('fromAccount') || '');
         const toAccount = String(mt.get('toAccount') || '');
+        const bankAccount = paymentType === 'Pay' ? fromAccount : toAccount;
+        const bankNames = this.bankAccounts.map((a) => a.name);
+        if (bankAccount && bankNames.includes(bankAccount)) {
+          this.bankAccount = bankAccount;
+          setLastRegisterBankAccount(this.bankAccount);
+        }
         this.form.paymentType = paymentType;
         this.form.party = String(mt.get('party') || '');
         this.form.categoryAccount =
@@ -852,6 +860,7 @@ export default defineComponent({
           }));
         }
         this.formKey += 1;
+        this.appliedMemorizedName = name;
       } catch (error) {
         await handleErrorWithDialog(error);
       }
