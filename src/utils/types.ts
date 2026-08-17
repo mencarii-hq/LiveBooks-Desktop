@@ -136,6 +136,7 @@ export type DialogButton = {
 };
 
 export type GetStartedConfigItem = {
+  key: string;
   label: string;
   optional?: boolean;
   items: {

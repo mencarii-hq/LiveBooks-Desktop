@@ -15,7 +15,7 @@
       <div class="p-4 flex flex-col gap-4">
         <section
           v-for="(section, sIndex) in sections"
-          :key="section.label"
+          :key="section.key"
           class="min-w-0"
         >
           <div
@@ -59,20 +59,6 @@
             <h2 class="text-sm font-medium dark:text-gray-25">
               {{ section.label }}
             </h2>
-            <span
-              v-if="section.optional"
-              class="
-                text-xs
-                px-1.5
-                py-0.5
-                rounded
-                bg-gray-100
-                text-gray-600
-                dark:bg-gray-800 dark:text-gray-400
-              "
-            >
-              {{ t`When needed` }}
-            </span>
           </div>
           <div
             v-if="sectionOpen[sIndex]"
@@ -158,7 +144,10 @@ import PageHeader from 'src/components/PageHeader.vue';
 import { fyo } from 'src/initFyo';
 import {
   connectBankFeedsActionLabel,
+  defaultSectionOpen,
   getGetStartedConfig,
+  readGetStartedSectionOpen,
+  writeGetStartedSectionOpen,
 } from 'src/utils/getStartedConfig';
 import {
   getLivebooksCloudSessionSummary,
@@ -182,12 +171,14 @@ export default defineComponent({
   },
   data() {
     const sections = getGetStartedConfig();
+    const saved = readGetStartedSectionOpen();
     return {
       sections,
       cloudSignedIn: false,
       onSessionRefresh: null as (() => void) | null,
-      sectionOpen: sections.map(() => true),
-      sectionTouched: sections.map(() => false),
+      sectionOpen: sections.map((section) =>
+        defaultSectionOpen(section, false, saved)
+      ),
     };
   },
   computed: {
@@ -207,7 +198,6 @@ export default defineComponent({
     },
   },
   async mounted() {
-    await this.refreshCloudSignedIn();
     this.onSessionRefresh = () => {
       void this.refreshCloudSignedIn();
     };
@@ -215,6 +205,8 @@ export default defineComponent({
       LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
       this.onSessionRefresh
     );
+    // Pane mounts never fire activated(); keep-alive also runs this on first insert.
+    await this.refreshChecklist();
   },
   unmounted() {
     if (this.onSessionRefresh) {
@@ -225,11 +217,7 @@ export default defineComponent({
     }
   },
   async activated() {
-    this.sections = getGetStartedConfig();
-    await fyo.doc.getDoc('GetStarted');
-    await this.refreshCloudSignedIn();
-    await this.checkForCompletedTasks();
-    this.applyDefaultSectionOpen();
+    await this.refreshChecklist();
   },
   methods: {
     trackableItems(section: GetStartedConfigItem): ListItem[] {
@@ -244,21 +232,24 @@ export default defineComponent({
       }
       return items.every((item) => this.isCompleted(item));
     },
+    async refreshChecklist() {
+      this.sections = getGetStartedConfig();
+      await fyo.doc.getDoc('GetStarted');
+      await this.refreshCloudSignedIn();
+      await this.checkForCompletedTasks();
+      this.applyDefaultSectionOpen();
+    },
     applyDefaultSectionOpen() {
-      this.sectionOpen = this.sections.map((section, index) => {
-        if (this.sectionTouched[index]) {
-          return this.sectionOpen[index];
-        }
-        // Optional sections stay open even when their items are complete.
-        if (section.optional) {
-          return true;
-        }
-        return !this.isSectionComplete(section);
-      });
+      const saved = readGetStartedSectionOpen();
+      this.sectionOpen = this.sections.map((section) =>
+        defaultSectionOpen(section, this.isSectionComplete(section), saved)
+      );
     },
     toggleSection(index: number) {
-      this.sectionTouched[index] = true;
       this.sectionOpen[index] = !this.sectionOpen[index];
+      const saved = readGetStartedSectionOpen();
+      saved[this.sections[index].key] = this.sectionOpen[index];
+      writeGetStartedSectionOpen(saved);
     },
     actionLabel(item: ListItem): string {
       if (item.key === 'CloudBankFeeds') {

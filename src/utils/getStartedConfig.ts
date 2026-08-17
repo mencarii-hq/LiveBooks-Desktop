@@ -5,15 +5,66 @@ import { isClassicTheme } from './qbdFamiliarity';
 import { getFormRoute, openSettings, routeTo } from './ui';
 import { GetStartedConfigItem } from './types';
 
+export const GET_STARTED_SECTION_OPEN_KEY =
+  'livebooks-get-started-section-open';
+
 /** Connect Bank Feeds (Accounts, last row): sign in first, then open Online. */
 export function connectBankFeedsActionLabel(signedIn: boolean): string {
   return signedIn ? t`Open` : t`Sign into Cloud`;
+}
+
+export function readGetStartedSectionOpen(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(GET_STARTED_SECTION_OPEN_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return {};
+    }
+    const out: Record<string, boolean> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      if (typeof value === 'boolean') {
+        out[key] = value;
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+export function writeGetStartedSectionOpen(openByKey: Record<string, boolean>) {
+  try {
+    localStorage.setItem(
+      GET_STARTED_SECTION_OPEN_KEY,
+      JSON.stringify(openByKey)
+    );
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+export function defaultSectionOpen(
+  section: { key: string; optional?: boolean },
+  isComplete: boolean,
+  saved: Record<string, boolean>
+): boolean {
+  if (Object.prototype.hasOwnProperty.call(saved, section.key)) {
+    return saved[section.key];
+  }
+  if (section.optional) {
+    return false;
+  }
+  return !isComplete;
 }
 
 export function getGetStartedConfig(): GetStartedConfigItem[] {
   /* eslint-disable @typescript-eslint/no-misused-promises */
   return [
     {
+      key: 'company',
       label: isClassicTheme(fyo.singles.SystemSettings)
         ? t`Company`
         : t`Organization`,
@@ -30,13 +81,14 @@ export function getGetStartedConfig(): GetStartedConfigItem[] {
           key: 'ExportQBD',
           label: t`Migrate Your QBD File`,
           icon: 'common-entries',
-          description: t`Import customers, vendors, items, and accounts. Review and search past history here.`,
+          description: t`Migrate your company file to LiveBooks and search the archive history and accounts.`,
           actionLabel: t`Open`,
           action: () => routeTo('/source-books'),
         },
       ],
     },
     {
+      key: 'accounts',
       label: t`Accounts`,
       items: [
         {
@@ -72,6 +124,7 @@ export function getGetStartedConfig(): GetStartedConfigItem[] {
       ],
     },
     {
+      key: 'customersVendors',
       label: t`Customers & Vendors`,
       items: [
         {
@@ -127,7 +180,9 @@ export function getGetStartedConfig(): GetStartedConfigItem[] {
       ],
     },
     {
+      key: 'misc',
       label: t`Misc`,
+      optional: true,
       items: [
         {
           key: 'Import Lists',
