@@ -625,6 +625,67 @@ test('sourcebooks: index build, search, links, snapshots, copy registry', async 
       'staging zip cleaned up'
     );
 
+    // Failed ZIP promote after a successful index must restore the previous pair.
+    const archiveIdBeforePromoteFail =
+      store.getStatus(booksDbPath).meta?.archiveId;
+    const zipBeforePromoteFail = await fs.readFile(
+      store.paths(booksDbPath).zip
+    );
+    const originalMove = fs.move.bind(fs);
+    let promoteAttempts = 0;
+    fs.move = (async (...args: Parameters<typeof fs.move>) => {
+      const [src, dest] = args;
+      if (
+        dest === store.paths(booksDbPath).zip &&
+        String(src).endsWith('.staging')
+      ) {
+        promoteAttempts += 1;
+        throw new Error('injected zip promote failure');
+      }
+      return originalMove(...args);
+    }) as typeof fs.move;
+    try {
+      await store
+        .attachZip({
+          booksDbPath,
+          zipSource: zipPath,
+          meta: { origin: 'local' },
+        })
+        .then(
+          () => t.fail('zip promote failure should not attach'),
+          () => t.pass('zip promote failure rejected')
+        );
+    } finally {
+      fs.move = originalMove;
+    }
+    t.equal(promoteAttempts, 1, 'promote was attempted');
+    const afterPromoteFail = store.getStatus(booksDbPath);
+    t.equal(
+      afterPromoteFail.attached,
+      true,
+      'previous archive still attached after promote fail'
+    );
+    t.equal(
+      afterPromoteFail.meta?.archiveId,
+      archiveIdBeforePromoteFail,
+      'promote fail restores previous index'
+    );
+    t.deepEqual(
+      await fs.readFile(store.paths(booksDbPath).zip),
+      zipBeforePromoteFail,
+      'promote fail leaves archive.zip unchanged'
+    );
+    t.equal(
+      store.getCopied(booksDbPath, 'CUST-1')?.targetName,
+      'Acme Corp',
+      'copied marker survives promote fail'
+    );
+    t.equal(
+      await fs.pathExists(`${store.paths(booksDbPath).index}.bak`),
+      false,
+      'index backup cleaned up'
+    );
+
     // Detach removes the sidecar
     await store.detach(booksDbPath);
     t.equal(store.getStatus(booksDbPath).attached, false, 'detached');

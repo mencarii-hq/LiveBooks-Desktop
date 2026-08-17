@@ -186,7 +186,10 @@ export class SourceBookStore {
       // with the previous (or missing) index. Trust zipSource === staging
       // (Cloud download writes there); never use inode equality — on Windows
       // ino can be 0 and a crash-orphaned staging file would be indexed.
+      // buildIndex replaces index.db before the ZIP moves; keep a backup so a
+      // failed promote can restore the previous index/ZIP pair.
       const stagingZip = `${paths.zip}.staging`;
+      const indexBak = `${paths.index}.bak`;
       try {
         if (zipSource !== stagingZip) {
           onProgress?.({ stage: 'copying' });
@@ -198,21 +201,33 @@ export class SourceBookStore {
           archiveId: randomUUID(),
           attachedAt: new Date().toISOString(),
         };
+        if (await fs.pathExists(paths.index)) {
+          await fs.copy(paths.index, indexBak, { overwrite: true });
+        }
         await buildIndex({
           zipPath: stagingZip,
           indexPath: paths.index,
           meta: fullMeta,
           onProgress,
         });
-        await fs.move(stagingZip, paths.zip, { overwrite: true });
+        try {
+          await fs.move(stagingZip, paths.zip, { overwrite: true });
+        } catch (err) {
+          if (await fs.pathExists(indexBak)) {
+            await fs.move(indexBak, paths.index, { overwrite: true });
+          }
+          throw err;
+        }
         this.restoreCopiedRecords(
           booksDbPath,
           previousCopied,
           fullMeta.archiveId
         );
+        await fs.remove(indexBak).catch(() => undefined);
         onProgress?.({ stage: 'done' });
       } catch (err) {
         await fs.remove(stagingZip).catch(() => undefined);
+        await fs.remove(indexBak).catch(() => undefined);
         throw err;
       }
     } finally {
