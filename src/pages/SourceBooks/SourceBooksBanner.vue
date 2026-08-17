@@ -38,7 +38,7 @@
       · {{ processingNote }}
     </span>
     <span class="ms-auto text-gray-500 dark:text-gray-400">{{
-      t`Read-only — never posted to your books`
+      t`Import lists natively — review and search history here`
     }}</span>
   </div>
 </template>

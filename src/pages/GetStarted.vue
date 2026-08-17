@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col overflow-y-hidden">
-    <PageHeader :title="t`Set Up Your Workspace`">
+    <PageHeader :title="t`Get Started`">
       <p class="text-sm text-gray-600 dark:text-gray-400 select-none">
         {{ progressLabel }}
       </p>
@@ -12,12 +12,11 @@
         custom-scroll custom-scroll-thumb1
       "
     >
-      <div class="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+      <div class="p-4 flex flex-col gap-4">
         <section
           v-for="(section, sIndex) in sections"
           :key="section.label"
           class="min-w-0"
-          :class="{ 'lg:col-span-2': section.optional }"
         >
           <div
             class="
@@ -157,10 +156,14 @@ import Button from 'src/components/Button.vue';
 import Icon from 'src/components/Icon.vue';
 import PageHeader from 'src/components/PageHeader.vue';
 import { fyo } from 'src/initFyo';
-import { getGetStartedConfig } from 'src/utils/getStartedConfig';
+import {
+  connectBankFeedsActionLabel,
+  getGetStartedConfig,
+} from 'src/utils/getStartedConfig';
 import {
   getLivebooksCloudSessionSummary,
   LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
+  openLivebooksCloudSignIn,
 } from 'src/utils/livebooksCloud';
 import { GetStartedConfigItem } from 'src/utils/types';
 import { defineComponent } from 'vue';
@@ -222,6 +225,7 @@ export default defineComponent({
     }
   },
   async activated() {
+    this.sections = getGetStartedConfig();
     await fyo.doc.getDoc('GetStarted');
     await this.refreshCloudSignedIn();
     await this.checkForCompletedTasks();
@@ -245,7 +249,7 @@ export default defineComponent({
         if (this.sectionTouched[index]) {
           return this.sectionOpen[index];
         }
-        // Optional sections (Cloud) stay open even when signed in.
+        // Optional sections stay open even when their items are complete.
         if (section.optional) {
           return true;
         }
@@ -257,12 +261,19 @@ export default defineComponent({
       this.sectionOpen[index] = !this.sectionOpen[index];
     },
     actionLabel(item: ListItem): string {
+      if (item.key === 'CloudBankFeeds') {
+        return connectBankFeedsActionLabel(this.cloudSignedIn);
+      }
       if (this.isCompleted(item)) {
         return item.viewLabel || this.t`View`;
       }
       return item.actionLabel || this.t`Set Up`;
     },
     async handleAction({ key, action }: ListItem) {
+      if (key === 'CloudBankFeeds' && !this.cloudSignedIn) {
+        await openLivebooksCloudSignIn();
+        return;
+      }
       if (action) {
         action();
       }
@@ -320,7 +331,7 @@ export default defineComponent({
       }
 
       if (!fyo.singles.GetStarted?.salesItemCreated) {
-        const count = await fyo.db.count('Item', { filters: { for: 'Sales' } });
+        const count = await fyo.db.count('Item');
         toUpdate.salesItemCreated = count > 0;
       }
 
@@ -368,10 +379,6 @@ export default defineComponent({
       await fyo.doc.getDoc('GetStarted');
     },
     isCompleted(item: ListItem) {
-      if (item.completedKey === 'cloudSignedIn') {
-        return this.cloudSignedIn;
-      }
-
       if (!item.fieldname) {
         return false;
       }

@@ -35,15 +35,21 @@
           {{ t`Attaching a new archive replaces the current one.` }}
         </div>
         <h2 v-else class="text-lg font-semibold dark:text-gray-25">
-          {{ t`Bring your QuickBooks Desktop history into LiveBooks` }}
+          {{ t`Migrate your QuickBooks Desktop company file` }}
         </h2>
         <p
           v-if="!status?.attached"
           class="mt-1 text-sm text-gray-700 dark:text-gray-200 max-w-2xl"
         >
           {{
-            t`Your QBD Archive is a read-only, searchable copy of a QuickBooks Desktop company file. It never posts to your live books.`
+            t`Import customers, vendors, items, and accounts into LiveBooks natively.`
           }}
+        </p>
+        <p
+          v-if="!status?.attached"
+          class="mt-1 text-sm text-gray-700 dark:text-gray-200 max-w-2xl"
+        >
+          {{ t`Review and search the rest of your past history here.` }}
         </p>
 
         <ol class="mt-6 space-y-5">
@@ -51,11 +57,11 @@
             <span class="step-badge">1</span>
             <div>
               <h3 class="font-medium dark:text-gray-25">
-                {{ t`Set up QuickBooks Desktop export on Cloud` }}
+                {{ t`Setup QBD export process on Cloud` }}
               </h3>
               <p class="text-sm text-gray-700 dark:text-gray-200 max-w-xl">
                 {{
-                  t`Sign in to LiveBooks Cloud, create a QBD export, and authorize the Web Connector while your company file is open as the QuickBooks Admin. This part is manual.`
+                  t`Sign in to Cloud, create a QBD export, authorize Web Connector as Admin.`
                 }}
               </p>
               <Button class="mt-2" type="primary" @click="openCloudSetup">
@@ -71,7 +77,7 @@
               </h3>
               <p class="text-sm text-gray-700 dark:text-gray-200 max-w-xl">
                 {{
-                  t`Once authorized, the extract runs automatically — no per-entity clicking. Cloud tells you when the archive ZIP is ready.`
+                  t`The extract runs automatically. Cloud tells you when the archive is ready.`
                 }}
               </p>
             </div>
@@ -657,7 +663,8 @@ export default defineComponent({
 <style scoped>
 .step-badge {
   @apply flex h-6 w-6 flex-none items-center justify-center rounded-full
-    bg-blue-100 text-xs font-semibold text-blue-700;
+    bg-gray-200 text-xs font-semibold text-green-600
+    dark:bg-gray-700 dark:text-green-400;
 }
 .archive-date-input {
   @apply rounded border px-2 py-2 text-sm bg-white;

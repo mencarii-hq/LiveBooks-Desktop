@@ -52,57 +52,62 @@
         {{ t`Add bank` }}
       </Button>
       <template v-else>
-        <label
-          class="
-            inline-flex
-            items-center
-            gap-1.5
-            text-sm text-gray-700
-            dark:text-gray-200
-            border
-            dark:border-gray-700
-            rounded-md
-            px-2.5
-            h-8
-            bg-white
-            dark:bg-gray-800
-            cursor-pointer
-            select-none
-          "
-          :title="autostageTip"
-        >
-          <input
-            type="checkbox"
-            class="accent-green-600"
-            :checked="plaidAutoStageImportBatches"
-            @change="togglePlaidAutoStage"
-          />
-          <span>{{ t`Auto-add` }}</span>
-          <span
+        <Button v-if="needsCloudSignIn" type="primary" @click="signIntoCloud">
+          {{ t`Sign into Cloud` }}
+        </Button>
+        <template v-else>
+          <label
             class="
               inline-flex
               items-center
-              justify-center
-              w-3.5
-              h-3.5
-              rounded-full
-              border border-gray-300
-              dark:border-gray-600
-              text-[10px]
-              font-bold
-              text-gray-500
+              gap-1.5
+              text-sm text-gray-700
+              dark:text-gray-200
+              border
+              dark:border-gray-700
+              rounded-md
+              px-2.5
+              h-8
+              bg-white
+              dark:bg-gray-800
+              cursor-pointer
+              select-none
             "
             :title="autostageTip"
-            >i</span
           >
-        </label>
-        <Button
-          type="primary"
-          :disabled="plaidLinkBusy || !bookId"
-          @click="linkBankWithPlaid()"
-        >
-          {{ t`Connect via Plaid` }}
-        </Button>
+            <input
+              type="checkbox"
+              class="accent-green-600"
+              :checked="plaidAutoStageImportBatches"
+              @change="togglePlaidAutoStage"
+            />
+            <span>{{ t`Auto-add` }}</span>
+            <span
+              class="
+                inline-flex
+                items-center
+                justify-center
+                w-3.5
+                h-3.5
+                rounded-full
+                border border-gray-300
+                dark:border-gray-600
+                text-[10px]
+                font-bold
+                text-gray-500
+              "
+              :title="autostageTip"
+              >i</span
+            >
+          </label>
+          <Button
+            type="primary"
+            :disabled="plaidLinkBusy || !bookId"
+            @click="linkBankWithPlaid()"
+          >
+            {{ t`Connect via Plaid` }}
+          </Button>
+        </template>
       </template>
     </PageHeader>
     <div class="flex flex-1 min-h-0 overflow-hidden">
@@ -129,6 +134,22 @@
           class="text-sm text-gray-600 dark:text-gray-300"
         >
           {{ t`Loading accounts…` }}
+        </div>
+        <div
+          v-else-if="hubTab === 'online' && needsCloudSignIn"
+          class="max-w-xl"
+        >
+          <h2 class="text-lg font-semibold dark:text-gray-25">
+            {{ t`Sign into LiveBooks Cloud` }}
+          </h2>
+          <p class="mt-1 text-sm text-gray-700 dark:text-gray-200">
+            {{
+              t`Online bank feeds use LiveBooks Cloud when your operations need them. Sign in to connect banks via Plaid.`
+            }}
+          </p>
+          <Button class="mt-3" type="primary" @click="signIntoCloud">
+            {{ t`Sign into Cloud` }}
+          </Button>
         </div>
         <div
           v-else-if="hubTab === 'online' && !visibleBankTables.length"
@@ -539,8 +560,10 @@ import { t } from 'fyo';
 import { fyo } from 'src/initFyo';
 import { showToast } from 'src/utils/interactive';
 import {
+  getLivebooksCloudSessionSummary,
   LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
   openLivebooksCloudAccountSecurity,
+  openLivebooksCloudSignIn,
 } from 'src/utils/livebooksCloud';
 import { ensureLivebooksCloudBookId } from 'src/utils/livebooksCloudBook';
 import {
@@ -634,6 +657,7 @@ export default defineComponent({
   data() {
     return {
       bookId: '' as string,
+      cloudSignedIn: null as boolean | null,
       plaidAutoStageImportBatches: true as boolean,
       feedsLoading: false,
       feedsError: '' as string,
@@ -892,6 +916,9 @@ export default defineComponent({
     autostageTip(): string {
       return t`When on, new online import batches are auto-staged into Bank Account Activity (For Review). Applies to all online banks.`;
     },
+    needsCloudSignIn(): boolean {
+      return this.cloudSignedIn === false;
+    },
   },
   watch: {
     '$route.query': {
@@ -917,6 +944,7 @@ export default defineComponent({
     this.syncHubStateFromRoute();
     this.restorePersistedSelectionIfNeeded();
     void this.loadManualSection();
+    void this.bootstrapFeeds();
   },
   deactivated() {
     if (this.selectedAccount) {
@@ -936,7 +964,7 @@ export default defineComponent({
     document.addEventListener('visibilitychange', this.boundVisibility);
     this.boundCloudSessionRefresh = () => {
       void this.bootstrapAccounts();
-      void refreshFeedsNow();
+      void this.bootstrapFeeds();
     };
     document.addEventListener(
       LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
@@ -1322,6 +1350,9 @@ export default defineComponent({
         this.plaidLinkBusy = false;
       }
     },
+    async signIntoCloud() {
+      await openLivebooksCloudSignIn();
+    },
     msgSignInCloud() {
       return t`Online bank feeds are for when your operations need them. Sign into LiveBooks Cloud to use them here.`;
     },
@@ -1620,15 +1651,26 @@ export default defineComponent({
       }
     },
     onVisibility() {
-      if (!document.hidden) {
-        void refreshFeedsNow();
+      if (document.hidden) {
+        return;
       }
+      if (!this.cloudSignedIn || !this.bookId) {
+        void this.bootstrapFeeds();
+        return;
+      }
+      void refreshFeedsNow();
     },
     async bootstrapFeeds() {
+      const { signedIn } = await getLivebooksCloudSessionSummary();
+      this.cloudSignedIn = signedIn;
+      if (!signedIn) {
+        this.bookId = '';
+        return;
+      }
       const ctx = await ensureLivebooksCloudBookId(fyo);
       if (!ctx.ok) {
-        // Do not surface cloud sign-in here — Manual feeds work offline;
-        // Online connect messaging lives on the Online tab.
+        // Manual feeds work offline; Online connect messaging lives on the
+        // Online tab (sign-in CTA when signed out, Connect via Plaid after).
         this.bookId = '';
         return;
       }

@@ -1,16 +1,22 @@
 import { t } from 'fyo';
 import { ModelNameEnum } from 'models/types';
 import { fyo } from 'src/initFyo';
-import { openLivebooksCloudSignIn } from './livebooksCloud';
-import { livebooksCloudQbdExportUrl } from './livebooksCloudUrls';
+import { isClassicTheme } from './qbdFamiliarity';
 import { getFormRoute, openSettings, routeTo } from './ui';
 import { GetStartedConfigItem } from './types';
+
+/** Connect Bank Feeds (Accounts, last row): sign in first, then open Online. */
+export function connectBankFeedsActionLabel(signedIn: boolean): string {
+  return signedIn ? t`Open` : t`Sign into Cloud`;
+}
 
 export function getGetStartedConfig(): GetStartedConfigItem[] {
   /* eslint-disable @typescript-eslint/no-misused-promises */
   return [
     {
-      label: t`Organisation`,
+      label: isClassicTheme(fyo.singles.SystemSettings)
+        ? t`Company`
+        : t`Organization`,
       items: [
         {
           key: 'General',
@@ -21,19 +27,12 @@ export function getGetStartedConfig(): GetStartedConfigItem[] {
           action: () => openSettings(ModelNameEnum.AccountingSettings),
         },
         {
-          key: 'Import Lists',
-          label: t`Import Lists (CSV)`,
+          key: 'ExportQBD',
+          label: t`Migrate Your QBD File`,
           icon: 'common-entries',
-          description: t`Import accounts, customers, vendors, items, and other lists from a CSV file`,
-          action: () => routeTo('/import-lists'),
-        },
-        {
-          key: 'Print',
-          label: t`Print`,
-          icon: 'invoice',
-          description: t`Customize your invoices by adding a logo and address details`,
-          fieldname: 'printSetup',
-          action: () => openSettings(ModelNameEnum.PrintSettings),
+          description: t`Import customers, vendors, items, and accounts. Review and search past history here.`,
+          actionLabel: t`Open`,
+          action: () => routeTo('/source-books'),
         },
       ],
     },
@@ -62,30 +61,25 @@ export function getGetStartedConfig(): GetStartedConfigItem[] {
           },
         },
         {
-          key: 'Add Taxes',
-          label: t`Add Taxes`,
-          icon: 'percentage',
-          fieldname: 'taxesAdded',
-          description: t`Set up your tax templates for your sales or purchase transactions`,
-          action: () => routeTo('/list/Tax'),
+          key: 'CloudBankFeeds',
+          label: t`Connect Bank Feeds`,
+          icon: 'opening-ac',
+          description: t`Set up online banking to get feeds from your bank.`,
+          actionLabel: t`Open`,
+          action: () =>
+            routeTo({ path: '/bank-feeds', query: { tab: 'online' } }),
         },
       ],
     },
     {
-      label: t`Receivable`,
+      label: t`Customers & Vendors`,
       items: [
         {
           key: 'Add Sales Items',
           label: t`Add Items`,
           icon: 'item',
-          description: t`Add products or services that you sell to your customers`,
-          action: () =>
-            routeTo({
-              path: `/list/Item/${t`Sales Items`}`,
-              query: {
-                filters: JSON.stringify({ for: 'Sales' }),
-              },
-            }),
+          description: t`Add products or services that you sell or buy`,
+          action: () => routeTo(`/list/Item/${t`Items`}`),
           fieldname: 'salesItemCreated',
         },
         {
@@ -103,33 +97,6 @@ export function getGetStartedConfig(): GetStartedConfigItem[] {
           fieldname: 'customerCreated',
         },
         {
-          key: 'Create Sales Invoice',
-          label: t`Create Sales Invoice`,
-          icon: 'sales-invoice',
-          description: t`Create your first sales invoice for the created customer`,
-          action: () => routeTo('/list/SalesInvoice'),
-          fieldname: 'invoiceCreated',
-        },
-      ],
-    },
-    {
-      label: t`Payable`,
-      items: [
-        {
-          key: 'Add Purchase Items',
-          label: t`Add Items`,
-          icon: 'item',
-          description: t`Add products or services that you buy from your suppliers`,
-          action: () =>
-            routeTo({
-              path: `/list/Item/${t`Purchase Items`}`,
-              query: {
-                filters: JSON.stringify({ for: 'Purchases' }),
-              },
-            }),
-          fieldname: 'purchaseItemCreated',
-        },
-        {
           key: 'Add Suppliers',
           label: t`Add Vendors`,
           icon: 'supplier',
@@ -142,6 +109,14 @@ export function getGetStartedConfig(): GetStartedConfigItem[] {
           fieldname: 'supplierCreated',
         },
         {
+          key: 'Create Sales Invoice',
+          label: t`Create Sales Invoice`,
+          icon: 'sales-invoice',
+          description: t`Create your first sales invoice for the created customer`,
+          action: () => routeTo('/list/SalesInvoice'),
+          fieldname: 'invoiceCreated',
+        },
+        {
           key: 'Create Purchase Invoice',
           label: t`Enter Bills`,
           icon: 'purchase-invoice',
@@ -152,38 +127,30 @@ export function getGetStartedConfig(): GetStartedConfigItem[] {
       ],
     },
     {
-      label: t`Cloud`,
-      optional: true,
+      label: t`Misc`,
       items: [
         {
-          key: 'CloudSignIn',
-          label: t`Sign in to LiveBooks Cloud`,
-          icon: 'cloud',
-          description: t`Books stay on this computer. Cloud is for when your operations need backup, sync, and collaboration.`,
-          actionLabel: t`Sign in`,
-          viewLabel: t`Open`,
-          completedKey: 'cloudSignedIn',
-          action: () => {
-            void openLivebooksCloudSignIn();
-          },
-        },
-        {
-          key: 'ExportQBD',
-          label: t`Export QuickBooks Desktop`,
+          key: 'Import Lists',
+          label: t`Import Lists (CSV)`,
           icon: 'common-entries',
-          description: t`Export your QuickBooks Desktop company file from Cloud.`,
-          actionLabel: t`Open`,
-          action: () => {
-            ipc.openLink(livebooksCloudQbdExportUrl());
-          },
+          description: t`Import accounts, customers, vendors, items, and other lists from a CSV file`,
+          action: () => routeTo('/import-lists'),
         },
         {
-          key: 'CloudBankFeeds',
-          label: t`Connect bank feeds`,
-          icon: 'opening-ac',
-          description: t`Import transactions from your bank. Manual feeds work offline.`,
-          actionLabel: t`Open`,
-          action: () => routeTo('/bank-feeds'),
+          key: 'Print',
+          label: t`Print`,
+          icon: 'invoice',
+          description: t`Customize your invoices by adding a logo and address details`,
+          fieldname: 'printSetup',
+          action: () => openSettings(ModelNameEnum.PrintSettings),
+        },
+        {
+          key: 'Add Taxes',
+          label: t`Add Taxes`,
+          icon: 'percentage',
+          fieldname: 'taxesAdded',
+          description: t`Set up your tax templates for your sales or purchase transactions`,
+          action: () => routeTo('/list/Tax'),
         },
       ],
     },
