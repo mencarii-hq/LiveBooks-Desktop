@@ -67,7 +67,7 @@ export type ImportBatchesListPayload = {
 export type PromptTotpFn = () => Promise<string | null>;
 export type MfaStepUpPrompt = PromptTotpFn | null | undefined;
 
-export const MFA_BROWSER_STEP_UP_MESSAGE = t`Verify your identity in LiveBooks Cloud, then try again.`;
+export const MFA_BROWSER_STEP_UP_MESSAGE = t`Verify your identity in LiveBooks Online, then try again.`;
 
 /** @deprecated Use openLivebooksCloudMfaStepUp — TOTP is no longer collected in-app. */
 export function promptPlaidMfaTotp(_detail?: string): Promise<string | null> {
@@ -292,7 +292,7 @@ export type BulkImportBatchPayloadRow = {
 
 /**
  * Fetch payloads for up to 30 PlaidImportBatch public_ids in a single round trip.
- * Mirrors the cloud `POST /api/v1/books/:book_id/plaid/import_batches/bulk_show` endpoint.
+ * Mirrors the Online `POST /api/v1/books/:book_id/plaid/import_batches/bulk_show` endpoint.
  */
 export async function bulkFetchImportBatchPayloads(
   bookId: string,
@@ -361,7 +361,7 @@ export async function bulkAckImportBatches(
 
 /**
  * Clears ack on recent import batches for one Plaid Item so the desktop can fetch
- * and apply them again from Cloud-held payloads (recovery after local deletes).
+ * and apply them again from Online-held payloads (recovery after local deletes).
  * Does not pull new history from Plaid beyond what Cloud already stored.
  */
 export async function reopenAckedPlaidImportBatches(

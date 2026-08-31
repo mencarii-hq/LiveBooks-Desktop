@@ -101,7 +101,7 @@ export function setSecureToken(key: TokenKey, value: string): void {
 
   if (!plaintextFallbackAllowed()) {
     // in packaged builds without OS keychain support,
-    // skip persistence entirely. Cloud session cannot be established
+    // skip persistence entirely. Online session cannot be established
     // until encryption is available. Cloud surfaces the warning.
     config.delete(encryptedKey(key));
     config.delete(key);

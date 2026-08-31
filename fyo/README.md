@@ -11,7 +11,7 @@ backend.
 
 This platform variablity will be handled by code in the `fyo/demux` subdirectory.
 
-_In LiveBooks Desktop (Electron), database demux calls use IPC; `DB_CALL` from the renderer is limited to the allowlisted methods in [`backend/helpers.ts`](../backend/helpers.ts) (`databaseMethodSet`). Cloud session tokens use `safeStorage` in the main process — see [`SECURITY.md`](../SECURITY.md) and [`utils/secureTokenStore.ts`](../utils/secureTokenStore.ts)._
+_In LiveBooks Desktop (Electron), database demux calls use IPC; `DB_CALL` from the renderer is limited to the allowlisted methods in [`backend/helpers.ts`](../backend/helpers.ts) (`databaseMethodSet`). Online session tokens use `safeStorage` in the main process — see [`SECURITY.md`](../SECURITY.md) and [`utils/secureTokenStore.ts`](../utils/secureTokenStore.ts)._
 
 ## Pre Req
 

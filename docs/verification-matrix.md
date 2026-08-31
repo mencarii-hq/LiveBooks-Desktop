@@ -19,7 +19,7 @@ Manual signing QA: [`signing-qa-runbook.md`](signing-qa-runbook.md).
 | Phase 1  | Frozen signing identity mirror | `main/tests/testFrozenSigningIdentity.spec.ts`                                     |
 | Phase 1  | Cipher profile (legacy paths)  | `backend/database/tests/testCipherProfile.spec.ts`                                 |
 | Phase 1b | Renderer cloud API denylist    | `utils/tests/testCloudApiDenylist.spec.ts`                                         |
-| Phase 1b | MFA API (cloud)                | `livebooks-cloud` `web_desktop_session_url_test.rb`, `api_v1_mfa_security_test.rb` |
+| Phase 1b | MFA API (Online)               | `livebooks-cloud` `web_desktop_session_url_test.rb`, `api_v1_mfa_security_test.rb` |
 | Phase 3  | UUID + C1 COA stability        | `utils/ids/tests/testIds.spec.ts`                                                  |
 | Phase 4  | Outbox cap + clientSeq         | `utils/sync/tests/testLocalMutationOutbox.spec.ts`                                 |
 | Phase 4  | DeviceId reconciliation        | `utils/sync/tests/testSyncDeviceGuard.spec.ts`                                     |
@@ -46,15 +46,15 @@ Manual signing QA: [`signing-qa-runbook.md`](signing-qa-runbook.md).
 ## Phase 4 integration notes
 
 - **Desktop:** `LocalMutation` / `SyncConflictLog` schemas; mutation logging in `dbHandler` + submit/cancel; `runSyncDeviceGuard` on init; `fetchWithCloudBackoff` on `LIVEBOOKS_CLOUD_API`.
-- **Cloud (follow-up):** `GET /api/v1/books/:book_id/sync/watermark`, mutation ingest, `book_sync_snapshots` worker — desktop tolerates 404 on watermark until Rails ships.
+- **Online (follow-up):** `GET /api/v1/books/:book_id/sync/watermark`, mutation ingest, `book_sync_snapshots` worker — desktop tolerates 404 on watermark until Rails ships.
 
 ---
 
 ## Sad-path spot checks (manual)
 
-| Scenario                              | Expected                                       |
-| ------------------------------------- | ---------------------------------------------- |
-| Packaged app + `http://` cloud origin | Boot fails loudly                              |
-| `deviceId` mismatch while offline     | Writes allowed with `pending_reconciliation`   |
-| Outbox cap (10k / 90d)                | `snapshot_required` pause; no destructive wipe |
-| Signing identity change               | Cloud re-sign-in; local `.books` still opens   |
+| Scenario                               | Expected                                       |
+| -------------------------------------- | ---------------------------------------------- |
+| Packaged app + `http://` Online origin | Boot fails loudly                              |
+| `deviceId` mismatch while offline      | Writes allowed with `pending_reconciliation`   |
+| Outbox cap (10k / 90d)                 | `snapshot_required` pause; no destructive wipe |
+| Signing identity change                | Online re-sign-in; local `.books` still opens  |

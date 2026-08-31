@@ -19,7 +19,7 @@ export default () => {
     host = process.env.VITE_HOST;
   }
 
-  // Dev server only. Never bake production Cloud into yarn dev,
+  // Dev server only. Never bake production Online into yarn dev,
   // even if LIVEBOOKS_CLOUD_ORIGIN is set in the environment.
   const fromEnv =
     process.env.VITE_LIVEBOOKS_CLOUD_ORIGIN ||

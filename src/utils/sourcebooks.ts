@@ -78,7 +78,7 @@ export async function getSourceBookStatus(): Promise<SourceBookStatus> {
 }
 
 /**
- * All archives on Cloud, ready or still extracting. Only `ready: true`
+ * All archives on Online, ready or still extracting. Only `ready: true`
  * archives can be pulled; the rest are shown with their extract progress.
  */
 export async function listCloudQbdExports(): Promise<

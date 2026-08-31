@@ -57,15 +57,15 @@
             <span class="step-badge">1</span>
             <div>
               <h3 class="font-medium dark:text-gray-25">
-                {{ t`Setup QBD export process on Cloud` }}
+                {{ t`Setup QBD export process on Online` }}
               </h3>
               <p class="text-sm text-gray-700 dark:text-gray-200 max-w-xl">
                 {{
-                  t`Sign in to Cloud, create a QBD export, authorize Web Connector as Admin.`
+                  t`Sign in to Online, create a QBD export, authorize Web Connector as Admin.`
                 }}
               </p>
               <Button class="mt-2" type="primary" @click="openCloudSetup">
-                {{ t`Set up on Cloud` }}
+                {{ t`Set up on Online` }}
               </Button>
             </div>
           </li>
@@ -73,11 +73,11 @@
             <span class="step-badge">2</span>
             <div>
               <h3 class="font-medium dark:text-gray-25">
-                {{ t`Leave QuickBooks open while Cloud extracts` }}
+                {{ t`Leave QuickBooks open while Online extracts` }}
               </h3>
               <p class="text-sm text-gray-700 dark:text-gray-200 max-w-xl">
                 {{
-                  t`The extract runs automatically. Cloud tells you when the archive is ready.`
+                  t`The extract runs automatically. Online tells you when the archive is ready.`
                 }}
               </p>
             </div>
@@ -105,7 +105,7 @@
                   class="text-sm text-gray-700 dark:text-gray-200"
                 >
                   {{
-                    t`No ready archives on Cloud yet. Finish steps 1–2, then check again.`
+                    t`No ready archives on Online yet. Finish steps 1–2, then check again.`
                   }}
                 </p>
                 <div
@@ -424,7 +424,7 @@ export default defineComponent({
       }
       if (p.stage === 'downloading') {
         const mb = ((p.bytes ?? 0) / (1024 * 1024)).toFixed(1);
-        return t`Downloading archive from Cloud… ${mb} MB`;
+        return t`Downloading archive from Online… ${mb} MB`;
       }
       if (p.stage === 'copying') {
         return t`Copying ZIP into the archive folder…`;

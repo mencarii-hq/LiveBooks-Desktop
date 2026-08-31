@@ -72,7 +72,7 @@
     },
     {
       "fieldname": "cloudStatementId",
-      "label": "Cloud statement id",
+      "label": "Online statement id",
       "fieldtype": "Data",
       "section": "Default"
     },

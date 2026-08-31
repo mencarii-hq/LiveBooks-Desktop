@@ -15,7 +15,7 @@ import { refreshLivebooksCloudTokens } from './registerIpcMainActionListeners';
 const streamPipeline = promisify(pipeline);
 
 /**
- * Bearer-authenticated GET against LiveBooks Cloud with the same
+ * Bearer-authenticated GET against LiveBooks Online with the same
  * refresh-once-on-401 behaviour as the generic JSON bridge, but usable for
  * binary streaming responses (the QBD archive ZIP).
  */
@@ -69,7 +69,7 @@ function normalizeExport(raw: unknown): CloudQbdExportSummary | null {
   };
 }
 
-/** List archives from Cloud (all of them; the UI decides what is pullable). */
+/** List archives from Online (all of them; the UI decides what is pullable). */
 export async function listCloudQbdExports(): Promise<
   { ok: true; exports: CloudQbdExportSummary[] } | { ok: false; error: string }
 > {
@@ -80,14 +80,14 @@ export async function listCloudQbdExports(): Promise<
     return { ok: false, error: (err as Error).message };
   }
   if (!res.ok) {
-    return { ok: false, error: `Cloud returned HTTP ${res.status}` };
+    return { ok: false, error: `Online returned HTTP ${res.status}` };
   }
 
   let body: unknown;
   try {
     body = await res.json();
   } catch {
-    return { ok: false, error: 'Cloud returned a non-JSON response' };
+    return { ok: false, error: 'Online returned a non-JSON response' };
   }
 
   const rawList =
@@ -95,7 +95,7 @@ export async function listCloudQbdExports(): Promise<
       ? (body as Record<string, unknown>).archives
       : undefined;
   if (!Array.isArray(rawList)) {
-    return { ok: false, error: 'Unexpected archive list shape from Cloud' };
+    return { ok: false, error: 'Unexpected archive list shape from Online' };
   }
 
   const exports: CloudQbdExportSummary[] = [];
@@ -124,17 +124,17 @@ async function downloadErrorMessage(res: Response): Promise<string> {
   }
   if (res.status === 409 || code === 'not_ready') {
     return (
-      'This archive is not finished on Cloud yet. ' +
+      'This archive is not finished on Online yet. ' +
       'Wait for the extract to complete, then check again.'
     );
   }
   if (res.status === 404 || code === 'not_found') {
-    return 'This archive no longer exists on Cloud. Check again for the current list.';
+    return 'This archive no longer exists on Online. Check again for the current list.';
   }
   if (code === 'archive_failed') {
-    return 'Cloud could not build the archive ZIP. Try re-running the export on Cloud.';
+    return 'Online could not build the archive ZIP. Try re-running the export on Online.';
   }
-  return `Cloud returned HTTP ${res.status}`;
+  return `Online returned HTTP ${res.status}`;
 }
 
 /**

@@ -4,8 +4,8 @@ import {
   defaultSectionOpen,
 } from '../getStartedConfig';
 
-test('Connect Bank Feeds asks for Cloud sign-in until the desktop session exists', (t) => {
-  t.equal(connectBankFeedsActionLabel(false), 'Sign into Cloud');
+test('Connect Bank Feeds asks for Online sign-in until the desktop session exists', (t) => {
+  t.equal(connectBankFeedsActionLabel(false), 'Sign into Online');
   t.equal(connectBankFeedsActionLabel(true), 'Open');
   t.end();
 });

@@ -50,7 +50,7 @@ export type ConfigMap = {
   lastSelectedFilePath: null | string;
   language: string;
   deviceId: string;
-  /** LiveBooks Cloud API (Bearer); set by main after desktop link exchange */
+  /** LiveBooks Online API (Bearer); set by main after desktop link exchange */
   livebooksCloudAccessToken?: string;
   livebooksCloudRefreshToken?: string;
   /** Encrypted variants stored as base64 when safeStorage is available */

@@ -22,7 +22,7 @@ export async function getLivebooksCloudSessionSummary(): Promise<{
   return await ipc.getLivebooksCloudSession();
 }
 
-/** Fired on `document` when cloud tokens are set or cleared (e.g. desktop deep link or disconnect). */
+/** Fired on `document` when Online tokens are set or cleared (e.g. desktop deep link or disconnect). */
 export const LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT =
   'livebooks-cloud-session-app-refresh';
 
@@ -33,7 +33,7 @@ export function dispatchLivebooksCloudSessionAppRefresh(): void {
 }
 
 /**
- * Opens the cloud sign-in page, or the cloud home when this desktop already holds API tokens
+ * Opens the Online sign-in page, or the Online home when this desktop already holds API tokens
  * (no second browser login required for the desktop integration).
  */
 export async function openLivebooksCloudSignIn(): Promise<void> {
@@ -41,7 +41,7 @@ export async function openLivebooksCloudSignIn(): Promise<void> {
   if (signedIn) {
     showToast({
       type: 'success',
-      message: t`Opening your LiveBooks Cloud account`,
+      message: t`Opening your LiveBooks Online account`,
       duration: 'short',
     });
     openLivebooksCloudHome();
@@ -85,7 +85,7 @@ export type LivebooksCloudApiResult = {
   subscriptionChangedAt?: string;
 };
 
-/** Bearer-authenticated JSON call to LiveBooks Cloud (via main process). */
+/** Bearer-authenticated JSON call to LiveBooks Online (via main process). */
 export async function livebooksCloudRequest(options: {
   method: string;
   path: string;
@@ -94,7 +94,7 @@ export async function livebooksCloudRequest(options: {
   headers?: Record<string, string>;
 }): Promise<LivebooksCloudApiResult> {
   // Desktop-side guardrail: de-dupe identical in-flight calls and add a small per-endpoint cooldown
-  // so repeated UI refreshes can't accidentally hammer the cloud.
+  // so repeated UI refreshes can't accidentally hammer Online.
   const method = options.method.toUpperCase();
   const key = `${method} ${options.path}`;
   const now = Date.now();
@@ -200,7 +200,7 @@ export function getLivebooksCloudOriginForDisplay(): string {
   return getLivebooksCloudOrigin();
 }
 
-/** User-facing copy when the cloud API cannot be reached (e.g. server stopped, wrong origin). */
+/** User-facing copy when the Online API cannot be reached (e.g. server stopped, wrong origin). */
 export function livebooksCloudUnreachableUserMessage(): string {
-  return t`Unable to connect to LiveBooks Cloud. Please disconnect and try again.`;
+  return t`Unable to connect to LiveBooks Online. Please disconnect and try again.`;
 }

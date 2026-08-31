@@ -199,7 +199,7 @@
           class="h-3 w-3 flex-shrink-0"
         />
         <p class="break-words">
-          {{ t`Cloud` }}
+          {{ t`Online` }}
         </p>
       </button>
 
@@ -302,7 +302,7 @@
         <div class="min-w-0 flex flex-col gap-2">
           <div class="flex items-start justify-between gap-3 min-w-0">
             <h2 class="text-lg font-semibold flex-1 min-w-0 pe-2">
-              {{ t`LiveBooks Cloud` }}
+              {{ t`LiveBooks Online` }}
             </h2>
             <button
               type="button"
@@ -349,7 +349,7 @@
             "
           >
             {{
-              t`Your books stay on this computer. LiveBooks Cloud is for when your operations need backup, sync, collaboration, and bank feeds. Sign in on the web to link this computer; keep this app open while you connect.`
+              t`Your books stay on this computer. LiveBooks Online is for when your operations need backup, sync, collaboration, and bank feeds. Sign in on the web to link this computer; keep this app open while you connect.`
             }}
           </p>
           <p
@@ -371,7 +371,7 @@
           >
             {{
               t`Secure storage is unavailable on this computer. Install or unlock a desktop keyring (GNOME Keyring or
-            KWallet) to connect LiveBooks Cloud. Without it, this app cannot keep a Cloud session.`
+            KWallet) to connect LiveBooks Online. Without it, this app cannot keep an Online session.`
             }}
           </p>
         </div>
@@ -383,8 +383,8 @@
           >
             {{
               livebooksCloudSignedIn
-                ? t`Open LiveBooks Cloud`
-                : t`Explore Cloud`
+                ? t`Open LiveBooks Online`
+                : t`Explore Online`
             }}
           </Button>
           <Button
@@ -624,13 +624,13 @@ export default defineComponent({
     },
     livebooksCloudManageButtonIcon(): string {
       if (!this.livebooksCloudSignedIn) {
-        return 'cloud';
+        return 'globe';
       }
       if (this.livebooksCloudReachable === false) {
         return 'alert-triangle';
       }
       if (this.livebooksCloudReachable === null) {
-        return 'cloud';
+        return 'globe';
       }
       return 'check-circle';
     },
@@ -645,15 +645,15 @@ export default defineComponent({
     },
     livebooksCloudManageButtonTitle(): string {
       if (!this.livebooksCloudSignedIn) {
-        return t`LiveBooks Cloud — backup, sync, and bank feeds when your operations need them`;
+        return t`LiveBooks Online — backup, sync, and bank feeds when your operations need them`;
       }
       if (this.livebooksCloudReachable === false) {
-        return t`LiveBooks Cloud — signed in, server unreachable`;
+        return t`LiveBooks Online — signed in, server unreachable`;
       }
       if (this.livebooksCloudReachable === null) {
-        return t`LiveBooks Cloud — checking connection`;
+        return t`LiveBooks Online — checking connection`;
       }
-      return t`LiveBooks Cloud — connected`;
+      return t`LiveBooks Online — connected`;
     },
   },
   async mounted() {
@@ -849,8 +849,8 @@ export default defineComponent({
     },
     async handleDisconnectLivebooksCloud() {
       await showDialog({
-        title: t`Disconnect LiveBooks Cloud?`,
-        detail: t`This computer will no longer be linked to your account until you connect again. Your company file and cloud data are not deleted.`,
+        title: t`Disconnect LiveBooks Online?`,
+        detail: t`This computer will no longer be linked to your account until you connect again. Your company file and Online data are not deleted.`,
         type: 'warning',
         buttons: [
           {
@@ -867,7 +867,7 @@ export default defineComponent({
               await this.refreshLivebooksCloudSignedIn();
               showToast({
                 type: 'success',
-                message: t`Disconnected from LiveBooks Cloud`,
+                message: t`Disconnected from LiveBooks Online`,
                 duration: 'short',
               });
             },

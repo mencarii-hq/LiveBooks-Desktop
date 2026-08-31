@@ -423,7 +423,7 @@ export default function registerIpcMainActionListeners(main: Main) {
     return {
       signedIn: isLivebooksCloudSignedIn(),
       // Linux-only UX: Mac Keychain / Windows DPAPI cover other platforms.
-      // Packaged Linux without GNOME Keyring / KWallet cannot keep a Cloud session.
+      // Packaged Linux without GNOME Keyring / KWallet cannot keep an Online session.
       secureStorageDegraded:
         process.platform === 'linux' && isSecureStorageDegraded(),
     };

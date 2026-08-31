@@ -32,8 +32,8 @@ function isLivebooksCloudNetworkFailure(res: LivebooksCloudApiResult): boolean {
 }
 
 /**
- * Resolves the cloud book UUID for the open company using Frappe Books
- * `store.instanceId`. Creates the cloud book on first success when lookup returns 404.
+ * Resolves the Online book UUID for the open company using Frappe Books
+ * `store.instanceId`. Creates the Online book on first success when lookup returns 404.
  */
 export async function ensureLivebooksCloudBookId(
   fyo: Fyo
@@ -106,7 +106,7 @@ export async function ensureLivebooksCloudBookId(
       ok: false,
       reason: 'api_error',
       message:
-        msg ?? `Could not create cloud book (HTTP ${String(created.status)}).`,
+        msg ?? `Could not create Online book (HTTP ${String(created.status)}).`,
     };
   }
 
@@ -117,13 +117,14 @@ export async function ensureLivebooksCloudBookId(
   return {
     ok: false,
     reason: 'api_error',
-    message: msg ?? `Cloud book lookup failed (HTTP ${String(lookup.status)}).`,
+    message:
+      msg ?? `Online book lookup failed (HTTP ${String(lookup.status)}).`,
   };
 }
 
 /**
  * Best-effort: revoke all Plaid Items for a company before local DB delete.
- * Skips when not signed in or the cloud book does not exist.
+ * Skips when not signed in or the Online book does not exist.
  */
 export async function purgeCloudPlaidItemsForInstance(
   instanceId: string
@@ -153,13 +154,13 @@ export async function purgeCloudPlaidItemsForInstance(
     const msg =
       lookup.data && typeof lookup.data === 'object' && 'message' in lookup.data
         ? String((lookup.data as { message: unknown }).message)
-        : `Cloud book lookup failed (HTTP ${String(lookup.status)}).`;
+        : `Online book lookup failed (HTTP ${String(lookup.status)}).`;
     return { ok: false, error: msg };
   }
 
   const bookId = (lookup.data as { book_id?: unknown }).book_id;
   if (typeof bookId !== 'string' || bookId.length === 0) {
-    return { ok: false, error: 'Cloud book lookup returned no book_id.' };
+    return { ok: false, error: 'Online book lookup returned no book_id.' };
   }
 
   const purge = await livebooksCloudRequest({

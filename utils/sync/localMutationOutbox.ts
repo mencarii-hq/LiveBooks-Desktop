@@ -12,7 +12,7 @@ import type {
 export const OUTBOX_MAX_MUTATIONS = 10_000;
 export const OUTBOX_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000;
 
-/** Internal / meta tables — never enqueue for cloud sync. */
+/** Internal / meta tables — never enqueue for Online sync. */
 export const MUTATION_LOG_SKIP_SCHEMAS = new Set([
   'LocalMutation',
   'SyncConflictLog',
@@ -35,7 +35,7 @@ export type LocalMutationGateContext = {
   deviceId: string;
 };
 
-/** True when cloud sync intent is active and the device may enqueue mutations. */
+/** True when Online sync intent is active and the device may enqueue mutations. */
 export function shouldRecordLocalMutation(
   ctx: LocalMutationGateContext
 ): boolean {

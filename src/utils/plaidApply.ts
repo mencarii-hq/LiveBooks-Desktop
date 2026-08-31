@@ -12,7 +12,7 @@
  * acking after a crash. Replay is safe because of the per-row externalId upsert
  * and server-side ack idempotency (`PlaidImportBatchesController#ack`).
  *
- * Pending Plaid txns (when included in payloads via the cloud feature flag) are
+ * Pending Plaid txns (when included in payloads via the Online feature flag) are
  * stamped `isPending=true` + `matchStatus=ignored:plaid_pending` so the user
  * cannot reconcile them. A `removed` row pointing at a pending line is treated
  * as the normal pending->posted swap and the local row is deleted silently;

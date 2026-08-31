@@ -52,5 +52,5 @@ Notes:
 
 After installing a **signed staging** build over an **unsigned dev** build on the same machine (or after a code-signing cert rotation), confirm:
 
-- The local `.books` file still opens without cloud key restore.
-- LiveBooks Cloud sign-in is prompted if session tokens no longer decrypt from `safeStorage`.
+- The local `.books` file still opens without Online key restore.
+- LiveBooks Online sign-in is prompted if session tokens no longer decrypt from `safeStorage`.

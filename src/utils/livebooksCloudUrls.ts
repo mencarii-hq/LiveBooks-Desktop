@@ -1,5 +1,5 @@
 /**
- * LiveBooks Cloud web and API paths (see livebooks-cloud config/routes.rb).
+ * LiveBooks Online web and API paths (see livebooks-cloud config/routes.rb).
  * Set `VITE_LIVEBOOKS_CLOUD_ORIGIN` (dev server / build) for a non-default API host.
  */
 
@@ -15,7 +15,7 @@ export function getLivebooksCloudOrigin(): string {
   return trimTrailingSlash(raw || 'http://127.0.0.1:3000');
 }
 
-/** Cloud dashboard (Explore). Unauthenticated visitors can look around; not a Devise route. */
+/** Online dashboard (Explore). Unauthenticated visitors can look around; not a Devise route. */
 export function livebooksCloudRootUrl(): string {
   return `${getLivebooksCloudOrigin()}/`;
 }
@@ -30,7 +30,7 @@ export function livebooksCloudSignUpUrl(): string {
   return `${getLivebooksCloudOrigin()}/registrations/new`;
 }
 
-/** Cloud billing. Logged-out `/billing` already returns here after Cloud sign-in — no extra query params. */
+/** Online billing. Logged-out `/billing` already returns here after Online sign-in — no extra query params. */
 export function livebooksCloudSubscribeUrl(): string {
   return `${getLivebooksCloudOrigin()}/billing`;
 }
@@ -44,12 +44,12 @@ export function livebooksCloudMfaStepUpUrl(): string {
   return `${getLivebooksCloudOrigin()}/account/security/step_up`;
 }
 
-/** Stable survey entry — cloud 302s to the Google Form (Phase 0). */
+/** Stable survey entry — Online 302s to the Google Form (Phase 0). */
 export function livebooksCloudFeedbackUrl(): string {
   return `${getLivebooksCloudOrigin()}/feedback`;
 }
 
-/** QuickBooks Desktop export (Web Connector) on Cloud. */
+/** QuickBooks Desktop export (Web Connector) on Online. */
 export function livebooksCloudQbdExportUrl(): string {
   return `${getLivebooksCloudOrigin()}/qbd_exports`;
 }

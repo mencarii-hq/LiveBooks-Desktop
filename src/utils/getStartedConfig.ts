@@ -10,7 +10,7 @@ export const GET_STARTED_SECTION_OPEN_KEY =
 
 /** Connect Bank Feeds (Accounts, last row): sign in first, then open Online. */
 export function connectBankFeedsActionLabel(signedIn: boolean): string {
-  return signedIn ? t`Open` : t`Sign into Cloud`;
+  return signedIn ? t`Open` : t`Sign into Online`;
 }
 
 export function readGetStartedSectionOpen(): Record<string, boolean> {

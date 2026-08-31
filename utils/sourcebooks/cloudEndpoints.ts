@@ -1,7 +1,7 @@
 /**
  * Cloud endpoints for the QBD source book archive (final for this release).
  * Bearer JWT auth, same as other /api/v1 endpoints. Paths are isolated here
- * so a route tweak on Cloud is a one-line change on Desktop.
+ * so a route tweak on Online is a one-line change on Desktop.
  *
  * Contract:
  *   GET {list}     -> 200 { "archives": [{ id, company_name, status, ready,

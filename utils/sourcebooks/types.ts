@@ -117,7 +117,7 @@ export interface SourceBookSnapshot {
   data: string;
 }
 
-/** One QBD export/archive as listed from Cloud (`GET /api/v1/source-books`). */
+/** One QBD export/archive as listed from Online (`GET /api/v1/source-books`). */
 export interface CloudQbdExportSummary {
   id: string;
   companyName?: string;

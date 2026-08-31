@@ -823,11 +823,11 @@ export default defineComponent({
       if (!ctx.ok) {
         if (ctx.reason === 'not_signed_in') {
           this.bookError =
-            t`Sign into LiveBooks Cloud to load pending batches.`;
+            t`Sign into LiveBooks Online to load pending batches.`;
         } else {
           this.bookError =
             ctx.message ??
-            t`Could not resolve your cloud book for this company file.`;
+            t`Could not resolve your Online book for this company file.`;
         }
         // Even without cloud, still show local lines.
         await this.loadManualLines();
@@ -841,7 +841,7 @@ export default defineComponent({
         fyo.config.get('plaidAutoStageImportBatches', true) !== false;
       await this.loadRecentFailures(mine);
       await this.loadBatchesForAccount(mine);
-      // When enabled (default), stage Cloud import batches into For Review. GL only
+      // When enabled (default), stage Online import batches into For Review. GL only
       // updates when the user adds/matches in this UI. Can be turned off in Settings.
       if (this.plaidAutoStageImportBatches) {
         await this.autoApplyPendingBatches();

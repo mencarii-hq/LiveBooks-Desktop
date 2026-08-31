@@ -47,7 +47,7 @@ const liveBooksConfig = {
   // Prefer FROZEN_ARTIFACT_SLUG over ${productName}: spaces in productName
   // become '.' on Windows artifacts and '-' elsewhere, breaking GitHub
   // auto-update asset names vs latest.yml / prior installs.
-  protocols: [{ name: 'LiveBooks Cloud handoff', schemes: ['livebooks'] }],
+  protocols: [{ name: 'LiveBooks Online handoff', schemes: ['livebooks'] }],
   artifactName: `${FROZEN_ARTIFACT_SLUG}-v\${version}-\${os}-\${arch}.\${ext}`,
   asarUnpack: '**/*.node',
   // ASAR Integrity — enable when ready for release hardening.

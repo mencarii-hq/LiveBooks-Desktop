@@ -40,7 +40,7 @@ export async function maybePromptFeedbackSurvey(fyo: Fyo): Promise<void> {
 
   const open = await showDialog({
     title: t`Give feedback`,
-    detail: t`Got two minutes? Tell us what’s broken and whether you’d use encrypted cloud backup.`,
+    detail: t`Got two minutes? Tell us what’s broken and whether you’d use encrypted Online backup.`,
     type: 'info',
     buttons: [
       {

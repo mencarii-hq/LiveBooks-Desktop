@@ -25,7 +25,7 @@ export function isProductionCloudOrigin(origin: string): boolean {
  * Resolve LIVEBOOKS_CLOUD_ORIGIN for main-process HTTP.
  *
  * Packaged builds require https:// and an explicit origin env var.
- * Unpackaged (yarn dev) never talks to production Cloud — even if
+ * Unpackaged (yarn dev) never talks to production Online — even if
  * LIVEBOOKS_CLOUD_ORIGIN is set in the shell (e.g. copied from GH secrets).
  */
 export function resolveLivebooksCloudOrigin(

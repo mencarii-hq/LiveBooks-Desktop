@@ -50,7 +50,7 @@ export function evaluatePlaidCatchUp(opts: {
         allow: false,
         reason: 'gap_detected',
         message:
-          'A gap was detected between your last successful bank feed apply and the oldest pending batch. Import CSV/OFX for the missing period, or use Pull anyway after confirming cloud data is complete.',
+          'A gap was detected between your last successful bank feed apply and the oldest pending batch. Import CSV/OFX for the missing period, or use Pull anyway after confirming Online data is complete.',
       };
     }
   }

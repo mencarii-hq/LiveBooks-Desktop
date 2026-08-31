@@ -31,7 +31,7 @@
       t`as exported from QBD on ${exportedAtLabel} — not recalculated`
     }}</span>
     <span>·</span>
-    <span v-if="origin === 'cloud'">{{ t`Pulled from LiveBooks Cloud` }}</span>
+    <span v-if="origin === 'cloud'">{{ t`Pulled from LiveBooks Online` }}</span>
     <span v-else>{{ t`Attached from a local ZIP` }}</span>
     <span v-if="attachedAtLabel">({{ attachedAtLabel }})</span>
     <span v-if="processingNote" class="text-yellow-800 dark:text-yellow-200">

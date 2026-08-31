@@ -12,7 +12,7 @@ Platforms
 
 [Releases](https://github.com/mencarii-hq/LiveBooks-Desktop/releases) · [Contributing](.github/CONTRIBUTING.md) · [Upstream: Frappe Books](https://github.com/frappe/books)
 
-**Pro Cloud Signup**: [mencarii.com](https://mencarii.com) (live bank feeds and more)
+**Pro Online Signup**: [mencarii.com](https://mencarii.com) (live bank feeds and more)
 
 **Security & verification:** [`SECURITY.md`](SECURITY.md) · [`docs/verification-matrix.md`](docs/verification-matrix.md) · `yarn test:day1`
 
@@ -36,7 +36,7 @@ Accounting core and many capabilities come from upstream; see **[frappe/books](h
 - Reconciliation: Match bank activity to ledger entries.
 - Dashboard: Overview of key financial data and performance metrics.
 - Point of Sale: Integrated POS for retail sales.
-- Works offline: Continue working without the internet; **cloud sync when your operations need it**.
+- Works offline: Continue working without the internet; **Online sync when your operations need it**.
 - Double-entry accounting: Each transaction recorded across two accounts.
 
 ### Data philosophy
@@ -48,13 +48,13 @@ Accounting core and many capabilities come from upstream; see **[frappe/books](h
 
 ### Security posture (summary)
 
-| Topic                | Behavior                                                                                                                                                    |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Local ledger         | Plaintext SQLite (`.books`); rely on OS FDE + user backups — see [`SECURITY.md`](SECURITY.md)                                                               |
-| Cloud session tokens | Encrypted via `safeStorage` when available; packaged builds refuse plaintext persistence ([`secureTokenStore.ts`](utils/secureTokenStore.ts))               |
-| Sensitive cloud APIs | MFA setup/confirm blocked from renderer IPC ([`cloudApiDenylist.ts`](utils/cloudApiDenylist.ts))                                                            |
-| Plaid (Pro)          | Tokens held and encrypted on LiveBooks Cloud; MFA required for sensitive actions                                                                            |
-| Code signing         | Frozen bundle id `io.livebooks.desktop`; signing-identity changes may require cloud re-sign-in ([`docs/signing-qa-runbook.md`](docs/signing-qa-runbook.md)) |
+| Topic                 | Behavior                                                                                                                                                    |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local ledger          | Plaintext SQLite (`.books`); rely on OS FDE + user backups — see [`SECURITY.md`](SECURITY.md)                                                               |
+| Online session tokens | Encrypted via `safeStorage` when available; packaged builds refuse plaintext persistence ([`secureTokenStore.ts`](utils/secureTokenStore.ts))               |
+| Sensitive cloud APIs  | MFA setup/confirm blocked from renderer IPC ([`cloudApiDenylist.ts`](utils/cloudApiDenylist.ts))                                                            |
+| Plaid (Pro)           | Tokens held and encrypted on LiveBooks Online; MFA required for sensitive actions                                                                           |
+| Code signing          | Frozen bundle id `io.livebooks.desktop`; signing-identity changes may require cloud re-sign-in ([`docs/signing-qa-runbook.md`](docs/signing-qa-runbook.md)) |
 
 Full threat model, IPC denylist, and future encryption re-entry: **[`SECURITY.md`](SECURITY.md)**.
 
@@ -107,10 +107,10 @@ yarn build
 
 By default this targets your current OS and architecture. For other targets, see the _Building_ section in [electron.build/cli](https://www.electron.build/cli) (example: `yarn build --linux`).
 
-### LiveBooks Cloud (release and CI)
+### LiveBooks Online (release and CI)
 
 - **API origin:** Set **`LIVEBOOKS_CLOUD_ORIGIN`** and **`VITE_LIVEBOOKS_CLOUD_ORIGIN`** to the same production base URL (no trailing slash) when producing binaries for end users. The [Publish Mac](.github/workflows/publish-mac.yml) / [Publish Windows](.github/workflows/publish-windows.yml) / [Publish Linux](.github/workflows/publish-linux.yml) workflows pass both from repository secret **`LIVEBOOKS_CLOUD_ORIGIN`**; if that secret is unset, the build still defaults to `http://127.0.0.1:3000` (suitable for local packaging only).
-- **Linux (AppImage x64):** Download only from [GitHub Releases](https://github.com/mencarii-hq/LiveBooks-Desktop/releases) — the Linux AppImage is **unsigned**. A desktop keyring (GNOME Keyring / KWallet) is required to connect LiveBooks Cloud; without it the app cannot keep a Cloud session. Cloud shows a secure-storage warning when keyring/encryption is unavailable.
+- **Linux (AppImage x64):** Download only from [GitHub Releases](https://github.com/mencarii-hq/LiveBooks-Desktop/releases) — the Linux AppImage is **unsigned**. A desktop keyring (GNOME Keyring / KWallet) is required to connect LiveBooks Online; without it the app cannot keep an Online session. Online shows a secure-storage warning when keyring/encryption is unavailable.
 - **Auto-updates:** Prerelease channels are **off** by default (`electron-updater`). For internal QA builds that should consume GitHub prereleases, set environment variable **`LIVEBOOKS_UPDATER_ALLOW_PRERELEASE=1`** (or `true`) when launching the app or when wrapping the packaged binary.
 - **Session security:** See **Security posture** above. In **packaged** builds, refresh tokens are **not** written in plaintext when `safeStorage` is unavailable — you re-authenticate each launch. **Dev** (`yarn dev`) may use plaintext token fallback so contributors are not blocked.
 - **Day-1 verification:** `yarn test:day1` runs automated checks; pre-GA signing QA is in [`docs/signing-qa-runbook.md`](docs/signing-qa-runbook.md).

@@ -53,7 +53,7 @@
       </Button>
       <template v-else>
         <Button v-if="needsCloudSignIn" type="primary" @click="signIntoCloud">
-          {{ t`Sign into Cloud` }}
+          {{ t`Sign into Online` }}
         </Button>
         <template v-else>
           <label
@@ -140,15 +140,15 @@
           class="max-w-xl"
         >
           <h2 class="text-lg font-semibold dark:text-gray-25">
-            {{ t`Sign into LiveBooks Cloud` }}
+            {{ t`Sign into LiveBooks Online` }}
           </h2>
           <p class="mt-1 text-sm text-gray-700 dark:text-gray-200">
             {{
-              t`Online bank feeds use LiveBooks Cloud when your operations need them. Sign in to connect banks via Plaid.`
+              t`Online bank feeds use LiveBooks Online when your operations need them. Sign in to connect banks via Plaid.`
             }}
           </p>
           <Button class="mt-3" type="primary" @click="signIntoCloud">
-            {{ t`Sign into Cloud` }}
+            {{ t`Sign into Online` }}
           </Button>
         </div>
         <div
@@ -158,7 +158,7 @@
           {{
             bookId
               ? t`No online banks connected yet. Use Connect via Plaid above to get started.`
-              : t`Online bank feeds use LiveBooks Cloud when your operations need them. Sign in to connect banks via Plaid.`
+              : t`Online bank feeds use LiveBooks Online when your operations need them. Sign in to connect banks via Plaid.`
           }}
         </div>
         <div
@@ -1270,12 +1270,12 @@ export default defineComponent({
     },
     plaidLinkPromptTotp() {
       return promptPlaidMfaTotp(
-        t`Enter your LiveBooks Cloud authenticator or backup code to link a bank account.`
+        t`Enter your LiveBooks Online authenticator or backup code to link a bank account.`
       );
     },
     promptPlaidTotp() {
       return promptPlaidMfaTotp(
-        t`Enter your LiveBooks Cloud authenticator or backup code to view bank feed status.`
+        t`Enter your LiveBooks Online authenticator or backup code to view bank feed status.`
       );
     },
     async linkBankWithPlaid(itemId?: string) {
@@ -1299,7 +1299,7 @@ export default defineComponent({
         if (mfaNotConfigured) {
           showToast({
             type: 'warning',
-            message: t`Set up two-factor authentication on LiveBooks Cloud before linking a bank.`,
+            message: t`Set up two-factor authentication on LiveBooks Online before linking a bank.`,
             duration: 'long',
           });
           openLivebooksCloudAccountSecurity();
@@ -1323,7 +1323,7 @@ export default defineComponent({
               openLivebooksCloudAccountSecurity();
               throw new Error(
                 ex.error ??
-                t`Set up two-factor authentication on LiveBooks Cloud first.`
+                t`Set up two-factor authentication on LiveBooks Online first.`
               );
             }
             if (!ex.ok) {
@@ -1354,7 +1354,7 @@ export default defineComponent({
       await openLivebooksCloudSignIn();
     },
     msgSignInCloud() {
-      return t`Online bank feeds are for when your operations need them. Sign into LiveBooks Cloud to use them here.`;
+      return t`Online bank feeds are for when your operations need them. Sign into LiveBooks Online to use them here.`;
     },
     msgEmptyPayload() {
       return t`Empty payload`;

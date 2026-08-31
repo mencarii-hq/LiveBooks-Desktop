@@ -53,7 +53,7 @@ export default function registerIpcRendererListeners() {
     if (signedIn) {
       showToast({
         type: 'success',
-        message: t`LiveBooks Cloud account connected`,
+        message: t`LiveBooks Online account connected`,
         duration: 'short',
       });
     } else {

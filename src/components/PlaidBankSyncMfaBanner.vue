@@ -16,12 +16,12 @@
   >
     <p class="font-medium mb-2">
       {{
-        t`Bank sync paused. Verify your identity in LiveBooks Cloud to resume downloading transactions.`
+        t`Bank sync paused. Verify your identity in LiveBooks Online to resume downloading transactions.`
       }}
     </p>
     <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
       <Button type="primary" :disabled="busy" @click="openVerify">
-        {{ t`Open LiveBooks Cloud to verify` }}
+        {{ t`Open LiveBooks Online to verify` }}
       </Button>
       <Button type="secondary" :disabled="busy" @click="retry">
         {{ t`I've verified — try again` }}

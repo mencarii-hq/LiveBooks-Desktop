@@ -28,7 +28,7 @@ test('unpackaged allows http origin from env', (t) => {
   t.end();
 });
 
-test('unpackaged ignores production Cloud origin', (t) => {
+test('unpackaged ignores production Online origin', (t) => {
   t.equal(
     resolveLivebooksCloudOrigin('https://cloud.mencarii.com', false),
     'http://127.0.0.1:3000'

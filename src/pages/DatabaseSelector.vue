@@ -32,7 +32,7 @@
         </p>
         <p class="text-ink-muted text-sm select-none mt-1">
           {{
-            t`Your books stay on this computer. Cloud is for when your operations need it, after you open a company.`
+            t`Your books stay on this computer. Online is for when your operations need it, after you open a company.`
           }}
         </p>
       </div>
@@ -488,7 +488,7 @@ export default defineComponent({
         showToast({
           message:
             purge.error ??
-            t`Could not disconnect bank feeds in LiveBooks Cloud. The local company file will still be deleted.`,
+            t`Could not disconnect bank feeds in LiveBooks Online. The local company file will still be deleted.`,
           type: 'warning',
         });
       }

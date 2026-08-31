@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-1 flex-col gap-4 p-1 text-sm min-h-full">
     <div v-if="!bookId" class="text-gray-600 dark:text-gray-300">
-      {{ t`Sign into LiveBooks Cloud to manage this bank.` }}
+      {{ t`Sign into LiveBooks Online to manage this bank.` }}
     </div>
     <template v-else>
       <div class="space-y-2">
@@ -24,7 +24,7 @@
         </div>
         <p class="text-xs text-gray-500 dark:text-gray-400">
           {{
-            t`Refresh reloads this bank’s status and accounts from the cloud and applies pending batches. Reconnect only when sign-in is required again.`
+            t`Refresh reloads this bank’s status and accounts from Online and applies pending batches. Reconnect only when sign-in is required again.`
           }}
         </p>
       </div>
@@ -57,7 +57,7 @@
         </div>
         <p class="text-xs text-gray-500 dark:text-gray-400">
           {{
-            t`Re-fetch re-opens recent cloud batches so this computer can download them again. It does not pull new history from the bank.`
+            t`Re-fetch re-opens recent Online batches so this computer can download them again. It does not pull new history from the bank.`
           }}
         </p>
       </div>
@@ -225,7 +225,7 @@ export default defineComponent({
       const confirmed = (await showDialog({
         type: 'info',
         title: t`Re-fetch missing bank data?`,
-        detail: t`This re-opens recently acknowledged imports for ${name} so this computer can download them again if rows were deleted locally. Data must still exist on LiveBooks Cloud (typically within 90 days). It does not request new history from the bank.`,
+        detail: t`This re-opens recently acknowledged imports for ${name} so this computer can download them again if rows were deleted locally. Data must still exist on LiveBooks Online (typically within 90 days). It does not request new history from the bank.`,
         buttons: [
           { label: t`Cancel`, action: () => false, isEscape: true },
           { label: t`Re-fetch`, isPrimary: true, action: () => true },
@@ -259,7 +259,7 @@ export default defineComponent({
             type: 'info',
             message: t`Nothing to re-fetch in the last ${String(
               res.days ?? 30
-            )} days, or those batches were already deleted from LiveBooks Cloud.`,
+            )} days, or those batches were already deleted from LiveBooks Online.`,
           });
         } else {
           showToast({

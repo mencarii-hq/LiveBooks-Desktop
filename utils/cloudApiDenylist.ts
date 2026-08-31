@@ -1,7 +1,7 @@
 /**
  * Renderer cloud API path denylist.
  *
- * All MFA verification (setup, confirm, step-up) happens on LiveBooks Cloud web.
+ * All MFA verification (setup, confirm, step-up) happens on LiveBooks Online web.
  * The renderer must never invoke `/api/v1/me/mfa/*` via LIVEBOOKS_CLOUD_API.
  */
 
