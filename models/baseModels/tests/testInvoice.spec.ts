@@ -208,6 +208,11 @@ test('create payment for return invoice', async (t) => {
     itemData.rate,
     'payment amount for return invoice matches'
   );
+  t.equals(
+    paymentDoc.for?.[0]?.amount?.float,
+    returnDoc.baseGrandTotal?.float,
+    'return PaymentFor amount is baseGrandTotal'
+  );
 
   await paymentDoc.sync();
 

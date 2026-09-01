@@ -26,3 +26,8 @@ export function filterAutocompleteSuggestions<T extends { label: string }>(
   }
   return options.filter((item) => item.label.toLowerCase().includes(k));
 }
+
+/** Enter selects this item when the filtered list has exactly one match. Tab must not. */
+export function soleAutocompleteMatch<T>(options: T[]): T | null {
+  return options.length === 1 ? options[0] : null;
+}

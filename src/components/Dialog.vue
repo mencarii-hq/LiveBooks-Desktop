@@ -108,6 +108,7 @@
 <script lang="ts">
 import { t } from 'fyo';
 import { getIconConfig } from 'src/utils/interactive';
+import { typedConfirmMatches } from 'src/utils/bankingIdentity';
 import { DialogButton, DialogInputOptions, ToastType } from 'src/utils/types';
 import { defineComponent, nextTick, PropType, ref } from 'vue';
 import Button from './Button.vue';
@@ -164,7 +165,7 @@ export default defineComponent({
       if (!this.confirmText) {
         return true;
       }
-      return this.typedConfirm.trim() === this.confirmText;
+      return typedConfirmMatches(this.typedConfirm, this.confirmText);
     },
     confirmHint(): string {
       if (!this.confirmText) {

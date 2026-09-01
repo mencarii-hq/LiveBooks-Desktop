@@ -116,6 +116,7 @@ import { getOptionList } from 'fyo/utils';
 import { FieldTypeEnum } from 'schemas/types';
 import Dropdown from 'src/components/Dropdown.vue';
 import { fuzzyMatch } from 'src/utils';
+import { soleAutocompleteMatch } from 'src/utils/autocompleteInput';
 import { getFormRoute, routeTo } from 'src/utils/ui';
 import Popover from '../Popover.vue';
 import Base from './Base.vue';
@@ -422,6 +423,18 @@ export default {
     async onPressEnter(e, toggleDropdown, selectHighlightedItem) {
       e.preventDefault();
 
+      const keyword = this.linkValue || e.target.value;
+      if (!this.isDropdownOpen || !this.suggestions.length) {
+        await this.updateSuggestions(keyword);
+      }
+
+      const sole = soleAutocompleteMatch(this.suggestions);
+      if (sole) {
+        this.setSuggestion(sole);
+        this.closeDropdown(e, toggleDropdown);
+        return;
+      }
+
       if (
         this.suggestions.length > 0 &&
         this.isFocused &&
@@ -432,7 +445,7 @@ export default {
         return;
       }
 
-      await this.updateSuggestions(this.linkValue || e.target.value);
+      await this.updateSuggestions(keyword);
       toggleDropdown(true);
       this.isDropdownOpen = true;
     },

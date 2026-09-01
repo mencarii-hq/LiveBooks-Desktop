@@ -134,7 +134,7 @@ function formatCurrency(
   return valueString;
 }
 
-function formatNumber(value: unknown, fyo: Fyo): string {
+export function formatNumber(value: unknown, fyo: Fyo): string {
   const numberFormatter = getNumberFormatter(fyo);
   if (typeof value === 'number') {
     value = fyo.pesa(value.toFixed(20));
@@ -173,6 +173,7 @@ function getNumberFormatter(fyo: Fyo) {
   return (fyo.currencyFormatter = Intl.NumberFormat(locale, {
     style: 'decimal',
     minimumFractionDigits: display,
+    maximumFractionDigits: display,
   }));
 }
 

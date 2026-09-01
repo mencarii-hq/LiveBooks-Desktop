@@ -1,10 +1,20 @@
 <template>
   <div class="flex flex-col w-full h-full">
     <PageHeader :title="t`Print ${title}`">
-      <Button class="text-xs" type="primary" @click="savePDF()">
+      <Button
+        class="text-xs"
+        type="primary"
+        :disabled="!canPrint"
+        @click="savePDF()"
+      >
         {{ t`Save as PDF` }}
       </Button>
-      <Button class="text-xs" type="primary" @click="savePDF(true)">
+      <Button
+        class="text-xs"
+        type="primary"
+        :disabled="!canPrint"
+        @click="savePDF(true)"
+      >
         {{ t`Print` }}
       </Button>
     </PageHeader>
@@ -276,6 +286,7 @@ import Select from 'src/components/Controls/Select.vue';
 import PageHeader from 'src/components/PageHeader.vue';
 import { getReport } from 'src/utils/misc';
 import { getPathAndMakePDF } from 'src/utils/printTemplates';
+import { showToast } from 'src/utils/interactive';
 import { showSidebar } from 'src/utils/refs';
 import { paperSizeMap, printSizes } from 'src/utils/ui';
 import { PropType, defineComponent } from 'vue';
@@ -391,6 +402,12 @@ export default defineComponent({
     printSubtitle(): string {
       return this.report?.getPrintMeta?.()?.subtitle ?? '';
     },
+    canPrint(): boolean {
+      if (!this.report?.reportData.length) {
+        return false;
+      }
+      return this.matrix.length > 1;
+    },
     rowStyles(): Record<string, string> {
       const style: Record<string, string> = {};
       const numColumns = this.columnSelection.filter(Boolean).length;
@@ -451,11 +468,15 @@ export default defineComponent({
         filters.defaultFilters &&
         typeof filters.defaultFilters === 'string'
       ) {
-        const parsed = JSON.parse(filters.defaultFilters) as Record<
-          string,
-          DocValue
-        >;
-        Object.assign(validFilters, parsed);
+        try {
+          const parsed = JSON.parse(filters.defaultFilters) as Record<
+            string,
+            DocValue
+          >;
+          Object.assign(validFilters, parsed);
+        } catch {
+          /* malformed route query must not blank the view */
+        }
       }
 
       for (const [key, value] of Object.entries(filters)) {
@@ -521,6 +542,14 @@ export default defineComponent({
       this.scale = Math.min(containerWidth / pageWidthPx, 1);
     },
     async savePDF(shouldPrint?: boolean): Promise<void> {
+      if (!this.canPrint) {
+        showToast({
+          type: 'error',
+          message: this.t`Report has no data to print.`,
+        });
+        return;
+      }
+
       // @ts-ignore
       const innerHTML = this.$refs.scaledContainer.$el.children[0].innerHTML;
       if (typeof innerHTML !== 'string') {

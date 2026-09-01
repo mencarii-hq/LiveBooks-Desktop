@@ -9,6 +9,7 @@ import {
   autocompleteInputKeyword,
   autocompleteOnInput,
   filterAutocompleteSuggestions,
+  soleAutocompleteMatch,
 } from '../autocompleteInput';
 import {
   accumulateRunningBalances,
@@ -19,6 +20,14 @@ import {
   memorizeFieldsError,
   writeEntryRouteFromMemorized,
 } from '../memorizedTransactions';
+import { formatNumber } from 'fyo/utils/format';
+import { Fyo } from 'fyo';
+import {
+  isInternalPaymentDocName,
+  reconcileIdentification,
+  typedConfirmMatches,
+  userFacingInstrumentRef,
+} from '../bankingIdentity';
 
 function ale(
   partial: Partial<LedgerAleRow> & { debit?: number; credit?: number }
@@ -151,5 +160,84 @@ test('memorizeFieldsError and writeEntryRouteFromMemorized', (t) => {
   t.equal(route.query.fromMemorized, 'MT-1');
   t.equal(route.query.account, 'Bank');
   t.equal(route.query.type, '');
+  t.end();
+});
+
+test('Enter selects sole autocomplete match; Tab does not auto-pick', (t) => {
+  const options = [
+    { label: 'Office Supplies' },
+    { label: 'Office Equipment' },
+    { label: 'Rent' },
+  ];
+  const one = filterAutocompleteSuggestions(options, 'rent');
+  t.equal(one.length, 1);
+  t.equal(soleAutocompleteMatch(one)?.label, 'Rent');
+  const many = filterAutocompleteSuggestions(options, 'office');
+  t.equal(many.length, 2);
+  t.equal(soleAutocompleteMatch(many), null);
+  t.equal(soleAutocompleteMatch(options), null);
+  t.end();
+});
+
+test('typed CANCEL confirm is case-insensitive', (t) => {
+  t.ok(typedConfirmMatches('cancel', 'CANCEL'));
+  t.ok(typedConfirmMatches('Cancel', 'CANCEL'));
+  t.ok(typedConfirmMatches('  CANCEL  ', 'CANCEL'));
+  t.notOk(typedConfirmMatches('canc', 'CANCEL'));
+  t.notOk(typedConfirmMatches('', 'CANCEL'));
+  t.end();
+});
+
+test('formatNumber uses displayPrecision min and max fraction digits', (t) => {
+  const fyo = {
+    currencyFormatter: undefined,
+    singles: { SystemSettings: { locale: 'en-US', displayPrecision: 2 } },
+  } as unknown as Fyo;
+  t.equal(formatNumber('20', fyo), '20.00');
+  t.equal(formatNumber('20.1', fyo), '20.10');
+  t.equal(formatNumber('20.01', fyo), '20.01');
+  fyo.currencyFormatter = undefined;
+  (
+    fyo.singles.SystemSettings as { displayPrecision: number }
+  ).displayPrecision = 0;
+  t.equal(formatNumber('20', fyo), '20');
+  t.end();
+});
+
+test('reconcile match keys hide Pay-___ and prefer check/EFT/party', (t) => {
+  t.ok(isInternalPaymentDocName('PAY-00042'));
+  t.ok(isInternalPaymentDocName('Pay-00001'));
+  t.notOk(isInternalPaymentDocName('EFT'));
+  t.notOk(isInternalPaymentDocName('1001'));
+  t.equal(
+    userFacingInstrumentRef({
+      referenceId: 'PAY-00042',
+      paymentMethod: 'Transfer',
+      paymentType: 'Pay',
+    }),
+    'Transfer'
+  );
+  t.equal(
+    userFacingInstrumentRef({
+      referenceId: 'EFT',
+      paymentMethod: 'Transfer',
+      paymentType: 'Pay',
+    }),
+    'EFT'
+  );
+  const ids = reconcileIdentification({
+    payment: {
+      referenceId: 'PAY-00099',
+      paymentMethod: 'Transfer',
+      paymentType: 'Pay',
+      party: 'uuid',
+    },
+    partyLabel: 'Acme Supplies',
+  });
+  t.equal(ids.payee, 'Acme Supplies');
+  t.equal(ids.referenceShort, 'Transfer');
+  t.equal(ids.typeLabel, 'Transfer');
+  t.notOk(/pay[-_]/i.test(ids.referenceShort));
+  t.notOk(/pay[-_]/i.test(ids.payee));
   t.end();
 });

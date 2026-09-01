@@ -162,6 +162,24 @@ export class Fyo {
     });
   }
 
+  /** Drop cached Intl formatter and rebuild pesa display after SystemSettings change. */
+  refreshMoneyDisplay() {
+    this.currencyFormatter = undefined;
+    const ss = this.singles.SystemSettings as
+      | {
+          currency?: string;
+          internalPrecision?: number;
+          displayPrecision?: number;
+        }
+      | undefined;
+    this.pesa = getMoneyMaker({
+      currency: ss?.currency ?? DEFAULT_CURRENCY,
+      precision: ss?.internalPrecision ?? DEFAULT_INTERNAL_PRECISION,
+      display: ss?.displayPrecision ?? DEFAULT_DISPLAY_PRECISION,
+      wrapper: markRaw,
+    });
+  }
+
   async close() {
     await this.db.close();
   }

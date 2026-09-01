@@ -11,6 +11,8 @@ import { Verb } from 'fyo/telemetry/types';
 export default class SystemSettings extends Doc {
   _countryCodeBeforeSync?: string;
   _hideHomeMapBeforeSync?: boolean;
+  _displayPrecisionBeforeSync?: number;
+  _localeBeforeSync?: string;
   dateFormat?: string;
   locale?: string;
   displayPrecision?: number;
@@ -48,6 +50,8 @@ export default class SystemSettings extends Doc {
   async beforeSync() {
     this._countryCodeBeforeSync = this.countryCode;
     this._hideHomeMapBeforeSync = !!this.hideHomeWorkflowMap;
+    this._displayPrecisionBeforeSync = this.displayPrecision;
+    this._localeBeforeSync = this.locale;
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
@@ -62,6 +66,12 @@ export default class SystemSettings extends Doc {
         optedOut: !!this.hideHomeWorkflowMap,
       });
       this.fyo.config.set('homeMapOptOut', !!this.hideHomeWorkflowMap);
+    }
+    if (
+      this.displayPrecision !== this._displayPrecisionBeforeSync ||
+      this.locale !== this._localeBeforeSync
+    ) {
+      this.fyo.refreshMoneyDisplay();
     }
   }
 
