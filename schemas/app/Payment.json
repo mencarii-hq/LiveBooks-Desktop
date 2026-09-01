@@ -181,6 +181,7 @@
       "label": "Type",
       "placeholder": "Type",
       "fieldtype": "Select",
+      "computed": true,
       "options": [
         {
           "value": "SalesInvoice",

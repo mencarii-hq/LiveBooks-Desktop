@@ -3,6 +3,8 @@
   "fields": [
     {
       "fieldname": "referenceType",
+      "fieldtype": "Select",
+      "required": true,
       "options": [
         {
           "value": "SalesInvoice",

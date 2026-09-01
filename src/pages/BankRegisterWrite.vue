@@ -204,6 +204,15 @@
             @change="(v) => (form.checkNumber = String(v || ''))"
           />
           <FormControl
+            v-if="showBankReference"
+            :border="true"
+            size="small"
+            :show-label="true"
+            :df="bankReferenceField"
+            :value="form.bankReference"
+            @change="(v) => (form.bankReference = String(v || ''))"
+          />
+          <FormControl
             class="sm:col-span-2"
             :border="true"
             size="small"
@@ -284,6 +293,7 @@ import {
   createRegisterPayment,
   memorizeFieldsError,
   memorizeRegisterFields,
+  moneyToNumber,
   resolveDefaultPaymentMethod,
 } from 'src/utils/memorizedTransactions';
 import { partyRoleFitsPaymentType } from 'src/utils/registerRows';
@@ -334,6 +344,7 @@ export default defineComponent({
         printLater: false,
         alsoRecurring: false,
         checkNumber: '',
+        bankReference: '',
       },
     };
   },
@@ -356,6 +367,9 @@ export default defineComponent({
         this.selectedMethodType === 'Check' &&
         this.form.paymentType === 'Pay'
       );
+    },
+    showBankReference(): boolean {
+      return this.selectedMethodType === 'Bank';
     },
     isDepositMode(): boolean {
       const fromProp = this.type === 'deposit';
@@ -504,6 +518,14 @@ export default defineComponent({
         placeholder: this.t`Blank = unprinted`,
       } as Field;
     },
+    bankReferenceField(): Field {
+      return {
+        fieldtype: 'Data',
+        fieldname: 'bankReference',
+        label: this.t`Ref / EFT #`,
+        placeholder: this.t`Blank = method name`,
+      } as Field;
+    },
     // #8: per-row split fields; same category filter as categoryField.
     splitAccountField(): Field {
       return { ...this.categoryField, fieldname: 'splitAccount' };
@@ -572,6 +594,11 @@ export default defineComponent({
     canQueue(value: boolean) {
       if (!value) {
         this.form.checkNumber = '';
+      }
+    },
+    showBankReference(value: boolean) {
+      if (!value) {
+        this.form.bankReference = '';
       }
     },
     'form.printLater'(value: boolean) {
@@ -654,6 +681,7 @@ export default defineComponent({
       this.form.paymentType = this.isDepositMode ? 'Receive' : 'Pay';
       this.form.printLater = false;
       this.form.checkNumber = '';
+      this.form.bankReference = '';
       this.form.paymentMethod = await resolveDefaultPaymentMethod(fyo, {
         forCreditCard: this.isCreditCardRegister,
       });
@@ -767,6 +795,7 @@ export default defineComponent({
           order: 'desc',
           limit: 20,
         })) as {
+          name: string;
           paymentType?: string;
           account?: string;
           paymentAccount?: string;
@@ -779,27 +808,50 @@ export default defineComponent({
             p.paymentType === 'Receive' ? p.paymentAccount : p.account;
           return bank === this.bankAccount;
         });
-        if (!last) {
+        if (!last?.name) {
           return;
         }
-        const category =
-          last.paymentType === 'Pay' ? last.paymentAccount : last.account;
-        const amt =
-          typeof last.amount === 'number'
-            ? last.amount
-            : Number(last.amount?.float ?? 0);
-        if (category) {
-          this.form.categoryAccount = category;
+        const lastDoc = await fyo.doc.getDoc(ModelNameEnum.Payment, last.name);
+        const splits =
+          (lastDoc.get('splits') as
+            | {
+                account?: string;
+                amount?: { float?: number } | number;
+                description?: string;
+              }[]
+            | undefined) ?? [];
+        if (splits.length >= 2) {
+          this.splitEnabled = true;
+          this.splitLines = splits.map((s) => ({
+            account: s.account || '',
+            amount: moneyToNumber(s.amount),
+            description: s.description || '',
+          }));
+        } else {
+          this.splitEnabled = false;
+          this.splitLines = [];
+          const category =
+            last.paymentType === 'Pay' ? last.paymentAccount : last.account;
+          if (category) {
+            this.form.categoryAccount = category;
+          }
         }
+        const amt = moneyToNumber(lastDoc.get('amount') ?? last.amount);
         if (amt > 0) {
           this.form.amount = amt;
         }
-        if (last.memo) {
-          this.form.memo = last.memo;
+        const memo = String(lastDoc.get('memo') || last.memo || '');
+        if (memo) {
+          this.form.memo = memo;
         }
-        if (last.paymentMethod) {
-          this.form.paymentMethod = last.paymentMethod;
+        const paymentMethod = String(
+          lastDoc.get('paymentMethod') || last.paymentMethod || ''
+        );
+        if (paymentMethod) {
+          this.form.paymentMethod = paymentMethod;
         }
+        this.form.checkNumber = '';
+        this.form.bankReference = '';
         this.formKey += 1;
       } catch {
         /* recall is best-effort */
@@ -838,6 +890,7 @@ export default defineComponent({
         this.form.memo = String(mt.get('memo') || '');
         this.form.paymentMethod = String(mt.get('paymentMethod') || '');
         this.form.checkNumber = '';
+        this.form.bankReference = '';
         this.form.printLater = false;
         this.form.alsoRecurring = false;
         const splits =
@@ -1033,6 +1086,7 @@ export default defineComponent({
           paymentMethod: this.form.paymentMethod,
           printLater: !!(this.canQueue && this.form.printLater),
           checkNumber: this.form.checkNumber.trim(),
+          bankReference: this.form.bankReference.trim(),
           splits: this.splitFieldsForSubmit(),
         };
         await createRegisterPayment(fyo, fields);
@@ -1099,6 +1153,7 @@ export default defineComponent({
         printLater: false,
         alsoRecurring: false,
         checkNumber: '',
+        bankReference: '',
       };
       this.splitEnabled = false;
       this.splitLines = [];

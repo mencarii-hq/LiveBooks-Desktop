@@ -274,7 +274,7 @@
               "
             >
               <h2 class="text-sm font-medium dark:text-gray-100">
-                {{ isLiabilityAccount ? t`Charges` : t`Money out` }}
+                {{ moneyOutHeading }}
               </h2>
               <p class="text-xs text-gray-500 dark:text-gray-300 mt-0.5">
                 {{
@@ -301,7 +301,8 @@
                 <tr>
                   <th class="p-2 w-10 text-start">{{ t`Clear` }}</th>
                   <th class="text-start p-2">{{ t`Date` }}</th>
-                  <th class="text-start p-2">{{ t`Reference` }}</th>
+                  <th class="text-start p-2">{{ t`CHK/Ref` }}</th>
+                  <th class="text-start p-2">{{ t`Type` }}</th>
                   <th class="text-start p-2">{{ t`Payee` }}</th>
                   <th class="text-start p-2">{{ t`Amount` }}</th>
                 </tr>
@@ -330,6 +331,9 @@
                   <td class="p-2 text-gray-600 dark:text-gray-300">
                     {{ row.referenceShort || t`—` }}
                   </td>
+                  <td class="p-2 text-gray-600 dark:text-gray-300">
+                    {{ row.typeLabel || t`—` }}
+                  </td>
                   <td class="p-2 break-words">{{ row.payee || t`—` }}</td>
                   <td class="p-2 text-start tabular-nums">
                     {{ formatOutAmount(row.columnSigned) }}
@@ -337,7 +341,7 @@
                 </tr>
                 <tr v-if="!moneyOutEntries.length && !loadingEntries">
                   <td
-                    colspan="5"
+                    colspan="6"
                     class="p-3 text-sm text-gray-500 dark:text-gray-300"
                   >
                     {{
@@ -372,7 +376,7 @@
               "
             >
               <h2 class="text-sm font-medium dark:text-gray-100">
-                {{ isLiabilityAccount ? t`Payments` : t`Money in` }}
+                {{ moneyInHeading }}
               </h2>
               <p class="text-xs text-gray-500 dark:text-gray-300 mt-0.5">
                 {{
@@ -399,7 +403,8 @@
                 <tr>
                   <th class="p-2 w-10 text-start">{{ t`Clear` }}</th>
                   <th class="text-start p-2">{{ t`Date` }}</th>
-                  <th class="text-start p-2">{{ t`Description` }}</th>
+                  <th class="text-start p-2">{{ t`Type` }}</th>
+                  <th class="text-start p-2">{{ t`Name` }}</th>
                   <th class="text-start p-2">{{ t`Amount` }}</th>
                 </tr>
               </thead>
@@ -424,6 +429,9 @@
                   <td class="p-2 break-words tabular-nums">
                     {{ formatDateDMY(row.date) }}
                   </td>
+                  <td class="p-2 text-gray-600 dark:text-gray-300">
+                    {{ row.typeLabel || t`—` }}
+                  </td>
                   <td class="p-2 break-words">{{ row.payee || t`—` }}</td>
                   <td
                     class="
@@ -440,7 +448,7 @@
                 </tr>
                 <tr v-if="!moneyInEntries.length && !loadingEntries">
                   <td
-                    colspan="4"
+                    colspan="5"
                     class="p-3 text-sm text-gray-500 dark:text-gray-300"
                   >
                     {{
@@ -604,6 +612,9 @@ import { showDialog, showToast } from 'src/utils/interactive';
 import { routeTo } from 'src/utils/ui';
 import { loadManualFeedStatements } from 'src/utils/bankFeedHelpers';
 import { accountDisplayName } from 'utils/accountDisplay';
+import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
+import { reconcileIdentification } from 'src/utils/bankingIdentity';
+import { isClassicTheme } from 'src/utils/qbdFamiliarity';
 import { defineComponent } from 'vue';
 
 type AleRow = {
@@ -620,6 +631,7 @@ type EntryRow = {
   date: string;
   payee: string;
   referenceShort: string;
+  typeLabel: string;
   /** Liability: credit − debit (owed ↑). Asset: debit − credit. Used for cleared balance. */
   signed: number;
   /** For Money in/out columns: negated on liability so charges bucket as outflows. */
@@ -714,6 +726,22 @@ export default defineComponent({
         !!this.accountRootType &&
         isCredit(this.accountRootType as Parameters<typeof isCredit>[0])
       );
+    },
+    moneyOutHeading(): string {
+      if (this.isLiabilityAccount) {
+        return this.t`Charges`;
+      }
+      return isClassicTheme(fyo.singles.SystemSettings)
+        ? this.t`Checks and Payments`
+        : this.t`Money out`;
+    },
+    moneyInHeading(): string {
+      if (this.isLiabilityAccount) {
+        return this.t`Payments`;
+      }
+      return isClassicTheme(fyo.singles.SystemSettings)
+        ? this.t`Deposits and Other Credits`
+        : this.t`Money in`;
     },
     clearedSignedSum(): number {
       let sum = 0;
@@ -997,6 +1025,46 @@ export default defineComponent({
           }
         }
 
+        const paymentNames = Array.from(
+          new Set(
+            open
+              .filter((a) => a.referenceType === ModelNameEnum.Payment)
+              .map((a) => a.referenceName)
+              .filter(Boolean)
+          )
+        );
+        type PayRow = {
+          name: string;
+          referenceId?: string;
+          paymentMethod?: string;
+          paymentType?: string;
+          party?: string;
+        };
+        const paymentMap: Record<string, PayRow> = {};
+        if (paymentNames.length) {
+          const pays = (await fyo.db.getAll(ModelNameEnum.Payment, {
+            fields: [
+              'name',
+              'referenceId',
+              'paymentMethod',
+              'paymentType',
+              'party',
+            ],
+            filters: { name: ['in', paymentNames] },
+          })) as PayRow[];
+          for (const p of pays) {
+            paymentMap[p.name] = p;
+          }
+        }
+        const partyIds = [
+          ...new Set(
+            Object.values(paymentMap)
+              .map((p) => p.party || '')
+              .filter(Boolean)
+          ),
+        ];
+        const partyNames = await getPartyNameMap(fyo, partyIds);
+
         const isLiability =
           this.accountRootType &&
           isCredit(this.accountRootType as Parameters<typeof isCredit>[0]);
@@ -1006,17 +1074,26 @@ export default defineComponent({
           // Liability charges (signed > 0) must appear under Charges / Money out.
           const columnSigned = isLiability ? -signed : signed;
           const je = jeMap[a.referenceName];
-          const payee =
-            je?.userRemark?.toString().trim() ||
-            (a.referenceType && a.referenceName
-              ? `${a.referenceType} ${a.referenceName}`
-              : t`(no description)`);
-          const referenceShort = a.referenceName.trim();
+          const payment =
+            a.referenceType === ModelNameEnum.Payment
+              ? paymentMap[a.referenceName]
+              : undefined;
+          const ids = payment
+            ? reconcileIdentification({
+                payment,
+                partyLabel: partyLabel(partyNames, payment.party || ''),
+              })
+            : {
+                payee: je?.userRemark?.toString().trim() || '',
+                referenceShort: '',
+                typeLabel: je?.entryType?.toString().trim() || '',
+              };
           return {
             name: a.name,
             date: a.date,
-            payee,
-            referenceShort,
+            payee: ids.payee,
+            referenceShort: ids.referenceShort,
+            typeLabel: ids.typeLabel,
             signed,
             columnSigned,
             // Opening-balance JEs auto-clear: banks post 'Bank Entry',

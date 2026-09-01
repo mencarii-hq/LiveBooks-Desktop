@@ -9,6 +9,7 @@ import {
 } from 'src/utils/checkPrint/numbering';
 import { getPartyAddress } from 'src/utils/checkPrint/printChecks';
 import { getFormatLayout } from 'src/utils/checkPrint/formats';
+import { createRegisterPayment } from 'src/utils/memorizedTransactions';
 import { Payment } from '../Payment/Payment';
 import { AccountTypeEnum } from '../Account/types';
 
@@ -210,6 +211,66 @@ test('duplicate after submit strips check # and notes provenance', async (t) => 
   t.equal(String(dupe.referenceId || ''), '', 'check # is not copied');
   t.match(String(dupe.memo || ''), /Duplicated from/, 'provenance note');
   t.notOk(dupe.submitted, 'duplicate is a draft');
+});
+
+test('Bank-method refs may repeat; Check numbers stay unique', async (t) => {
+  await fyo.doc
+    .getNewDoc(ModelNameEnum.PaymentMethod, {
+      name: 'D105 Transfer',
+      type: 'Bank',
+    })
+    .sync();
+
+  const bankFields = {
+    date: new Date(),
+    party: partyName,
+    partyId,
+    categoryAccount: expenseAccount,
+    bankAccount,
+    amount: 12,
+    paymentType: 'Pay' as const,
+    paymentMethod: 'D105 Transfer',
+    bankReference: 'EFT',
+  };
+  const first = await createRegisterPayment(fyo, bankFields);
+  const second = await createRegisterPayment(fyo, bankFields);
+  t.equal(String(first.referenceId), 'EFT');
+  t.equal(String(second.referenceId), 'EFT');
+
+  const used = await getUsedCheckNumbers(fyo, bankAccount);
+  t.notOk(used.has('EFT'), 'Bank refs are not in the check uniqueness set');
+
+  const blank = await createRegisterPayment(fyo, {
+    ...bankFields,
+    bankReference: '',
+  });
+  t.equal(
+    String(blank.referenceId),
+    'D105 Transfer',
+    'blank Bank ref defaults to method label'
+  );
+
+  await createRegisterPayment(fyo, {
+    ...bankFields,
+    paymentMethod: methodName,
+    checkNumber: '5010',
+    bankReference: '',
+  });
+  try {
+    await createRegisterPayment(fyo, {
+      ...bankFields,
+      paymentMethod: methodName,
+      checkNumber: '5010',
+      bankReference: '',
+    });
+    t.fail('duplicate check number should throw');
+  } catch (error) {
+    t.match(
+      error instanceof Error ? error.message : String(error),
+      /already used/,
+      'createRegisterPayment rejects a used Check number'
+    );
+  }
 });
 
 closeTestFyo(fyo, __filename);

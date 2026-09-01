@@ -97,20 +97,6 @@
           >
             <div class="flex flex-col flex-1 min-h-0" :style="tableWidthStyle">
               <div class="flex items-center">
-                <div
-                  class="
-                    w-8
-                    text-start
-                    me-2
-                    text-gray-700
-                    dark:text-gray-300
-                    h-row
-                    flex
-                    items-center
-                  "
-                >
-                  #
-                </div>
                 <Row
                   ref="headerRow"
                   class="flex-1 text-gray-700 dark:text-gray-300 min-h-row-mid"
@@ -152,7 +138,7 @@
                   flex-1
                 "
               >
-                <div v-for="(row, i) in rowsSlice" :key="row.key">
+                <div v-for="row in rowsSlice" :key="row.key">
                   <div
                     class="
                       flex
@@ -161,20 +147,6 @@
                       items-center
                     "
                   >
-                    <div
-                      class="
-                        w-8
-                        text-start
-                        me-2
-                        text-gray-700
-                        dark:text-gray-300
-                        h-row
-                        flex
-                        items-center
-                      "
-                    >
-                      {{ pageStart + i + 1 }}
-                    </div>
                     <Row
                       gap="0.5rem"
                       class="
@@ -293,6 +265,7 @@ import {
   setLastRegisterBankAccount,
 } from 'src/utils/registerBankAccount';
 import { getPartyNameMap, partyLabel } from 'src/utils/partyNames';
+import { userFacingInstrumentRef } from 'src/utils/bankingIdentity';
 import {
   endOfTodayISO,
   ledgerSignedBalanceForAccount,
@@ -329,8 +302,6 @@ const COLUMN_IDS = [
 type ColumnId = typeof COLUMN_IDS[number];
 const COLUMN_COUNT = COLUMN_IDS.length;
 const COLUMN_RATIO = [0.8, 1.3, 1.1, 1.1, 1.1, 1, 1, 1, 0.55];
-/** Fallback when the header is not yet mounted (w-8 + me-2). */
-const FALLBACK_INDEX_COL_PX = 32;
 
 type RegisterRow = {
   key: string;
@@ -418,7 +389,7 @@ export default defineComponent({
         { id: 'date', label: this.t`Date`, class: '' },
       ];
       if (!this.isCreditCardRegister) {
-        cols.push({ id: 'checkNo', label: this.t`Check No.`, class: '' });
+        cols.push({ id: 'checkNo', label: this.t`Number`, class: '' });
       }
       cols.push(
         { id: 'payee', label: this.t`Payee`, class: '' },
@@ -530,26 +501,9 @@ export default defineComponent({
         | undefined;
       const rowEl = headerRow?.$el;
       if (!rowEl) {
-        return { gapPx: FALLBACK_COL_GAP_PX, indexPx: FALLBACK_INDEX_COL_PX };
+        return { gapPx: FALLBACK_COL_GAP_PX, indexPx: 0 };
       }
-      const gapPx = measureRowGapPx(rowEl);
-      const indexEl = rowEl.parentElement
-        ?.firstElementChild as HTMLElement | null;
-      let indexPx = FALLBACK_INDEX_COL_PX;
-      if (indexEl && indexEl !== rowEl) {
-        const rect = indexEl.getBoundingClientRect();
-        const ms = getComputedStyle(indexEl);
-        indexPx = Math.round(
-          rect.width +
-            (Number.parseFloat(ms.marginInlineEnd) ||
-              Number.parseFloat(ms.marginRight) ||
-              0)
-        );
-      }
-      return {
-        gapPx,
-        indexPx: indexPx > 0 ? indexPx : FALLBACK_INDEX_COL_PX,
-      };
+      return { gapPx: measureRowGapPx(rowEl), indexPx: 0 };
     },
     startColResize(index: number, event: MouseEvent) {
       // First resize: snapshot the current rendered widths so switching from
@@ -897,9 +851,11 @@ export default defineComponent({
             const hasNumber = !!(p.referenceId || '').trim();
             paymentMap.set(p.name, {
               memo: p.memo || '',
-              // Only Check methods show a number; Bank-method names must not
-              // leak into Check No. (legacy rows may still have a seeded ref).
-              checkNo: isCheck ? (p.referenceId || '').trim() : '',
+              checkNo: userFacingInstrumentRef({
+                referenceId: p.referenceId,
+                paymentMethod: p.paymentMethod,
+                paymentType: p.paymentType,
+              }),
               category,
               categoryTitle,
               party: p.party || '',

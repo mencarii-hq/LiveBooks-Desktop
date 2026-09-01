@@ -96,6 +96,12 @@ export type RegisterPaymentFields = {
    */
   checkNumber?: string;
   /**
+   * Bank / Transfer / ACH / EFT reference. Not unique. Blank defaults to
+   * the payment method label so `validateReferencesAreSet` is satisfied
+   * without writing Pay-___ into a user-facing Number column.
+   */
+  bankReference?: string;
+  /**
    * #8: split the category side into multiple lines (2+ signed rows whose
    * sum equals `amount`; negative rows are withholdings that reduce the
    * check). When set, `categoryAccount` may be empty — the first positive
@@ -313,8 +319,10 @@ export async function createRegisterPayment(
   const methodType = (await doc.paymentMethodDoc())?.type;
   if (methodType === 'Bank') {
     doc.clearanceDate = doc.date ?? fields.date;
-    // Leave referenceId blank for non-check methods. Seeding the method
-    // name made Transfer/Bank show up as a fake Check No. in the register.
+    if (!isCheck) {
+      const typedRef = (fields.bankReference || '').trim();
+      doc.referenceId = typedRef || String(fields.paymentMethod || '').trim();
+    }
   }
   await doc.sync();
   await doc.submit();

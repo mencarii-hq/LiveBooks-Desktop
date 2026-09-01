@@ -3,6 +3,7 @@
   "fields": [
     {
       "fieldname": "referenceType",
+      "computed": true,
       "options": [
         {
           "value": "SalesInvoice",

@@ -2,6 +2,7 @@ import { Fyo, t } from 'fyo';
 import { ModelNameEnum } from 'models/types';
 import type { Payment } from 'models/baseModels/Payment/Payment';
 import type { Account } from 'models/baseModels/Account/Account';
+import { isCheckMethodName } from 'src/utils/bankingIdentity';
 
 /** One queued check to be numbered/printed. `bankAccount` = account the check draws on. */
 export interface CheckQueueItem {
@@ -76,11 +77,32 @@ export async function getUsedCheckNumbers(
 ): Promise<Set<string>> {
   const used = new Set<string>();
   const rows = (await fyo.db.getAll(ModelNameEnum.Payment, {
-    fields: ['name', 'referenceId'],
+    fields: ['name', 'referenceId', 'paymentMethod'],
     filters: { account: bankAccount },
-  })) as { name?: string; referenceId?: string }[];
+  })) as { name?: string; referenceId?: string; paymentMethod?: string }[];
+
+  const methodNames = [
+    ...new Set(
+      rows.map((r) => String(r.paymentMethod || '').trim()).filter(Boolean)
+    ),
+  ];
+  const typeByName = new Map<string, string>();
+  if (methodNames.length) {
+    const methods = (await fyo.db.getAll(ModelNameEnum.PaymentMethod, {
+      fields: ['name', 'type'],
+      filters: { name: ['in', methodNames] },
+    })) as { name: string; type?: string }[];
+    for (const m of methods) {
+      typeByName.set(m.name, m.type || '');
+    }
+  }
+
   for (const r of rows) {
     if (excludePaymentName && r.name === excludePaymentName) {
+      continue;
+    }
+    const method = String(r.paymentMethod || '');
+    if (method && !isCheckMethodName(method, typeByName.get(method))) {
       continue;
     }
     const ref = normalizeCheckNumber(r.referenceId);
