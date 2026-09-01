@@ -580,12 +580,8 @@ export default defineComponent({
       if (!iso) {
         return '';
       }
-      const dt = DateTime.fromISO(String(iso).slice(0, 10), { zone: 'utc' });
-      if (!dt.isValid) {
-        return String(iso);
-      }
-      // e.g. August 5, 2026 — English month, day number, year (no weekday)
-      return dt.setLocale('en').toFormat('MMMM d, yyyy');
+      const formatted = fyo.format(String(iso).slice(0, 10), 'Date');
+      return formatted || String(iso);
     },
     normalizeRegisterDate(value: unknown): string {
       if (value == null || value === '') {

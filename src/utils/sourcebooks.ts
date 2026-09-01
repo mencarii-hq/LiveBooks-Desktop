@@ -167,11 +167,9 @@ export function formatExportedAt(iso?: string): string {
   if (!iso) {
     return t`unknown date`;
   }
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) {
-    return iso;
-  }
-  return date.toLocaleString();
+  const hasTime = /T\d{2}:\d{2}/.test(iso) || iso.length > 10;
+  const formatted = fyo.format(iso, hasTime ? 'Datetime' : 'Date');
+  return formatted || iso;
 }
 
 export function formatArchiveAmount(amount?: number): string {

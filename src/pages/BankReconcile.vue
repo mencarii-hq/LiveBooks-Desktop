@@ -853,11 +853,8 @@ export default defineComponent({
       if (!iso || iso.length < 10) {
         return '';
       }
-      const [y, m, d] = iso.slice(0, 10).split('-');
-      if (!y || !m || !d) {
-        return iso;
-      }
-      return `${d}/${m}/${y}`;
+      const formatted = fyo.format(iso.slice(0, 10), 'Date');
+      return formatted || iso;
     },
     formatOutAmount(signed: number): string {
       return this.formatMoney(Math.abs(signed));

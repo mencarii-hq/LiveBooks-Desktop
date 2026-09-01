@@ -525,11 +525,8 @@ export default defineComponent({
     },
     formatDate(value: string): string {
       if (!value) return '';
-      const d = new Date(value);
-      if (Number.isNaN(d.valueOf())) return value;
-      return `${d.toLocaleString('default', {
-        month: 'short',
-      })} ${d.getDate()}, ${d.getFullYear()}`;
+      const formatted = fyo.format(value, 'Date');
+      return formatted || value;
     },
     async onBankAccountChange(value: string | null) {
       this.bankAccount = value || '';

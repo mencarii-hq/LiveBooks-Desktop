@@ -7,6 +7,7 @@ import {
   DEFAULT_LOCALE,
   DEFAULT_SERIES_START,
 } from 'fyo/utils/consts';
+import { US_CA_DATE_FORMAT } from 'fyo/utils/format';
 import {
   AccountRootTypeEnum,
   AccountTypeEnum,
@@ -138,6 +139,7 @@ async function updateSystemSettings(
   const systemSettings = await fyo.doc.getDoc('SystemSettings');
   const instanceId = getRandomString();
   const theme = desktopTheme === 'modern' ? 'modern' : 'classic';
+  const usCa = !countryCode || countryCode === 'us' || countryCode === 'ca';
 
   await systemSettings.setAndSync({
     locale,
@@ -147,6 +149,7 @@ async function updateSystemSettings(
     version: fyo.store.appVersion,
     desktopTheme: theme,
     hideHomeWorkflowMap: theme === 'modern',
+    ...(usCa ? { dateFormat: US_CA_DATE_FORMAT } : {}),
   });
 }
 

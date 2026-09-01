@@ -250,7 +250,7 @@
           <tbody>
             <tr v-for="line in manualLinesForReview" :key="manualLineKey(line)">
               <td class="p-2 border-b dark:border-gray-800 break-words">
-                {{ line.date || '—' }}
+                {{ formatLineDate(line.date) }}
               </td>
               <td
                 class="p-2 border-b dark:border-gray-800 max-w-md break-words"
@@ -367,7 +367,7 @@
           <tbody>
             <tr v-for="line in manualLinesReviewed" :key="manualLineKey(line)">
               <td class="p-2 border-b dark:border-gray-800 break-words">
-                {{ line.date || '—' }}
+                {{ formatLineDate(line.date) }}
               </td>
               <td class="p-2 border-b dark:border-gray-800 break-words">
                 {{ line.description || '—' }}
@@ -443,7 +443,7 @@
               class="text-gray-500 dark:text-gray-500"
             >
               <td class="p-2 border-b break-words">
-                {{ line.date || '—' }}
+                {{ formatLineDate(line.date) }}
               </td>
               <td class="p-2 border-b break-words">
                 {{ line.description || '—' }}
@@ -1418,21 +1418,19 @@ export default defineComponent({
       this.summaryBankBalanceLabel = bankBal;
       this.summaryLastSyncLabel = lastSync;
     },
+    formatLineDate(value: string | undefined): string {
+      if (!value) {
+        return '—';
+      }
+      const formatted = fyo.format(value, 'Date');
+      return formatted || value;
+    },
     formatActivityLocalTimestamp(iso: string | null): string | null {
       if (!iso) {
         return null;
       }
-      const d = new Date(iso);
-      if (Number.isNaN(d.getTime())) {
-        return iso;
-      }
-      return new Intl.DateTimeFormat(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-      }).format(d);
+      const formatted = fyo.format(iso, 'Datetime');
+      return formatted || iso;
     },
     formatActivityBankBalance(acc: PlaidLinkedAccountRow): string | null {
       const b = acc.balances ?? undefined;

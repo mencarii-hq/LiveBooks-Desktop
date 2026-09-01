@@ -1369,17 +1369,8 @@ export default defineComponent({
       if (!iso) {
         return null;
       }
-      const d = new Date(iso);
-      if (Number.isNaN(d.getTime())) {
-        return iso;
-      }
-      return new Intl.DateTimeFormat(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-      }).format(d);
+      const formatted = fyo.format(iso, 'Datetime');
+      return formatted || iso;
     },
     formatBankBalance(acc: PlaidLinkedAccountRow): string | null {
       const b = acc.balances ?? undefined;

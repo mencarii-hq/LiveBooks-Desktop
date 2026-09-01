@@ -311,15 +311,8 @@ export default defineComponent({
       if (!iso) {
         return null;
       }
-      const d = new Date(iso);
-      if (Number.isNaN(d.getTime())) {
-        return iso.slice(0, 10);
-      }
-      return new Intl.DateTimeFormat(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-      }).format(d);
+      const formatted = fyo.format(iso, 'Date');
+      return formatted || iso.slice(0, 10);
     },
     async load() {
       this.loading = true;

@@ -11,6 +11,25 @@ import {
   DEFAULT_LOCALE,
 } from './consts';
 
+/** US/CA table dates: 12/26/89 (numeric, 2-digit year). */
+export const US_CA_DATE_FORMAT = 'MM/dd/yy';
+
+function isUsCaCountryCode(countryCode: unknown): boolean {
+  const code = String(countryCode ?? '')
+    .trim()
+    .toLowerCase();
+  return !code || code === 'us' || code === 'ca';
+}
+
+export function getDisplayDateFormat(fyo: Fyo): string {
+  if (isUsCaCountryCode(fyo.singles.SystemSettings?.countryCode)) {
+    return US_CA_DATE_FORMAT;
+  }
+  return (
+    (fyo.singles.SystemSettings?.dateFormat as string) ?? DEFAULT_DATE_FORMAT
+  );
+}
+
 export function format(
   value: unknown,
   df: string | Field | null,
@@ -71,8 +90,7 @@ function formatDatetime(value: unknown, fyo: Fyo): string {
     return '';
   }
 
-  const dateFormat =
-    (fyo.singles.SystemSettings?.dateFormat as string) ?? DEFAULT_DATE_FORMAT;
+  const dateFormat = getDisplayDateFormat(fyo);
   const dateTime = toDatetime(value);
   if (!dateTime) {
     return '';
@@ -87,15 +105,24 @@ function formatDatetime(value: unknown, fyo: Fyo): string {
   return formattedDatetime;
 }
 
+function toDateOnly(value: unknown): DateTime | null {
+  if (typeof value === 'string') {
+    const day = value.slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+      return DateTime.fromISO(day, { zone: 'utc' });
+    }
+  }
+  return toDatetime(value);
+}
+
 function formatDate(value: unknown, fyo: Fyo): string {
   if (value == null) {
     return '';
   }
 
-  const dateFormat =
-    (fyo.singles.SystemSettings?.dateFormat as string) ?? DEFAULT_DATE_FORMAT;
+  const dateFormat = getDisplayDateFormat(fyo);
 
-  const dateTime = toDatetime(value);
+  const dateTime = toDateOnly(value);
   if (!dateTime) {
     return '';
   }

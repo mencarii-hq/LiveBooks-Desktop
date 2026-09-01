@@ -52,7 +52,7 @@
           typeLabel(row.entityType)
         }}</span>
         <span class="text-gray-600 dark:text-gray-300">{{
-          row.txnDate ?? ''
+          formatTxnDate(row.txnDate)
         }}</span>
         <span class="text-right tabular-nums dark:text-gray-100">{{
           formatArchiveAmount(row.amount)
@@ -70,6 +70,7 @@
 
 <script lang="ts">
 import { t } from 'fyo';
+import { fyo } from 'src/initFyo';
 import { routeTo } from 'src/utils/ui';
 import { formatArchiveAmount, sourceBookDocRoute } from 'src/utils/sourcebooks';
 import { entityTypeLabel } from 'utils/sourcebooks/entityTypes';
@@ -88,6 +89,12 @@ export default defineComponent({
   methods: {
     t,
     formatArchiveAmount,
+    formatTxnDate(value?: string): string {
+      if (!value) {
+        return '';
+      }
+      return fyo.format(value, 'Date') || value;
+    },
     typeLabel(entityType: string): string {
       return entityTypeLabel(entityType);
     },

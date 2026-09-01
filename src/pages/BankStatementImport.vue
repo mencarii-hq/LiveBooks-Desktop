@@ -325,7 +325,9 @@
                   v-for="(row, i) in ofxSkippedDuplicates"
                   :key="'ofx-skip-' + i"
                 >
-                  <td class="p-1 border-b text-start">{{ row.date }}</td>
+                  <td class="p-1 border-b text-start">
+                    {{ formatTableDate(row.date) }}
+                  </td>
                   <td class="p-1 border-b text-start">{{ row.description }}</td>
                   <td class="p-1 border-b text-start">{{ row.amount }}</td>
                 </tr>
@@ -558,7 +560,9 @@
                   v-for="(row, i) in previewBundle.skippedDuplicates"
                   :key="'skip-' + i"
                 >
-                  <td class="p-1 border-b text-start">{{ row.date }}</td>
+                  <td class="p-1 border-b text-start">
+                    {{ formatTableDate(row.date) }}
+                  </td>
                   <td class="p-1 border-b text-start">{{ row.description }}</td>
                   <td class="p-1 border-b text-start">{{ row.amount }}</td>
                 </tr>
@@ -594,7 +598,9 @@
             </thead>
             <tbody>
               <tr v-for="(r, i) in previewRows.slice(0, 15)" :key="i">
-                <td class="p-1 border-b text-start">{{ r.date }}</td>
+                <td class="p-1 border-b text-start">
+                  {{ formatTableDate(r.date) }}
+                </td>
                 <td class="p-1 border-b text-start">{{ r.description }}</td>
                 <td class="p-1 border-b text-start">{{ r.amount }}</td>
                 <td
@@ -1001,6 +1007,12 @@ export default defineComponent({
 
   methods: {
     t,
+    formatTableDate(value: string | undefined): string {
+      if (!value) {
+        return '';
+      }
+      return fyo.format(value, 'Date') || value;
+    },
     onMapSelect(field, e) {
       const v = Number(e?.target?.value);
       if (!Number.isFinite(v)) {

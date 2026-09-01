@@ -18,6 +18,10 @@
           "value": "MM/dd/yyyy"
         },
         {
+          "label": "12/26/89",
+          "value": "MM/dd/yy"
+        },
+        {
           "label": "23-03-2022",
           "value": "dd-MM-yyyy"
         },
