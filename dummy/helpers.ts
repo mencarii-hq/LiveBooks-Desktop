@@ -22,6 +22,23 @@ export const purchaseItemPartyMap: Record<string, string> = Object.keys(
   return acc;
 }, {} as Record<string, string>);
 
+/** Apparel SKUs that the demo tracks in inventory (Product + Both). */
+export function isTrackedDemoItem(item: {
+  itemType?: string;
+  for?: string;
+}): boolean {
+  return item.itemType === 'Product' && item.for === 'Both';
+}
+
+export const DEMO_EMPLOYEES = [
+  { partyName: 'Maya Chen', payType: 'Salary' as const, rate: 2800 },
+  { partyName: 'Jordan Blake', payType: 'Salary' as const, rate: 2400 },
+  { partyName: 'Sam Ortiz', payType: 'Hourly' as const, rate: 22 },
+];
+
+export const DEMO_CREDIT_CARD_NAME = "Flo's Business Card";
+export const DEMO_FIT_ACCOUNT_NAME = 'Federal Income Tax Withheld';
+
 export const flow = [
   0.35, // Jan
   0.25, // Feb

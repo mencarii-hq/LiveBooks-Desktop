@@ -23,11 +23,20 @@ import {
   flow,
   getFlowConstant,
   getRandomDates,
+  isTrackedDemoItem,
   purchaseItemPartyMap,
 } from './helpers';
 import items from './items.json';
 import logo from './logo';
 import parties from './parties.json';
+import {
+  convertQuotesToInvoices,
+  enableDemoInventory,
+  resolvePaymentMethodName,
+  seedDemoExtras,
+  seedInventoryDocuments,
+  seedSalesQuotes,
+} from './seedExtras';
 
 type Notifier = (stage: string, percent: number) => void;
 
@@ -57,6 +66,8 @@ export async function setupDummyInstance(
   fyo.store.skipTelemetryLogging = true;
 
   years = Math.floor(years);
+  notifier?.(fyo.t`Enabling inventory`, -1);
+  await enableDemoInventory(fyo);
   notifier?.(fyo.t`Creating Items and Parties`, -1);
   await generateStaticEntries(fyo);
   await generateDynamicEntries(fyo, years, baseCount, notifier);
@@ -103,7 +114,26 @@ async function generateDynamicEntries(
   baseCount: number,
   notifier?: Notifier
 ) {
-  const salesInvoices = await getSalesInvoices(fyo, years, baseCount, notifier);
+  const ids = {
+    partyIdByDisplayName,
+    itemIdByDisplayName,
+  };
+
+  notifier?.(fyo.t`Receiving Inventory`, -1);
+  await seedInventoryDocuments(fyo, ids);
+
+  notifier?.(fyo.t`Creating Estimates`, -1);
+  const quotes = await seedSalesQuotes(fyo, ids);
+  await syncAndSubmit(quotes, notifier);
+  const convertedInvoices = await convertQuotesToInvoices(quotes);
+
+  const generatedInvoices = await getSalesInvoices(
+    fyo,
+    years,
+    baseCount,
+    notifier
+  );
+  const salesInvoices = [...generatedInvoices, ...convertedInvoices];
 
   notifier?.(fyo.t`Creating Purchase Invoices`, -1);
   const purchaseInvoices = await getPurchaseInvoices(fyo, years, salesInvoices);
@@ -119,6 +149,16 @@ async function generateDynamicEntries(
 
   const payments = await getPayments(fyo, invoices);
   await syncAndSubmit(payments, notifier);
+
+  for (const payment of payments) {
+    if (!payment.printLater) {
+      continue;
+    }
+    await payment.set('printLater', true);
+    await payment.sync();
+  }
+
+  await seedDemoExtras(fyo, ids, notifier);
 }
 
 async function getJournalEntries(fyo: Fyo, salesInvoices: SalesInvoice[]) {
@@ -183,30 +223,71 @@ async function getJournalEntries(fyo: Fyo, salesInvoices: SalesInvoice[]) {
 
 async function getPayments(fyo: Fyo, invoices: Invoice[]) {
   const payments = [];
-  for (const invoice of invoices) {
-    // Defaulters
-    if (invoice.isSales && Math.random() < 0.007) {
+  const bankAccountId = await resolveAccountIdByLabel(fyo, 'Supreme Bank');
+  const checkMethod = await resolvePaymentMethodName(fyo, 'Check');
+  const cashMethod = await resolvePaymentMethodName(fyo, 'Cash');
+  const transferMethod = await resolvePaymentMethodName(fyo, 'Transfer');
+  const cashId = cashAccountId(fyo);
+  const debtors = debtorsAccountId(fyo);
+  const creditors = creditorsAccountId(fyo);
+  const cutoff = DateTime.now().minus({ days: 45 });
+  let checkSeq = 1001;
+  let printLaterCount = 0;
+
+  for (let i = 0; i < invoices.length; i++) {
+    const invoice = invoices[i];
+    if (invoice.isSales && i % 10 === 0) {
       continue;
     }
 
+    const isPay = !invoice.isSales;
+    const useCash = i % 6 === 0;
+    const queueCheck = isPay && !useCash && printLaterCount < 6;
+    if (queueCheck) {
+      printLaterCount += 1;
+    }
+
     const doc = fyo.doc.getNewDoc(ModelNameEnum.Payment, {}, false) as Payment;
-    doc.party = invoice.party as string;
-    doc.paymentType = invoice.isSales ? 'Receive' : 'Pay';
-    doc.paymentMethod = 'Cash';
+    await doc.set('party', invoice.party as string);
+    await doc.set('paymentType', isPay ? 'Pay' : 'Receive');
     doc.date = DateTime.fromJSDate(invoice.date as Date)
       .plus({ hours: 1 })
       .toJSDate();
-    if (doc.paymentType === 'Receive') {
-      doc.account = debtorsAccountId(fyo);
-      doc.paymentAccount = cashAccountId(fyo);
-    } else {
-      doc.account = cashAccountId(fyo);
-      doc.paymentAccount = creditorsAccountId(fyo);
-    }
     doc.amount = invoice.outstandingAmount;
 
-    // Discount
-    if (invoice.isSales && Math.random() < 0.05) {
+    if (useCash) {
+      await doc.set('paymentMethod', cashMethod);
+      if (isPay) {
+        doc.account = cashId;
+        doc.paymentAccount = creditors;
+      } else {
+        doc.account = debtors;
+        doc.paymentAccount = cashId;
+      }
+    } else if (isPay) {
+      await doc.set('paymentMethod', checkMethod);
+      doc.account = bankAccountId;
+      doc.paymentAccount = creditors;
+      doc.printLater = queueCheck;
+      if (queueCheck) {
+        doc.referenceId = '';
+      } else {
+        doc.referenceId = String(checkSeq);
+        checkSeq += 1;
+        const invDate = DateTime.fromJSDate(invoice.date as Date);
+        if (invDate < cutoff) {
+          doc.clearanceDate = invoice.date as Date;
+        }
+      }
+    } else {
+      await doc.set('paymentMethod', transferMethod);
+      doc.account = debtors;
+      doc.paymentAccount = bankAccountId;
+      doc.clearanceDate = doc.date;
+      doc.referenceId = `DEP-${String(i).padStart(4, '0')}`;
+    }
+
+    if (invoice.isSales && i % 11 === 0) {
       await doc.set('writeOff', invoice.outstandingAmount?.percent(15));
     }
 
@@ -216,6 +297,7 @@ async function getPayments(fyo: Fyo, invoices: Invoice[]) {
       amount: invoice.outstandingAmount,
     });
 
+    doc.paymentType = isPay ? 'Pay' : 'Receive';
     if (doc.amount!.isZero()) {
       continue;
     }
@@ -530,6 +612,18 @@ async function generateStaticEntries(fyo: Fyo) {
 
 async function generateItems(fyo: Fyo): Promise<Record<string, string>> {
   const ids: Record<string, string> = {};
+  const trackedExpense =
+    fyo.singles.InventorySettings?.stockReceivedButNotBilled ??
+    (
+      (await fyo.db.getAllRaw('Account', {
+        fields: ['name'],
+        filters: {
+          accountType: 'Stock Received But Not Billed',
+          isGroup: false,
+        },
+      })) as { name: string }[]
+    )[0]?.name;
+
   for (const item of items) {
     const displayName = item.name;
     const doc = fyo.doc.getNewDoc(
@@ -538,7 +632,10 @@ async function generateItems(fyo: Fyo): Promise<Record<string, string>> {
         ...item,
         itemName: displayName,
         incomeAccount: resolveDemoCoaAccountId(fyo, item.incomeAccount),
-        expenseAccount: resolveDemoCoaAccountId(fyo, item.expenseAccount),
+        expenseAccount: isTrackedDemoItem(item)
+          ? trackedExpense ?? resolveDemoCoaAccountId(fyo, item.expenseAccount)
+          : resolveDemoCoaAccountId(fyo, item.expenseAccount),
+        trackItem: isTrackedDemoItem(item),
       },
       false
     );
@@ -575,6 +672,7 @@ async function syncAndSubmit(docs: Doc[], notifier?: Notifier) {
     [ModelNameEnum.SalesInvoice]: t`Invoices`,
     [ModelNameEnum.Payment]: t`Payments`,
     [ModelNameEnum.JournalEntry]: t`Journal Entries`,
+    [ModelNameEnum.SalesQuote]: t`Estimates`,
   };
 
   const total = docs.length;

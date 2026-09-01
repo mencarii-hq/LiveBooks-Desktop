@@ -1481,7 +1481,7 @@ export abstract class Invoice extends Transactional {
       }
     }
     const paymentAmount = this.isReturn
-      ? outstandingAmount
+      ? this.baseGrandTotal?.abs() ?? outstandingAmount
       : outstandingAmount?.abs();
 
     const data = {
@@ -1495,7 +1495,9 @@ export abstract class Invoice extends Transactional {
         {
           referenceType: this.schemaName,
           referenceName: this.name,
-          amount: this.isReturn ? this.grandTotal : outstandingAmount,
+          // Returns store a signed total; PaymentFor must be base currency so
+          // cash-basis allocation is amount / baseGrandTotal, not a FX ratio.
+          amount: this.isReturn ? this.baseGrandTotal : outstandingAmount,
         },
       ],
     };
