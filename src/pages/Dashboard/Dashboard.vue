@@ -70,6 +70,12 @@
 
       <!-- Widget canvas -->
       <div v-else class="w-full min-w-0">
+        <p
+          v-if="showAccrualCaption"
+          class="px-4 pt-3 text-xs text-gray-500 dark:text-gray-400"
+        >
+          {{ t`Accrual basis` }}
+        </p>
         <template v-for="(row, idx) in visibleRows" :key="idx">
           <!-- Full-width widget -->
           <div
@@ -237,6 +243,9 @@ export default defineComponent({
   computed: {
     visibleRows(): WidgetRow[] {
       return buildWidgetRows(this.layout);
+    },
+    showAccrualCaption(): boolean {
+      return fyo.singles.AccountingSettings?.defaultReportBasis === 'Cash';
     },
   },
 

@@ -1,6 +1,7 @@
 import { t } from 'fyo';
 import { Action } from 'fyo/model/types';
 import { Verb } from 'fyo/telemetry/types';
+import { csvBasisHeader } from 'reports/cashBasis';
 import { getSavePath, showExportInFolder } from 'src/utils/ui';
 import { getIsNullOrUndef } from 'utils';
 import { generateCSV } from 'utils/csvParser';
@@ -30,9 +31,17 @@ export default function getCommonExportActions(report: Report): Action[] {
   }));
 }
 
+function getExportFileName(report: Report): string {
+  const basis = report.get('basis');
+  if (basis === 'Cash' || basis === 'Accrual') {
+    return `${report.reportName}-${String(basis).toLowerCase()}`;
+  }
+  return report.reportName;
+}
+
 async function exportReport(extention: ExportExtention, report: Report) {
   const { filePath, canceled } = await getSavePath(
-    report.reportName,
+    getExportFileName(report),
     extention
   );
 
@@ -132,6 +141,7 @@ function convertReportToCSVMatrix(report: Report): unknown[][] {
   const columns = report.columns;
 
   const csvdata: unknown[][] = [];
+  csvdata.push(...csvBasisHeader(String(report.get('basis') ?? '')));
   csvdata.push(columns.map((c) => c.label));
   for (const row of reportData) {
     if (row.isEmpty) {

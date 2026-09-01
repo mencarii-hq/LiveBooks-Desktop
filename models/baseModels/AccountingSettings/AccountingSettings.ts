@@ -28,6 +28,7 @@ export class AccountingSettings extends Doc {
   enablePointOfSaleWithOutInventory?: boolean;
   enablePartialPayment?: boolean;
   enableitemGroup?: boolean;
+  defaultReportBasis?: 'Accrual' | 'Cash';
 
   static filters: FiltersMap = {
     writeOffAccount: () => ({

@@ -4,34 +4,17 @@ import { RawValue } from 'schemas/types';
 import { ModelNameEnum } from 'models/types';
 import { reports } from 'reports';
 import { showDialog, showToast } from 'src/utils/interactive';
+import { toMemorizedFilterMap } from './memorizedReportFilters';
+
+export { toMemorizedFilterMap };
 
 export const MEMORIZED_REPORTS_CHANGED_EVENT = 'memorized-reports-changed';
-
-const FROZEN_DATE_FIELDS = new Set([
-  'toDate',
-  'fromDate',
-  'fromYear',
-  'toYear',
-]);
 
 export type MemorizedReportRow = {
   name: string;
   reportClassName: string;
   filtersJson: string;
 };
-
-export function toMemorizedFilterMap(
-  filterMap: Record<string, RawValue>
-): Record<string, RawValue> {
-  const filters: Record<string, RawValue> = { relativeDates: true };
-  for (const [key, value] of Object.entries(filterMap)) {
-    if (FROZEN_DATE_FIELDS.has(key)) {
-      continue;
-    }
-    filters[key] = value;
-  }
-  return filters;
-}
 
 export async function listMemorizedReports(
   fyo: Fyo

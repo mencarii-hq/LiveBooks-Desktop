@@ -19,6 +19,22 @@
         >
           {{ isMemorized ? t`Memorized` : t`Default` }}
         </span>
+        <span
+          v-if="basisBadge"
+          class="
+            pill
+            font-medium
+            rounded-full
+            select-none
+            pointer-events-none
+            self-center
+            bg-gray-200
+            text-gray-700
+            dark:bg-gray-800 dark:text-gray-200
+          "
+        >
+          {{ basisBadge }}
+        </span>
       </template>
       <DropdownWithActions
         v-for="group of groupedActions"
@@ -76,6 +92,22 @@
       />
     </div>
 
+    <div
+      v-if="isCashBasis"
+      class="
+        px-4
+        py-2
+        text-xs text-gray-500
+        dark:text-gray-400
+        border-b
+        dark:border-gray-800
+      "
+    >
+      {{
+        t`Cash basis: income and expenses count when money changes hands. General Ledger detail is shown on accrual basis.`
+      }}
+    </div>
+
     <!-- Report Body -->
     <ListReport v-if="report" :report="report" class="" />
   </div>
@@ -98,6 +130,7 @@ import { clearReportInstance, docsPathMap, getReport } from 'src/utils/misc';
 import { docsPathRef } from 'src/utils/refs';
 import { ActionGroup } from 'src/utils/types';
 import { openRouteInSidePane, routeTo } from 'src/utils/ui';
+import { getBasisBadge } from 'reports/cashBasis';
 import {
   deleteMemorizedReport,
   getMemorizedReportPath,
@@ -176,6 +209,16 @@ export default defineComponent({
     },
     isMemorized() {
       return Boolean(this.resolvedMemorizedName);
+    },
+    reportBasis() {
+      const value = this.report?.get?.('basis');
+      return typeof value === 'string' ? value : '';
+    },
+    isCashBasis() {
+      return this.reportBasis === 'Cash';
+    },
+    basisBadge() {
+      return getBasisBadge(this.reportBasis);
     },
     title() {
       if (this.resolvedMemorizedName) {
@@ -409,8 +452,12 @@ export default defineComponent({
       }
       const relativeDates = Boolean(parsed.relativeDates);
       delete parsed.relativeDates;
+      const hadIncoming = Object.keys(parsed).length > 0 || relativeDates;
+      if (hadIncoming && this.resolvedMemorizedName) {
+        this.stampLegacyBasis(parsed);
+      }
       const filterKeys = Object.keys(parsed);
-      if (!filterKeys.length && !relativeDates) {
+      if (!hadIncoming) {
         return;
       }
 
@@ -459,9 +506,12 @@ export default defineComponent({
 
       const relativeDates = Boolean(validFilters.relativeDates);
       delete validFilters.relativeDates;
+      const hasIncoming = Object.keys(validFilters).length > 0 || relativeDates;
+      if (hasIncoming && this.resolvedMemorizedName) {
+        this.stampLegacyBasis(validFilters);
+      }
 
       const filterKeys = Object.keys(validFilters);
-      const hasIncoming = filterKeys.length > 0 || relativeDates;
 
       if (hasIncoming) {
         this.report = await getReport(this.reportClassName, {
@@ -496,6 +546,18 @@ export default defineComponent({
           instanceKey: this.reportInstanceKey,
         });
         this.routeFilterReportClass = null;
+      }
+    },
+    stampLegacyBasis(filters: Record<string, DocValue>) {
+      if (filters.basis === 'Cash' || filters.basis === 'Accrual') {
+        return;
+      }
+      const hasBasisFilter =
+        this.report?.filters.some((field) => field.fieldname === 'basis') ||
+        this.reportClassName === 'ProfitAndLoss' ||
+        this.reportClassName === 'BalanceSheet';
+      if (hasBasisFilter) {
+        filters.basis = 'Accrual';
       }
     },
     async setReportData() {

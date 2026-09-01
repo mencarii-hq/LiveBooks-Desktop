@@ -1,9 +1,25 @@
 import { Fyo, t } from 'fyo';
 import { cloneDeep } from 'lodash';
 import { DateTime } from 'luxon';
-import { AccountRootType } from 'models/baseModels/Account/types';
+import {
+  AccountRootType,
+  AccountTypeEnum,
+} from 'models/baseModels/Account/types';
 import { isCredit } from 'models/helpers';
 import { ModelNameEnum } from 'models/types';
+import {
+  BASIS_HELP,
+  CashBasisInvoice,
+  CashBasisPayment,
+  CashBasisPaymentFor,
+  fetchInChunks,
+  injectSyntheticCashBasisAccounts,
+  isSyntheticCashBasisAccount,
+  PartyAccountKind,
+  removeSyntheticCashBasisAccounts,
+  ReportBasis,
+  transformToCashBasis,
+} from 'reports/cashBasis';
 import { LedgerReport } from 'reports/LedgerReport';
 import {
   Account,
@@ -29,6 +45,7 @@ import { Field } from 'schemas/types';
 import { getMapFromList } from 'utils';
 import { accountDisplayName } from 'utils/accountDisplay';
 import { QueryFilter } from 'utils/db/types';
+import { safeParseFloat } from 'utils/index';
 
 export const ACC_NAME_WIDTH = 2;
 export const ACC_BAL_WIDTH = 1.25;
@@ -44,11 +61,16 @@ export abstract class AccountReport extends LedgerReport {
   comparePriorYear = false;
   periodicity: Periodicity = 'Monthly';
   basedOn: BasedOn = 'Until Date';
+  basis?: ReportBasis;
 
   _rawData: LedgerEntry[] = [];
   _dateRanges?: DateRange[];
 
   accountMap?: Record<string, Account>;
+
+  get usesCumulativeBalances(): boolean {
+    return false;
+  }
 
   async setDefaultFilters(): Promise<void> {
     if (this.basedOn === 'Until Date' && !this.toDate) {
@@ -60,7 +82,204 @@ export abstract class AccountReport extends LedgerReport {
       this.toYear = this.fromYear + 1;
     }
 
+    if (!this.basis) {
+      const stored = this.fyo.singles.AccountingSettings?.defaultReportBasis;
+      this.basis = stored === 'Cash' ? 'Cash' : 'Accrual';
+    }
+
     await this._setDateRanges();
+  }
+
+  async _setRawData() {
+    await super._setRawData();
+    if (this.basis !== 'Cash') {
+      return;
+    }
+
+    this._rawData = await this._applyCashBasis(this._rawData);
+  }
+
+  async _applyCashBasis(entries: LedgerEntry[]): Promise<LedgerEntry[]> {
+    const paymentNames = [
+      ...new Set(
+        entries
+          .filter((entry) => entry.referenceType === ModelNameEnum.Payment)
+          .map((entry) => entry.referenceName)
+      ),
+    ];
+    const partyAccounts = await this._getPartyAccounts();
+    const payments = await this._fetchCashBasisPayments(paymentNames);
+    const paymentFor = await this._fetchCashBasisPaymentFor(paymentNames);
+    const invoiceNames = [
+      ...new Set(paymentFor.map((row) => row.referenceName)),
+    ];
+    const invoices = await this._fetchCashBasisInvoices(invoiceNames);
+    const invoiceEntries = await this._fetchInvoiceLedgerEntries(invoiceNames);
+    const excludeAccounts = await this._fetchLoyaltyExpenseAccounts();
+
+    return transformToCashBasis({
+      entries,
+      payments,
+      paymentFor,
+      invoiceEntries,
+      invoices,
+      partyAccounts,
+      excludeAccounts,
+    });
+  }
+
+  async _fetchLoyaltyExpenseAccounts(): Promise<Set<string>> {
+    const rows = (await this.fyo.db.getAllRaw(ModelNameEnum.LoyaltyProgram, {
+      fields: ['expenseAccount'],
+    })) as { expenseAccount?: string }[];
+    return new Set(
+      rows.map((row) => String(row.expenseAccount ?? '').trim()).filter(Boolean)
+    );
+  }
+
+  async _getPartyAccounts(): Promise<Map<string, PartyAccountKind>> {
+    const rows = (await this.fyo.db.getAllRaw(ModelNameEnum.Account, {
+      fields: ['name', 'accountType'],
+      filters: {
+        accountType: [
+          'in',
+          [AccountTypeEnum.Receivable, AccountTypeEnum.Payable],
+        ],
+      },
+    })) as { name: string; accountType: string }[];
+    return new Map(
+      rows.map((row) => [
+        row.name,
+        row.accountType === AccountTypeEnum.Payable ? 'Payable' : 'Receivable',
+      ])
+    );
+  }
+
+  async _fetchCashBasisPayments(names: string[]): Promise<CashBasisPayment[]> {
+    if (!names.length) {
+      return [];
+    }
+
+    const rows = await fetchInChunks(names, (chunk) =>
+      this.fyo.db.getAllRaw(ModelNameEnum.Payment, {
+        fields: ['name', 'date', 'paymentType', 'amount'],
+        filters: {
+          name: ['in', chunk],
+          submitted: true,
+          cancelled: false,
+        },
+      })
+    );
+
+    return rows.map((row) => ({
+      name: String(row.name ?? ''),
+      date: new Date(String(row.date)),
+      paymentType: row.paymentType === 'Pay' ? 'Pay' : 'Receive',
+      amount: Math.abs(safeParseFloat(row.amount)),
+    }));
+  }
+
+  async _fetchCashBasisPaymentFor(
+    paymentNames: string[]
+  ): Promise<CashBasisPaymentFor[]> {
+    if (!paymentNames.length) {
+      return [];
+    }
+
+    const rows = await fetchInChunks(paymentNames, (chunk) =>
+      this.fyo.db.getAllRaw(ModelNameEnum.PaymentFor, {
+        fields: ['parent', 'referenceType', 'referenceName', 'amount'],
+        filters: { parent: ['in', chunk] },
+      })
+    );
+
+    return rows.map((row) => ({
+      parent: String(row.parent ?? ''),
+      referenceType: String(row.referenceType ?? ''),
+      referenceName: String(row.referenceName ?? ''),
+      amount: safeParseFloat(row.amount),
+    }));
+  }
+
+  async _fetchCashBasisInvoices(names: string[]): Promise<CashBasisInvoice[]> {
+    if (!names.length) {
+      return [];
+    }
+
+    const sales = await fetchInChunks(names, (chunk) =>
+      this.fyo.db.getAllRaw(ModelNameEnum.SalesInvoice, {
+        fields: ['name', 'baseGrandTotal', 'exchangeRate'],
+        filters: { name: ['in', chunk] },
+      })
+    );
+    const purchases = await fetchInChunks(names, (chunk) =>
+      this.fyo.db.getAllRaw(ModelNameEnum.PurchaseInvoice, {
+        fields: ['name', 'baseGrandTotal', 'exchangeRate'],
+        filters: { name: ['in', chunk] },
+      })
+    );
+
+    return [
+      ...sales.map((row) => ({
+        name: String(row.name ?? ''),
+        schemaName: ModelNameEnum.SalesInvoice,
+        baseGrandTotal: safeParseFloat(row.baseGrandTotal),
+        exchangeRate: safeParseFloat(row.exchangeRate) || 1,
+      })),
+      ...purchases.map((row) => ({
+        name: String(row.name ?? ''),
+        schemaName: ModelNameEnum.PurchaseInvoice,
+        baseGrandTotal: safeParseFloat(row.baseGrandTotal),
+        exchangeRate: safeParseFloat(row.exchangeRate) || 1,
+      })),
+    ];
+  }
+
+  async _fetchInvoiceLedgerEntries(
+    invoiceNames: string[]
+  ): Promise<LedgerEntry[]> {
+    if (!invoiceNames.length) {
+      return [];
+    }
+
+    const rows = await fetchInChunks(invoiceNames, (chunk) =>
+      this.fyo.db.getAllRaw(ModelNameEnum.AccountingLedgerEntry, {
+        fields: [
+          'name',
+          'account',
+          'date',
+          'debit',
+          'credit',
+          'referenceType',
+          'referenceName',
+          'party',
+          'reverted',
+          'reverts',
+        ],
+        filters: {
+          referenceType: [
+            'in',
+            [ModelNameEnum.SalesInvoice, ModelNameEnum.PurchaseInvoice],
+          ],
+          referenceName: ['in', chunk],
+          reverted: false,
+        },
+      })
+    );
+
+    return rows.map((row) => ({
+      name: 0,
+      account: String(row.account ?? ''),
+      date: new Date(String(row.date)),
+      debit: Math.abs(safeParseFloat(row.debit)),
+      credit: Math.abs(safeParseFloat(row.credit)),
+      balance: 0,
+      referenceType: String(row.referenceType ?? ''),
+      referenceName: String(row.referenceName ?? ''),
+      party: String(row.party ?? ''),
+      reverted: false,
+      reverts: String(row.reverts ?? ''),
+    }));
   }
 
   async _setDateRanges() {
@@ -180,23 +399,20 @@ export abstract class AccountReport extends LedgerReport {
        * Set Balance for every DateRange key
        */
       for (const entry of map.get(account)!) {
-        const key = this._getRangeMapKey(entry);
-        if (key === null) {
-          continue;
-        }
-
         if (!this.accountMap?.[entry.account]) {
           await this._setAndReturnAccountMap(true);
         }
 
-        const totalBalance = valueMap.get(key)?.balance ?? 0;
         const balance = (entry.debit ?? 0) - (entry.credit ?? 0);
         const rootType = this.accountMap![entry.account]?.rootType;
+        const signed = isCredit(rootType) ? -balance : balance;
 
-        if (isCredit(rootType)) {
-          valueMap.set(key, { balance: totalBalance - balance });
-        } else {
-          valueMap.set(key, { balance: totalBalance + balance });
+        for (const key of this._dateRanges!) {
+          if (!this._entryBelongsInRange(entry, key)) {
+            continue;
+          }
+          const totalBalance = valueMap.get(key)?.balance ?? 0;
+          valueMap.set(key, { balance: totalBalance + signed });
         }
       }
       accountValueMap.set(account, valueMap);
@@ -221,6 +437,7 @@ export abstract class AccountReport extends LedgerReport {
 
   async _setAndReturnAccountMap(force = false) {
     if (this.accountMap && !force) {
+      this._syncSyntheticCashBasisAccounts(this.accountMap);
       return this.accountMap;
     }
 
@@ -237,19 +454,36 @@ export abstract class AccountReport extends LedgerReport {
     }));
 
     this.accountMap = getMapFromList(accountList, 'name');
+    this._syncSyntheticCashBasisAccounts(this.accountMap);
     return this.accountMap;
   }
 
+  _syncSyntheticCashBasisAccounts(accountMap: Record<string, Account>) {
+    if (this.basis === 'Cash') {
+      injectSyntheticCashBasisAccounts(accountMap);
+      return;
+    }
+    removeSyntheticCashBasisAccounts(accountMap);
+  }
+
+  _entryDateMillis(entry: LedgerEntry): number {
+    return DateTime.fromISO(entry.date!.toISOString().split('T')[0]).toMillis();
+  }
+
+  _entryBelongsInRange(entry: LedgerEntry, range: DateRange): boolean {
+    const entryDate = this._entryDateMillis(entry);
+    if (entryDate >= range.toDate.toMillis()) {
+      return false;
+    }
+    if (this.usesCumulativeBalances) {
+      return true;
+    }
+    return entryDate >= range.fromDate.toMillis();
+  }
+
   _getRangeMapKey(entry: LedgerEntry): DateRange | null {
-    const entryDate = DateTime.fromISO(
-      entry.date!.toISOString().split('T')[0]
-    ).toMillis();
-
     for (const dr of this._dateRanges!) {
-      const toDate = dr.toDate.toMillis();
-      const fromDate = dr.fromDate.toMillis();
-
-      if (entryDate >= fromDate && entryDate < toDate) {
+      if (this._entryBelongsInRange(entry, dr)) {
         return dr;
       }
     }
@@ -449,6 +683,16 @@ export abstract class AccountReport extends LedgerReport {
       filters,
       dateFilters,
       {
+        fieldtype: 'Select',
+        options: [
+          { label: t`Accrual`, value: 'Accrual' },
+          { label: t`Cash`, value: 'Cash' },
+        ],
+        label: t`Basis`,
+        fieldname: 'basis',
+        description: BASIS_HELP,
+      } as Field,
+      {
         fieldtype: 'Check',
         label: t`Consolidate Columns`,
         fieldname: 'consolidateColumns',
@@ -509,6 +753,10 @@ export abstract class AccountReport extends LedgerReport {
       return null;
     }
 
+    if (this.basis === 'Cash' || isSyntheticCashBasisAccount(account)) {
+      return null;
+    }
+
     if (this.accountMap && !this.accountMap[account]) {
       return null;
     }
@@ -560,6 +808,9 @@ export abstract class AccountReport extends LedgerReport {
     if (this.comparePriorYear) {
       subtitle += ` · ${t`Compared to previous year`}`;
     }
+
+    const basisLabel = this.basis === 'Cash' ? t`Cash basis` : t`Accrual basis`;
+    subtitle = subtitle ? `${subtitle} · ${basisLabel}` : basisLabel;
 
     return { subtitle };
   }

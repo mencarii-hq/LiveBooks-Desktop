@@ -80,6 +80,7 @@
                 py-1.5
               "
               :class="[getCellColorClass(cell), drillDownClass(row, c)]"
+              :title="cellTitle(row, c)"
               @click="(e) => onCellClick(e, row, c)"
             >
               {{ cell.value }}
@@ -115,6 +116,10 @@
   </div>
 </template>
 <script>
+import {
+  isSyntheticCashBasisAccount,
+  syntheticAccountHelp,
+} from 'reports/cashBasis';
 import { Report } from 'reports/Report';
 import {
   clampColWidth,
@@ -274,6 +279,16 @@ export default defineComponent({
         r += 1;
         row = this.dataSlice[r];
       }
+    },
+    cellTitle(row, c) {
+      if (c !== 0) {
+        return '';
+      }
+      const account = row.cells?.[0]?.rawValue;
+      if (typeof account === 'string' && isSyntheticCashBasisAccount(account)) {
+        return syntheticAccountHelp(account);
+      }
+      return '';
     },
     drillDownClass(row, c) {
       if (!this.report?.getDrillDownRoute?.(row, c)) {

@@ -165,6 +165,18 @@
       "section": "Features"
     },
     {
+      "fieldname": "defaultReportBasis",
+      "label": "Default Report Basis",
+      "fieldtype": "Select",
+      "options": [
+        { "value": "Accrual", "label": "Accrual" },
+        { "value": "Cash", "label": "Cash" }
+      ],
+      "default": "Accrual",
+      "section": "Reports",
+      "description": "Cash: income and expenses count when money changes hands. Accrual: they count when invoiced/billed."
+    },
+    {
       "fieldname": "fiscalYearStart",
       "label": "Fiscal Year Start Date",
       "fieldtype": "Date",
