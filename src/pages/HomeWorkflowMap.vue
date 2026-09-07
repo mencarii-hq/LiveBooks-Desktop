@@ -16,14 +16,14 @@
         :elements-selectable="false"
         :zoom-on-double-click="false"
         :zoom-on-scroll="false"
-        :pan-on-scroll="true"
-        :pan-on-drag="true"
+        :zoom-on-pinch="false"
+        :pan-on-scroll="false"
+        :pan-on-drag="false"
         :min-zoom="MIN_ZOOM"
         :max-zoom="MAX_ZOOM"
         :fit-view-on-init="false"
         :translate-extent="translateExtent"
         @nodes-initialized="applyFrame"
-        @move-end="persistViewport"
         @node-click="onFlowNodeClick"
       >
         <template #node-lane="{ data }">
@@ -77,97 +77,6 @@
           </button>
         </template>
       </VueFlow>
-
-      <div v-if="ready" class="home-map-controls">
-        <div
-          class="home-map-controls-pan"
-          role="group"
-          :aria-label="t`Move map`"
-        >
-          <button
-            type="button"
-            class="home-map-ctrl home-map-ctrl--up"
-            :title="t`Move up`"
-            @click="nudge(0, -PAN_STEP)"
-          >
-            <FeatherIcon name="chevron-up" class="w-3 h-3" />
-          </button>
-          <button
-            type="button"
-            class="home-map-ctrl home-map-ctrl--left"
-            :title="t`Move left`"
-            @click="nudge(-PAN_STEP, 0)"
-          >
-            <FeatherIcon name="chevron-left" class="w-3 h-3" />
-          </button>
-          <button
-            type="button"
-            class="home-map-ctrl home-map-ctrl--center"
-            :title="t`Center map`"
-            @click="centerMap"
-          >
-            <span class="home-map-ctrl-dot" />
-          </button>
-          <button
-            type="button"
-            class="home-map-ctrl home-map-ctrl--right"
-            :title="t`Move right`"
-            @click="nudge(PAN_STEP, 0)"
-          >
-            <FeatherIcon name="chevron-right" class="w-3 h-3" />
-          </button>
-          <button
-            type="button"
-            class="home-map-ctrl home-map-ctrl--down"
-            :title="t`Move down`"
-            @click="nudge(0, PAN_STEP)"
-          >
-            <FeatherIcon name="chevron-down" class="w-3 h-3" />
-          </button>
-        </div>
-
-        <div class="home-map-controls-zoom" role="group" :aria-label="t`Zoom`">
-          <button
-            type="button"
-            class="home-map-ctrl"
-            :title="t`Zoom in`"
-            :disabled="zoomPercent >= 150"
-            @click="stepZoom(0.05)"
-          >
-            <FeatherIcon name="plus" class="w-4 h-4" />
-          </button>
-          <div class="home-map-zoom-bar-wrap">
-            <input
-              class="home-map-zoom-bar"
-              type="range"
-              min="50"
-              max="150"
-              step="5"
-              :value="zoomPercent"
-              :aria-label="t`Zoom`"
-              @input="onZoomBar"
-            />
-          </div>
-          <button
-            type="button"
-            class="home-map-ctrl"
-            :title="t`Zoom out`"
-            :disabled="zoomPercent <= 50"
-            @click="stepZoom(-0.05)"
-          >
-            <FeatherIcon name="minus" class="w-4 h-4" />
-          </button>
-          <span class="home-map-zoom-label">{{ zoomPercent }}%</span>
-          <button
-            type="button"
-            class="home-map-ctrl"
-            :title="t`Full size`"
-            @click="fitFullSize"
-          >
-            <FeatherIcon name="maximize" class="w-4 h-4" />
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -198,13 +107,11 @@ import '@vue-flow/core/dist/style.css';
 /** Single neutral tone that reads on both light and dark backgrounds. */
 const EDGE_COLOR = '#8b929e';
 
-/** Slack around the laid-out map; keeps grab-pan from wandering infinitely. */
+/** Slack around the laid-out map if a window is too small to fit at min zoom. */
 const PAN_PAD = 560;
-const PAN_STEP = 96;
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 1.5;
-const FRAME_PAD_Y = 12;
-const VIEWPORT_KEY = 'homeMapViewport';
+const FRAME_PAD = 24;
 const UNBOUNDED_EXTENT: [[number, number], [number, number]] = [
   [Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY],
   [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY],
@@ -214,13 +121,10 @@ export default defineComponent({
   name: 'HomeWorkflowMap',
   components: { PageHeader, FeatherIcon, VueFlow, Handle },
   setup() {
-    const { setViewport, getViewport, viewport } = useVueFlow('home-map');
+    const { setViewport } = useVueFlow('home-map');
     return {
       setViewport,
-      getViewport,
-      viewport,
       Position,
-      PAN_STEP,
       MIN_ZOOM,
       MAX_ZOOM,
     };
@@ -232,110 +136,63 @@ export default defineComponent({
       flowEdges: [] as Edge[],
       translateExtent: UNBOUNDED_EXTENT,
       baseLayout: null as HomeMapLayout | null,
+      resizeObserver: null as ResizeObserver | null,
+      frameRaf: null as number | null,
     };
-  },
-  computed: {
-    zoomPercent(): number {
-      return Math.round((this.viewport?.zoom ?? 1) * 100);
-    },
   },
   async mounted() {
     await this.buildElements();
     await this.$nextTick();
     this.applyFrame();
+    const wrap = this.$el?.querySelector?.(
+      '.home-map-wrap'
+    ) as HTMLElement | null;
+    if (wrap && typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => this.scheduleFrame());
+      this.resizeObserver.observe(wrap);
+    }
+  },
+  beforeUnmount() {
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+    if (this.frameRaf != null) {
+      cancelAnimationFrame(this.frameRaf);
+      this.frameRaf = null;
+    }
   },
   methods: {
     isLive: isHomeMapNodeLive,
-    persistViewport() {
-      try {
-        const { x, y, zoom } = this.getViewport();
-        localStorage.setItem(VIEWPORT_KEY, JSON.stringify({ x, y, zoom }));
-      } catch {
-        /* private mode / quota */
-      }
-    },
-    commitViewport(next: { x: number; y: number; zoom: number }) {
-      void this.setViewport(next);
-      try {
-        localStorage.setItem(VIEWPORT_KEY, JSON.stringify(next));
-      } catch {
-        /* private mode / quota */
-      }
-    },
-    restoreViewport(): boolean {
-      try {
-        const raw = localStorage.getItem(VIEWPORT_KEY);
-        if (!raw) {
-          return false;
-        }
-        const saved = JSON.parse(raw) as { x?: number; y?: number; zoom?: number };
-        if (
-          !Number.isFinite(saved.x) ||
-          !Number.isFinite(saved.y) ||
-          !Number.isFinite(saved.zoom)
-        ) {
-          return false;
-        }
-        void this.setViewport({
-          x: saved.x as number,
-          y: saved.y as number,
-          zoom: Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, saved.zoom as number)),
-        });
-        return true;
-      } catch {
-        return false;
-      }
-    },
-    applyFrame() {
-      if (this.restoreViewport()) {
+    scheduleFrame() {
+      if (this.frameRaf != null) {
         return;
       }
-
-      const wrap = this.$el?.querySelector?.(
-        '.home-map-wrap'
-      ) as HTMLElement | null;
-      if (!this.baseLayout || !wrap || wrap.clientWidth < 10) {
-        return;
-      }
-
-      const zoom = 1;
-      this.commitViewport({
-        x: (wrap.clientWidth - this.baseLayout.width * zoom) / 2,
-        y: FRAME_PAD_Y,
-        zoom,
+      this.frameRaf = window.requestAnimationFrame(() => {
+        this.frameRaf = null;
+        this.applyFrame();
       });
     },
-    fitFullSize() {
+    applyFrame() {
       const wrap = this.$el?.querySelector?.(
         '.home-map-wrap'
       ) as HTMLElement | null;
-      if (!this.baseLayout || !wrap || wrap.clientWidth < 10) {
+      if (
+        !this.baseLayout ||
+        !wrap ||
+        wrap.clientWidth < 10 ||
+        wrap.clientHeight < 10
+      ) {
         return;
       }
 
-      const pad = FRAME_PAD_Y * 2;
-      const widthZoom = (wrap.clientWidth - pad) / this.baseLayout.width;
-      const heightZoom = (wrap.clientHeight - pad) / this.baseLayout.height;
+      const widthZoom = (wrap.clientWidth - FRAME_PAD) / this.baseLayout.width;
+      const heightZoom =
+        (wrap.clientHeight - FRAME_PAD) / this.baseLayout.height;
       const zoom =
         Math.round(
           Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.min(widthZoom, heightZoom))) *
             20
         ) / 20;
-      this.commitViewport({
-        x: (wrap.clientWidth - this.baseLayout.width * zoom) / 2,
-        y: (wrap.clientHeight - this.baseLayout.height * zoom) / 2,
-        zoom,
-      });
-    },
-    centerMap() {
-      const wrap = this.$el?.querySelector?.(
-        '.home-map-wrap'
-      ) as HTMLElement | null;
-      if (!this.baseLayout || !wrap || wrap.clientWidth < 10) {
-        return;
-      }
-      const zoom = this.getViewport().zoom;
-      this.commitViewport({
+      void this.setViewport({
         x: (wrap.clientWidth - this.baseLayout.width * zoom) / 2,
         y: (wrap.clientHeight - this.baseLayout.height * zoom) / 2,
         zoom,
@@ -404,40 +261,6 @@ export default defineComponent({
       ];
       this.ready = true;
     },
-    nudge(dx: number, dy: number) {
-      const current = this.getViewport();
-      this.commitViewport({
-        x: current.x + dx,
-        y: current.y + dy,
-        zoom: current.zoom,
-      });
-    },
-    setZoom(zoom: number) {
-      const wrap = this.$el?.querySelector?.(
-        '.home-map-wrap'
-      ) as HTMLElement | null;
-      const current = this.getViewport();
-      const next =
-        Math.round(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom)) * 20) / 20;
-      if (!wrap) {
-        this.commitViewport({ ...current, zoom: next });
-        return;
-      }
-      const cx = wrap.clientWidth / 2;
-      const cy = wrap.clientHeight / 2;
-      this.commitViewport({
-        x: cx - ((cx - current.x) / current.zoom) * next,
-        y: cy - ((cy - current.y) / current.zoom) * next,
-        zoom: next,
-      });
-    },
-    stepZoom(delta: number) {
-      this.setZoom(this.getViewport().zoom + delta);
-    },
-    onZoomBar(event: Event) {
-      const value = Number((event.target as HTMLInputElement).value);
-      this.setZoom(value / 100);
-    },
     onFlowNodeClick(event: { node: Node }) {
       if (event.node.type !== 'task') {
         return;
@@ -481,172 +304,7 @@ export default defineComponent({
 }
 
 .home-map-flow .vue-flow__pane {
-  cursor: grab;
-}
-
-.home-map-flow .vue-flow__pane:active {
-  cursor: grabbing;
-}
-
-.home-map-controls {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  pointer-events: none;
-}
-
-.home-map-controls-pan,
-.home-map-controls-zoom {
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px;
-  border-radius: 12px;
-  border: 1px solid #d1d5db;
-  background: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
-}
-
-html.dark .home-map-controls-pan,
-html.dark .home-map-controls-zoom {
-  border-color: #4b5563;
-  background: rgba(17, 24, 39, 0.2);
-}
-
-.home-map-controls-pan {
-  display: grid;
-  grid-template-areas:
-    '. up .'
-    'left center right'
-    '. down .';
-  grid-template-columns: 17px 20px 17px;
-  grid-template-rows: 17px 20px 17px;
-  place-items: center;
-  gap: 0;
-  padding: 4px;
-  width: auto;
-}
-
-.home-map-controls-pan .home-map-ctrl {
-  width: 17px;
-  height: 17px;
-}
-
-.home-map-controls-pan .home-map-ctrl--center {
-  width: 20px;
-  height: 20px;
-}
-
-.home-map-ctrl--up {
-  grid-area: up;
-  margin-bottom: -6px;
-}
-
-.home-map-ctrl--left {
-  grid-area: left;
-  margin-right: -6px;
-}
-
-.home-map-ctrl--center {
-  grid-area: center;
-}
-
-.home-map-ctrl--right {
-  grid-area: right;
-  margin-left: -6px;
-}
-
-.home-map-ctrl--down {
-  grid-area: down;
-  margin-top: -6px;
-}
-
-.home-map-controls-zoom {
-  flex-direction: column;
-  height: auto;
-  width: 44px;
-  padding: 8px 6px;
-}
-
-.home-map-ctrl {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: #374151;
-  cursor: pointer;
-}
-
-.home-map-ctrl:hover:not(:disabled) {
-  background: #f3f4f6;
-}
-
-.home-map-ctrl:disabled {
-  opacity: 0.4;
   cursor: default;
-}
-
-.home-map-ctrl--center {
-  color: #15803d;
-}
-
-.home-map-ctrl-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-html.dark .home-map-ctrl {
-  color: #e5e7eb;
-}
-
-html.dark .home-map-ctrl:hover:not(:disabled) {
-  background: #374151;
-}
-
-html.dark .home-map-ctrl--center {
-  color: #4ade80;
-}
-
-.home-map-zoom-bar-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 88px;
-}
-
-.home-map-zoom-bar {
-  width: 88px;
-  height: 18px;
-  margin: 0;
-  transform: rotate(-90deg);
-  accent-color: #16a34a;
-  cursor: pointer;
-}
-
-.home-map-zoom-label {
-  min-width: 0;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  color: #6b7280;
-  text-align: center;
-}
-
-html.dark .home-map-zoom-label {
-  color: #9ca3af;
 }
 
 .home-map-flow .vue-flow__node {
