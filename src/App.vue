@@ -88,10 +88,7 @@ import {
   waitForNextPaint,
 } from './bootSplash';
 import { runWhenIdle } from './utils/runWhenIdle';
-import {
-  ensureFirstLaunchAt,
-  maybePromptFeedbackSurvey,
-} from './utils/feedbackSurvey';
+import { ensureFirstLaunchAt } from 'fyo/telemetry/telemetry';
 import { getSavePath } from './utils/ui';
 import {
   maybePromptMemorizedDue,
@@ -282,9 +279,6 @@ export default defineComponent({
       }
       runWhenIdle(() => {
         void this.setSearcher();
-      });
-      runWhenIdle(() => {
-        void maybePromptFeedbackSurvey(fyo);
       });
       runWhenIdle(() => {
         void fyo.telemetry.maybeSendFirstCompanyCreatePing();

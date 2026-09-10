@@ -131,6 +131,22 @@
             </div>
           </div>
         </section>
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          {{ t`Questions or feedback?` }}
+          <button
+            type="button"
+            class="
+              text-green-700
+              dark:text-green-400
+              underline
+              hover:text-green-800
+              dark:hover:text-green-300
+            "
+            @click="emailSupport"
+          >
+            {{ supportEmail }}
+          </button>
+        </p>
       </div>
     </div>
   </div>
@@ -154,6 +170,7 @@ import {
   LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
   openLivebooksCloudSignIn,
 } from 'src/utils/livebooksCloud';
+import { SUPPORT_EMAIL, openSupportEmail } from 'src/utils/support';
 import { GetStartedConfigItem } from 'src/utils/types';
 import { defineComponent } from 'vue';
 
@@ -196,6 +213,9 @@ export default defineComponent({
     progressLabel(): string {
       return this.t`${this.completedCount} of ${this.totalCount} complete`;
     },
+    supportEmail(): string {
+      return SUPPORT_EMAIL;
+    },
   },
   async mounted() {
     this.onSessionRefresh = () => {
@@ -220,6 +240,9 @@ export default defineComponent({
     await this.refreshChecklist();
   },
   methods: {
+    emailSupport() {
+      openSupportEmail();
+    },
     trackableItems(section: GetStartedConfigItem): ListItem[] {
       return section.items.filter(
         (item) => item.fieldname || item.completedKey

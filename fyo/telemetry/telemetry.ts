@@ -26,6 +26,14 @@ import { Noun, Telemetry, Verb } from './types';
  *      the app is hidden.
  */
 
+/** Record first company-create wall clock (gates the first-company-create ping). */
+export function ensureFirstLaunchAt(fyo: Fyo): void {
+  if (fyo.config.get('firstLaunchAt')) {
+    return;
+  }
+  fyo.config.set('firstLaunchAt', new Date().toISOString());
+}
+
 export class TelemetryManager {
   #url = '';
   #started = false;

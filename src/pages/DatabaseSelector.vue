@@ -370,6 +370,7 @@ import { handleErrorWithDialog } from 'src/errorHandling';
 import { showToast } from 'src/utils/interactive';
 import { updateConfigFiles } from 'src/utils/misc';
 import { purgeCloudPlaidItemsForInstance } from 'src/utils/livebooksCloudBook';
+import { attachDemoSourceBook } from 'src/utils/sourcebooks';
 import {
   deleteDb,
   getSavePath,
@@ -520,6 +521,18 @@ export default defineComponent({
             this.creationPercent = percent;
           }
         );
+
+        this.creationMessage = t`Seeding QBD Archive`;
+        this.creationPercent = -1;
+        const archive = await attachDemoSourceBook(filePath);
+        if (!archive.ok) {
+          showToast({
+            message:
+              archive.error ??
+              t`Demo company was created, but the QBD Archive could not be attached.`,
+            type: 'warning',
+          });
+        }
 
         updateConfigFiles(fyo);
         await fyo.purgeCache();

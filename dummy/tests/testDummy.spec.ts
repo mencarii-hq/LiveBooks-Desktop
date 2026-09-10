@@ -125,6 +125,37 @@ test('demo seed fills Home-map documents', async (t) => {
     srbnb,
     'tracked demo items expense to GRNI, not COGS'
   );
+
+  const feedStmts = (await fyo.db.getAll(ModelNameEnum.BankStatement, {
+    fields: ['name', 'bankAccount', 'kind'],
+    filters: { kind: 'feed_window' },
+  })) as { name: string; bankAccount: string }[];
+  t.ok(feedStmts.length >= 2, 'bank feed statements exist');
+
+  const bankStmtRow = feedStmts.find((s) => s.bankAccount === bankId);
+  t.ok(bankStmtRow, 'Supreme Bank has a feed window');
+  if (!bankStmtRow) {
+    return;
+  }
+  const bankFeed = await fyo.doc.getDoc(
+    ModelNameEnum.BankStatement,
+    bankStmtRow.name
+  );
+  const feedLines = (bankFeed.lines ?? []) as {
+    matchStatus?: string;
+  }[];
+  t.ok(
+    feedLines.some((l) => l.matchStatus === 'unmatched'),
+    'For Review (unmatched) feed lines exist'
+  );
+  t.ok(
+    feedLines.some((l) => l.matchStatus === 'matched'),
+    'Reviewed (matched) feed lines exist'
+  );
+  t.ok(
+    feedLines.some((l) => l.matchStatus === 'ignored'),
+    'Excluded (ignored) feed lines exist'
+  );
 });
 
 test.onFinish(async () => {

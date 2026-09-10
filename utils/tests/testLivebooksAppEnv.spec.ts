@@ -66,10 +66,7 @@ test('isStagingCloudOrigin ignores localhost', (t) => {
 });
 
 test('livebooksDesktopDisplayName appends env suffix', (t) => {
-  t.equal(
-    livebooksDesktopDisplayName('development'),
-    'LiveBooks Desktop (Dev)'
-  );
+  t.equal(livebooksDesktopDisplayName('development'), 'LiveBooks Desktop');
   t.equal(
     livebooksDesktopDisplayName('staging', true),
     'LiveBooks Desktop Pro (Staging)'

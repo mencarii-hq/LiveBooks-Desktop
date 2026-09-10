@@ -44,11 +44,6 @@ export function livebooksCloudMfaStepUpUrl(): string {
   return `${getLivebooksCloudOrigin()}/account/security/step_up`;
 }
 
-/** Stable survey entry — Online 302s to the Google Form (Phase 0). */
-export function livebooksCloudFeedbackUrl(): string {
-  return `${getLivebooksCloudOrigin()}/feedback`;
-}
-
 /** QuickBooks Desktop export (Web Connector) on Online. */
 export function livebooksCloudQbdExportUrl(): string {
   return `${getLivebooksCloudOrigin()}/qbd_exports`;

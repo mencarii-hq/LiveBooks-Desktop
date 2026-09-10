@@ -12,7 +12,8 @@ import {
   sidecarDirForDbPath,
   SOURCEBOOKS_DIR_SUFFIX,
 } from '../sidecar';
-import { SourceBookStore, toFtsQuery } from '../store';
+import { SourceBookStore, sourceBookStore, toFtsQuery } from '../store';
+import { attachDemoQbdArchive, DEMO_QBD_COMPANY_NAME } from '../demoArchive';
 import { summarizeManifest } from 'utils/sourcebooks/manifest';
 import { flattenReportRet } from 'utils/sourcebooks/reportRet';
 
@@ -286,6 +287,46 @@ test('sourcebooks: zip entry classification', (t) => {
   );
   t.equal(classifyZipEntry(`${LEGACY_FOLDER}/raw/batch_0001.xml`), null);
   t.equal(classifyZipEntry(`${LEGACY_FOLDER}/`), null);
+  t.end();
+});
+
+test("sourcebooks: demo Flo's Clothes archive attaches with search + snapshots", async (t) => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sourcebooks-demo-'));
+  const booksDbPath = path.join(tmpDir, "Flo's Clothes.books.db");
+  await fs.writeFile(booksDbPath, '');
+  try {
+    const status = await attachDemoQbdArchive(booksDbPath);
+    t.equal(status.attached, true, 'demo archive attached');
+    t.equal(status.meta?.companyName, DEMO_QBD_COMPANY_NAME);
+    const counts = Object.fromEntries(
+      (status.entityCounts ?? []).map((c) => [c.entityType, c.count])
+    );
+    t.ok((counts.customer ?? 0) >= 4, 'customers including archive-only names');
+    t.ok((counts.invoice ?? 0) >= 2, 'invoices');
+    t.ok((counts.vendor ?? 0) >= 1, 'vendors');
+    t.ok(
+      (status.snapshotNames ?? []).includes('trial_balance'),
+      'trial balance snapshot'
+    );
+    t.ok(
+      (status.snapshotNames ?? []).includes('profit_and_loss'),
+      'P&L snapshot'
+    );
+
+    const boutique = sourceBookStore.search(booksDbPath, {
+      query: 'Austin Boutique',
+    });
+    t.ok(boutique.total >= 1, 'search finds Austin Boutique');
+    const inv = sourceBookStore.search(booksDbPath, {
+      query: '1001',
+      entityType: 'invoice',
+    });
+    t.equal(inv.rows.length, 1, 'invoice 1001');
+    t.equal(inv.rows[0].entityName, 'Austin Boutique');
+  } finally {
+    sourceBookStore.closeAll();
+    await fs.remove(tmpDir);
+  }
   t.end();
 });
 

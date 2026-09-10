@@ -1,5 +1,5 @@
 /**
- * Deployment environment for UI branding (Dev / Staging suffixes).
+ * Deployment environment for UI branding (Staging suffix).
  *
  * Resolution order:
  * 1. LIVEBOOKS_APP_ENV (explicit)
@@ -75,8 +75,6 @@ export function resolveLivebooksAppEnv(options: {
 
 export function livebooksEnvLabelSuffix(appEnv: LivebooksAppEnv): string {
   switch (appEnv) {
-    case 'development':
-      return ' (Dev)';
     case 'staging':
       return ' (Staging)';
     default:

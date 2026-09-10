@@ -157,51 +157,6 @@
           {{ t`Modern` }}
         </button>
       </div>
-      <button
-        class="
-          flex
-          text-sm text-white
-          hover:text-white hover:bg-green-800
-          rounded
-          gap-1
-          items-center
-          py-0.5
-          -mx-1
-          px-1
-        "
-        type="button"
-        @click="giveFeedback"
-      >
-        <feather-icon name="message-circle" class="h-3 w-3 flex-shrink-0" />
-        <p>
-          {{ t`Give feedback` }}
-        </p>
-      </button>
-
-      <button
-        class="
-          flex
-          text-sm text-white
-          hover:text-white hover:bg-green-800
-          rounded
-          gap-1
-          items-center
-          py-0.5
-          -mx-1
-          px-1
-        "
-        type="button"
-        :title="livebooksCloudManageButtonTitle"
-        @click="showLivebooksCloudModal = true"
-      >
-        <feather-icon
-          :name="livebooksCloudManageButtonIcon"
-          class="h-3 w-3 flex-shrink-0"
-        />
-        <p class="break-words">
-          {{ t`Online` }}
-        </p>
-      </button>
 
       <!-- <button
         class="
@@ -280,142 +235,9 @@
     <Modal :open-modal="viewShortcuts" @closemodal="viewShortcuts = false">
       <ShortcutsHelper class="w-form" />
     </Modal>
-
-    <Modal
-      :open-modal="showLivebooksCloudModal"
-      @closemodal="showLivebooksCloudModal = false"
-    >
-      <div
-        class="
-          w-full
-          max-w-[var(--w-form)]
-          min-w-0
-          p-6
-          pt-5
-          pe-4
-          flex flex-col
-          gap-4
-          text-gray-900
-          dark:text-gray-100
-        "
-      >
-        <div class="min-w-0 flex flex-col gap-2">
-          <div class="flex items-start justify-between gap-3 min-w-0">
-            <h2 class="text-lg font-semibold flex-1 min-w-0 pe-2">
-              {{ t`LiveBooks Online` }}
-            </h2>
-            <button
-              type="button"
-              class="
-                flex-shrink-0
-                -mt-1
-                -me-1
-                p-1.5
-                rounded-md
-                text-gray-600
-                dark:text-gray-300
-                hover:bg-gray-200
-                dark:hover:bg-gray-700
-                hover:text-gray-900
-                dark:hover:text-gray-100
-              "
-              :aria-label="t`Close`"
-              @click="showLivebooksCloudModal = false"
-            >
-              <feather-icon name="x" class="w-5 h-5" />
-            </button>
-          </div>
-          <p
-            v-if="livebooksCloudSignedIn"
-            class="
-              text-sm text-gray-600
-              dark:text-gray-300
-              whitespace-normal
-              break-words
-            "
-          >
-            {{
-              t`This computer is linked to your account. Open the website to manage billing and subscription, or
-            disconnect this app below.`
-            }}
-          </p>
-          <p
-            v-else
-            class="
-              text-sm text-gray-600
-              dark:text-gray-300
-              whitespace-normal
-              break-words
-            "
-          >
-            {{
-              t`Your books stay on this computer. LiveBooks Online is for when your operations need backup, sync, collaboration, and bank feeds. Sign in on the web to link this computer; keep this app open while you connect.`
-            }}
-          </p>
-          <p
-            v-if="secureStorageDegraded"
-            class="
-              text-sm text-amber-800
-              dark:text-amber-200
-              bg-amber-50
-              dark:bg-amber-950/40
-              border border-amber-200
-              dark:border-amber-800
-              rounded
-              px-3
-              py-2
-              whitespace-normal
-              break-words
-            "
-            role="status"
-          >
-            {{
-              t`Secure storage is unavailable on this computer. Install or unlock a desktop keyring (GNOME Keyring or
-            KWallet) to connect LiveBooks Online. Without it, this app cannot keep an Online session.`
-            }}
-          </p>
-        </div>
-        <div class="flex flex-col gap-2 min-w-0">
-          <Button
-            type="primary"
-            class="w-full"
-            @click="handleLivebooksCloudModalPrimary"
-          >
-            {{
-              livebooksCloudSignedIn
-                ? t`Open LiveBooks Online`
-                : t`Explore Online`
-            }}
-          </Button>
-          <Button
-            v-if="!livebooksCloudSignedIn"
-            class="w-full"
-            @click="handleLivebooksCloudSignIn"
-          >
-            {{ t`Sign in` }}
-          </Button>
-          <Button
-            v-if="!livebooksCloudSignedIn"
-            class="w-full"
-            @click="showLivebooksCloudModal = false"
-          >
-            {{ t`Use offline` }}
-          </Button>
-          <Button
-            v-if="livebooksCloudSignedIn"
-            type="secondary"
-            class="w-full !text-red-600 dark:!text-red-400"
-            @click="handleDisconnectLivebooksCloud"
-          >
-            {{ t`Disconnect this computer` }}
-          </Button>
-        </div>
-      </div>
-    </Modal>
   </div>
 </template>
 <script lang="ts">
-import { t } from 'fyo';
 import { handleErrorWithDialog, reportIssue } from 'src/errorHandling';
 import { fyo } from 'src/initFyo';
 import {
@@ -425,13 +247,9 @@ import {
   persistDesktopTheme,
   type DesktopTheme,
 } from 'src/utils/qbdFamiliarity';
-import { showDialog, showToast } from 'src/utils/interactive';
 import {
   getLivebooksCloudSessionSummary,
   LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
-  openLivebooksCloudHome,
-  openLivebooksCloudSignIn,
-  signOutLivebooksCloud,
 } from 'src/utils/livebooksCloud';
 import {
   getLivebooksSubscriptionSnapshot,
@@ -451,14 +269,12 @@ import {
   toggleSidebar,
 } from 'src/utils/ui';
 import { showContextMenu } from 'src/utils/contextMenu';
-import { openFeedbackSurvey } from 'src/utils/feedbackSurvey';
 import { livebooksDesktopDisplayName } from 'utils/livebooksAppEnv';
 import { REGIONAL_LABELS_CHANGED_EVENT } from 'utils/regional';
 import { MEMORIZED_REPORTS_CHANGED_EVENT } from 'src/utils/memorizedReports';
 import { SOURCEBOOKS_CHANGED_EVENT } from 'src/utils/sourcebooks';
 import { defineComponent, inject } from 'vue';
 import router from '../router';
-import Button from './Button.vue';
 import Icon from './Icon.vue';
 import Modal from './Modal.vue';
 import ShortcutsHelper from './ShortcutsHelper.vue';
@@ -536,7 +352,6 @@ function matchItemEditSidebarItem(
 
 export default defineComponent({
   components: {
-    Button,
     Icon,
     Modal,
     ShortcutsHelper,
@@ -561,8 +376,6 @@ export default defineComponent({
       livebooksCloudSignedIn: false,
       livebooksCloudReachable: null as boolean | null,
       livebooksCloudSubscriptionStatus: null as string | null,
-      secureStorageDegraded: false,
-      showLivebooksCloudModal: false,
       livebooksCloudReachabilityDebounce: null as ReturnType<
         typeof setTimeout
       > | null,
@@ -593,8 +406,6 @@ export default defineComponent({
       livebooksCloudSignedIn: boolean;
       livebooksCloudReachable: boolean | null;
       livebooksCloudSubscriptionStatus: string | null;
-      secureStorageDegraded: boolean;
-      showLivebooksCloudModal: boolean;
       livebooksCloudReachabilityDebounce: ReturnType<typeof setTimeout> | null;
       livebooksCloudReachabilityInterval: ReturnType<
         typeof setInterval
@@ -622,18 +433,6 @@ export default defineComponent({
       const status = this.livebooksCloudSubscriptionStatus;
       return status === 'active' || status === 'trialing';
     },
-    livebooksCloudManageButtonIcon(): string {
-      if (!this.livebooksCloudSignedIn) {
-        return 'globe';
-      }
-      if (this.livebooksCloudReachable === false) {
-        return 'alert-triangle';
-      }
-      if (this.livebooksCloudReachable === null) {
-        return 'globe';
-      }
-      return 'check-circle';
-    },
     livebooksDesktopBrandName(): string {
       return livebooksDesktopDisplayName(
         this.fyo.store.appEnv,
@@ -642,18 +441,6 @@ export default defineComponent({
     },
     desktopTheme(): DesktopTheme {
       return this.appliedDesktopTheme;
-    },
-    livebooksCloudManageButtonTitle(): string {
-      if (!this.livebooksCloudSignedIn) {
-        return t`LiveBooks Online — backup, sync, and bank feeds when your operations need them`;
-      }
-      if (this.livebooksCloudReachable === false) {
-        return t`LiveBooks Online — signed in, server unreachable`;
-      }
-      if (this.livebooksCloudReachable === null) {
-        return t`LiveBooks Online — checking connection`;
-      }
-      return t`LiveBooks Online — connected`;
     },
   },
   async mounted() {
@@ -784,10 +571,6 @@ export default defineComponent({
   methods: {
     reportIssue,
     toggleSidebar,
-    openFeedbackSurvey,
-    giveFeedback() {
-      openFeedbackSurvey(fyo);
-    },
     async setDesktopTheme(theme: DesktopTheme) {
       if (theme === this.desktopTheme) {
         return;
@@ -816,10 +599,8 @@ export default defineComponent({
       this.livebooksCloudSubscriptionStatus = s.status;
     },
     async refreshLivebooksCloudSignedIn() {
-      const { signedIn, secureStorageDegraded } =
-        await getLivebooksCloudSessionSummary();
+      const { signedIn } = await getLivebooksCloudSessionSummary();
       this.livebooksCloudSignedIn = signedIn;
-      this.secureStorageDegraded = !!secureStorageDegraded;
       if (!signedIn) {
         this.applyLivebooksSubscriptionSnapshot(getLivebooksSubscriptionSnapshot());
         return;
@@ -834,46 +615,6 @@ export default defineComponent({
         this.livebooksCloudReachabilityDebounce = null;
         void this.refreshLivebooksCloudSignedIn();
       }, 400);
-    },
-    async handleLivebooksCloudModalPrimary() {
-      if (this.livebooksCloudSignedIn) {
-        await openLivebooksCloudSignIn();
-      } else {
-        openLivebooksCloudHome();
-      }
-      this.showLivebooksCloudModal = false;
-    },
-    async handleLivebooksCloudSignIn() {
-      await openLivebooksCloudSignIn();
-      this.showLivebooksCloudModal = false;
-    },
-    async handleDisconnectLivebooksCloud() {
-      await showDialog({
-        title: t`Disconnect LiveBooks Online?`,
-        detail: t`This computer will no longer be linked to your account until you connect again. Your company file and Online data are not deleted.`,
-        type: 'warning',
-        buttons: [
-          {
-            label: t`Cancel`,
-            action: () => null,
-            isEscape: true,
-          },
-          {
-            label: t`Disconnect`,
-            isPrimary: true,
-            action: async () => {
-              await signOutLivebooksCloud();
-              this.showLivebooksCloudModal = false;
-              await this.refreshLivebooksCloudSignedIn();
-              showToast({
-                type: 'success',
-                message: t`Disconnected from LiveBooks Online`,
-                duration: 'short',
-              });
-            },
-          },
-        ],
-      });
     },
     setActiveGroup() {
       const { fullPath } = this.$router.currentRoute.value;

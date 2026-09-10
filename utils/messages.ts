@@ -50,6 +50,7 @@ export enum IPC_ACTIONS {
   SOURCEBOOKS_LIST_CLOUD_EXPORTS = 'sourcebooks-list-cloud-exports',
   SOURCEBOOKS_PULL_CLOUD = 'sourcebooks-pull-cloud',
   SOURCEBOOKS_ATTACH_LOCAL = 'sourcebooks-attach-local',
+  SOURCEBOOKS_ATTACH_DEMO = 'sourcebooks-attach-demo',
   SOURCEBOOKS_DETACH = 'sourcebooks-detach',
   SOURCEBOOKS_SEARCH = 'sourcebooks-search',
   SOURCEBOOKS_LIST_RECORDS = 'sourcebooks-list-records',

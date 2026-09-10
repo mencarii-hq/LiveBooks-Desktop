@@ -41,7 +41,85 @@
           @value-change="onValueChange"
         />
 
-        <!-- System tab: LiveBooks Desktop version -->
+        <!-- System tab: Online account, zoom, version, support -->
+        <div
+          v-if="activeTab === 'SystemSettings'"
+          class="p-4 border-t dark:border-gray-800"
+        >
+          <h2
+            class="text-base text-gray-900 dark:text-gray-25 font-semibold mb-4"
+          >
+            {{ t`Online Account` }}
+          </h2>
+          <div class="flex items-end justify-between gap-4">
+            <div class="flex-1 max-w-md">
+              <div class="text-gray-600 dark:text-gray-500 text-sm mb-1">
+                {{ onlineAccountHelp }}
+              </div>
+              <input
+                type="text"
+                readonly
+                tabindex="-1"
+                class="
+                  w-full
+                  text-base text-gray-900
+                  dark:text-gray-25
+                  border border-transparent
+                  rounded
+                  px-2
+                  py-1.5
+                  bg-gray-25
+                  dark:bg-gray-850
+                "
+                :value="onlineAccountStatusLabel"
+              />
+            </div>
+            <div class="flex items-center gap-2 shrink-0 mb-0.5">
+              <Button
+                v-if="!livebooksCloudSignedIn"
+                type="primary"
+                @click="signInOnlineAccount"
+              >
+                {{ t`Sign in` }}
+              </Button>
+              <template v-else>
+                <Button @click="manageOnlineAccount">
+                  {{ t`Manage account` }}
+                </Button>
+                <Button
+                  class="!text-red-600 dark:!text-red-400"
+                  @click="signOutOnlineAccount"
+                >
+                  {{ t`Sign out` }}
+                </Button>
+              </template>
+            </div>
+          </div>
+          <p
+            v-if="secureStorageDegraded"
+            class="
+              mt-3
+              text-sm text-amber-800
+              dark:text-amber-200
+              bg-amber-50
+              dark:bg-amber-950/40
+              border border-amber-200
+              dark:border-amber-800
+              rounded
+              px-3
+              py-2
+              whitespace-normal
+              break-words
+            "
+            role="status"
+          >
+            {{
+              t`Secure storage is unavailable on this computer. Install or unlock a desktop keyring (GNOME Keyring or
+            KWallet) to connect LiveBooks Online. Without it, this app cannot keep an Online session.`
+            }}
+          </p>
+        </div>
+
         <div
           v-if="activeTab === 'SystemSettings'"
           class="p-4 border-t dark:border-gray-800"
@@ -125,8 +203,50 @@
                 :value="appVersion"
               />
             </div>
-            <Button class="shrink-0 mb-0.5" @click="checkForUpdates">
+            <Button
+              v-if="fyo.store.updaterEnabled"
+              class="shrink-0 mb-0.5"
+              @click="checkForUpdates"
+            >
               {{ t`Check for updates` }}
+            </Button>
+          </div>
+        </div>
+
+        <div
+          v-if="activeTab === 'SystemSettings'"
+          class="p-4 border-t dark:border-gray-800"
+        >
+          <h2
+            class="text-base text-gray-900 dark:text-gray-25 font-semibold mb-4"
+          >
+            {{ t`Support` }}
+          </h2>
+          <div class="flex items-end justify-between gap-4">
+            <div class="flex-1 max-w-md">
+              <div class="text-gray-600 dark:text-gray-500 text-sm mb-1">
+                {{ t`Questions or feedback` }}
+              </div>
+              <input
+                type="text"
+                readonly
+                tabindex="-1"
+                class="
+                  w-full
+                  text-base text-gray-900
+                  dark:text-gray-25
+                  border border-transparent
+                  rounded
+                  px-2
+                  py-1.5
+                  bg-gray-25
+                  dark:bg-gray-850
+                "
+                :value="supportEmail"
+              />
+            </div>
+            <Button class="shrink-0 mb-0.5" @click="emailSupport">
+              {{ t`Email` }}
             </Button>
           </div>
         </div>
@@ -202,6 +322,15 @@ import {
   zoomDisplayIn,
   zoomDisplayOut,
 } from 'src/utils/ui';
+import { SUPPORT_EMAIL, openSupportEmail } from 'src/utils/support';
+import {
+  LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
+  getLivebooksCloudSessionSummary,
+  openLivebooksCloudHome,
+  openLivebooksCloudSignIn,
+  signOutLivebooksCloud,
+} from 'src/utils/livebooksCloud';
+import { refreshLivebooksSubscription } from 'src/utils/livebooksCloudSubscription';
 import { computed, defineComponent, inject } from 'vue';
 import CommonFormSection from '../CommonForm/CommonFormSection.vue';
 import CheckPrintSettings from './CheckPrintSettings.vue';
@@ -235,12 +364,20 @@ export default defineComponent({
       groupedFields: null,
       zoomFactor: 1,
       _zoomSyncTimer: null as number | null,
+      livebooksCloudSignedIn: false,
+      livebooksCloudReachable: null as boolean | null,
+      secureStorageDegraded: false,
+      onLivebooksCloudAppRefreshBound: null as (() => void) | null,
     } as {
       errors: Record<string, string>;
       activeTab: string;
       groupedFields: null | UIGroupedFields;
       zoomFactor: number;
       _zoomSyncTimer: number | null;
+      livebooksCloudSignedIn: boolean;
+      livebooksCloudReachable: boolean | null;
+      secureStorageDegraded: boolean;
+      onLivebooksCloudAppRefreshBound: (() => void) | null;
     };
   },
   computed: {
@@ -318,6 +455,9 @@ export default defineComponent({
     appVersion(): string {
       return this.fyo.store.appVersion || '0.0.0';
     },
+    supportEmail(): string {
+      return SUPPORT_EMAIL;
+    },
     desktopPlatformLabel(): string {
       const platform = this.fyo.store.platform;
       const arch = this.fyo.store.arch || '';
@@ -340,6 +480,26 @@ export default defineComponent({
     },
     zoomPercentLabel(): string {
       return `${Math.round(this.zoomFactor * 100)}%`;
+    },
+    onlineAccountStatusLabel(): string {
+      if (!this.livebooksCloudSignedIn) {
+        return this.t`Not signed in`;
+      }
+      if (this.livebooksCloudReachable === false) {
+        return this.t`Signed in — server unreachable`;
+      }
+      if (this.livebooksCloudReachable === null) {
+        return this.t`Signed in — checking connection`;
+      }
+      return this.t`Signed in`;
+    },
+    onlineAccountHelp(): string {
+      if (this.livebooksCloudSignedIn) {
+        return this
+          .t`This computer is linked to your LiveBooks Online account. Sign out to unlink this app. Your company file and Online data are not deleted.`;
+      }
+      return this
+        .t`Your books stay on this computer. Sign in for backup, sync, collaboration, and bank feeds.`;
     },
     activeGroup(): Map<string, Field[]> {
       if (!this.groupedFields) {
@@ -371,6 +531,15 @@ export default defineComponent({
       window.settings = this;
     }
 
+    this.onLivebooksCloudAppRefreshBound = () => {
+      void this.refreshOnlineAccount();
+    };
+    document.addEventListener(
+      LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
+      this.onLivebooksCloudAppRefreshBound
+    );
+    void this.refreshOnlineAccount();
+
     this.applyInitialTab();
     this.update();
   },
@@ -379,10 +548,18 @@ export default defineComponent({
       window.clearInterval(this._zoomSyncTimer);
       this._zoomSyncTimer = null;
     }
+    if (this.onLivebooksCloudAppRefreshBound) {
+      document.removeEventListener(
+        LIVEBOOKS_CLOUD_SESSION_APP_REFRESH_EVENT,
+        this.onLivebooksCloudAppRefreshBound
+      );
+      this.onLivebooksCloudAppRefreshBound = null;
+    }
   },
   activated(): void {
     this.syncZoomFactor();
     this.applyInitialTab();
+    void this.refreshOnlineAccount();
 
     docsPathRef.value = docsPathMap.Settings ?? '';
     this.shortcuts?.pmod.set(COMPONENT_NAME, ['KeyS'], async () => {
@@ -515,6 +692,55 @@ export default defineComponent({
     getDocForField(field: Field): Doc | null {
       const schemaName = field.schemaName ?? this.activeTab;
       return this.fyo.singles[schemaName] ?? null;
+    },
+    emailSupport() {
+      openSupportEmail();
+    },
+    async refreshOnlineAccount() {
+      const { signedIn, secureStorageDegraded } =
+        await getLivebooksCloudSessionSummary();
+      this.livebooksCloudSignedIn = signedIn;
+      this.secureStorageDegraded = !!secureStorageDegraded;
+      if (!signedIn) {
+        this.livebooksCloudReachable = null;
+        return;
+      }
+      const snap = await refreshLivebooksSubscription(true);
+      this.livebooksCloudReachable = snap.reachable;
+    },
+    async signInOnlineAccount() {
+      await openLivebooksCloudSignIn();
+    },
+    manageOnlineAccount() {
+      openLivebooksCloudHome();
+    },
+    async signOutOnlineAccount() {
+      await showDialog({
+        title: this.t`Disconnect LiveBooks Online?`,
+        detail: this
+          .t`This computer will no longer be linked to your account until you connect again. Your company file and Online data are not deleted.`,
+        type: 'warning',
+        buttons: [
+          {
+            label: this.t`Cancel`,
+            action: () => null,
+            isEscape: true,
+          },
+          {
+            label: this.t`Disconnect`,
+            isPrimary: true,
+            action: async () => {
+              await signOutLivebooksCloud();
+              await this.refreshOnlineAccount();
+              showToast({
+                type: 'success',
+                message: this.t`Disconnected from LiveBooks Online`,
+                duration: 'short',
+              });
+            },
+          },
+        ],
+      });
     },
     async checkForUpdates(): Promise<void> {
       const result = await ipc.checkForUpdatesForce();

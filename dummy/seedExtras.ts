@@ -451,6 +451,364 @@ async function seedMemorizedTemplates(
   await payroll.sync();
 }
 
+function moneyFloat(value: unknown): number {
+  if (value && typeof value === 'object' && 'float' in value) {
+    const f = (value as { float?: unknown }).float;
+    if (typeof f === 'number' && Number.isFinite(f)) {
+      return f;
+    }
+  }
+  const n = Number(value ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function isoDay(value: unknown): string {
+  if (value instanceof Date) {
+    return DateTime.fromJSDate(value).toISODate() ?? '';
+  }
+  if (typeof value === 'string' && value) {
+    return value.slice(0, 10);
+  }
+  return '';
+}
+
+function demoFeedHash(parts: (string | number)[]): string {
+  const s = parts.map((p) => String(p)).join('|');
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  }
+  return `demo_h${(h >>> 0).toString(16)}`;
+}
+
+type SeedFeedLine = {
+  date: string;
+  description: string;
+  amount: number;
+  bankReference?: string;
+  matchStatus: 'unmatched' | 'matched' | 'ignored';
+  matchedReferenceType?: string;
+  matchedReferenceName?: string;
+  ignoreReason?: string;
+  possibleDuplicate?: boolean;
+};
+
+type AleRow = {
+  date?: unknown;
+  debit?: unknown;
+  credit?: unknown;
+  referenceType?: string;
+  referenceName?: string;
+};
+
+async function describeBankAle(
+  fyo: Fyo,
+  row: AleRow
+): Promise<{ description: string; bankReference: string }> {
+  const refType = String(row.referenceType ?? '');
+  const refName = String(row.referenceName ?? '');
+  if (refType === ModelNameEnum.Payment && refName) {
+    const pays = (await fyo.db.getAll(ModelNameEnum.Payment, {
+      fields: ['party', 'paymentType', 'referenceId', 'memo'],
+      filters: { name: refName },
+      limit: 1,
+    })) as {
+      party?: string;
+      paymentType?: string;
+      referenceId?: string;
+      memo?: string;
+    }[];
+    const pay = pays[0];
+    const partyName = pay?.party
+      ? String(
+          (await fyo.getValue(ModelNameEnum.Party, pay.party, 'partyName')) ??
+            ''
+        )
+      : '';
+    const memo = String(pay?.memo ?? '').trim();
+    const ref = String(pay?.referenceId ?? '').trim();
+    if (memo.toLowerCase() === 'payroll' && partyName) {
+      return {
+        description: `ACH PAYROLL ${partyName}`.toUpperCase(),
+        bankReference: ref || refName.slice(0, 8),
+      };
+    }
+    if (pay?.paymentType === 'Receive') {
+      return {
+        description: partyName
+          ? `ACH DEPOSIT ${partyName}`.toUpperCase()
+          : 'ACH DEPOSIT',
+        bankReference: ref || `DEP-${refName.slice(0, 6)}`,
+      };
+    }
+    if (ref) {
+      return {
+        description: `CHECK ${ref} ${partyName}`.trim().toUpperCase(),
+        bankReference: ref,
+      };
+    }
+    return {
+      description: partyName
+        ? `ACH DEBIT ${partyName}`.toUpperCase()
+        : memo.toUpperCase() || 'ACH DEBIT',
+      bankReference: refName.slice(0, 8),
+    };
+  }
+  if (refType === ModelNameEnum.JournalEntry && refName) {
+    const jes = (await fyo.db.getAll(ModelNameEnum.JournalEntry, {
+      fields: ['userRemark', 'entryType', 'referenceNumber'],
+      filters: { name: refName },
+      limit: 1,
+    })) as {
+      userRemark?: string;
+      entryType?: string;
+      referenceNumber?: string;
+    }[];
+    const je = jes[0];
+    const remark = String(je?.userRemark ?? '').trim();
+    const kind = String(je?.entryType ?? 'Bank Entry');
+    return {
+      description: (remark || kind).toUpperCase(),
+      bankReference: String(je?.referenceNumber ?? refName.slice(0, 8)),
+    };
+  }
+  return {
+    description: 'BANK TRANSACTION',
+    bankReference: refName.slice(0, 8),
+  };
+}
+
+async function loadMatchableAles(
+  fyo: Fyo,
+  accountId: string
+): Promise<AleRow[]> {
+  const rows = (await fyo.db.getAll(ModelNameEnum.AccountingLedgerEntry, {
+    fields: ['date', 'debit', 'credit', 'referenceType', 'referenceName'],
+    filters: { account: accountId, reverted: false },
+    orderBy: 'date',
+    order: 'desc',
+    limit: 80,
+  })) as AleRow[];
+  const allowed = new Set<string>([
+    ModelNameEnum.Payment,
+    ModelNameEnum.JournalEntry,
+  ]);
+  const seen = new Set<string>();
+  const out: AleRow[] = [];
+  for (const row of rows) {
+    const refType = String(row.referenceType ?? '');
+    const refName = String(row.referenceName ?? '');
+    if (!allowed.has(refType) || !refName) {
+      continue;
+    }
+    const amount = moneyFloat(row.debit) - moneyFloat(row.credit);
+    if (!Number.isFinite(amount) || amount === 0) {
+      continue;
+    }
+    const key = `${refType}::${refName}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    out.push(row);
+  }
+  return out;
+}
+
+async function seedFeedStatement(
+  fyo: Fyo,
+  opts: {
+    bankAccount: string;
+    filename: string;
+    lines: SeedFeedLine[];
+  }
+): Promise<void> {
+  const usable = opts.lines.filter(
+    (l) => l.date && Number.isFinite(l.amount) && l.amount !== 0
+  );
+  if (!usable.length) {
+    return;
+  }
+  const dates = usable.map((l) => l.date).sort();
+  const doc = fyo.doc.getNewDoc(ModelNameEnum.BankStatement, {
+    bankAccount: opts.bankAccount,
+    fromDate: dates[0],
+    toDate: dates[dates.length - 1],
+    importedAt: new Date(),
+    source: 'manual_csv',
+    sourceFilename: opts.filename,
+    kind: 'feed_window',
+    status: 'Open',
+  });
+  for (const line of usable) {
+    await doc.append('lines', {
+      date: line.date,
+      description: line.description,
+      amount: fyo.pesa(line.amount),
+      bankReference: line.bankReference ?? '',
+      matchStatus: line.matchStatus,
+      matchedReferenceType: line.matchedReferenceType ?? '',
+      matchedReferenceName: line.matchedReferenceName ?? '',
+      ignoreReason: line.ignoreReason ?? '',
+      possibleDuplicate: Boolean(line.possibleDuplicate),
+      contentHash: demoFeedHash([
+        opts.bankAccount,
+        line.date,
+        line.amount,
+        line.description,
+      ]),
+    });
+  }
+  await doc.sync();
+}
+
+async function linesFromAles(
+  fyo: Fyo,
+  ales: AleRow[],
+  status: SeedFeedLine['matchStatus']
+): Promise<SeedFeedLine[]> {
+  const lines: SeedFeedLine[] = [];
+  for (const row of ales) {
+    const date = isoDay(row.date);
+    const amount = moneyFloat(row.debit) - moneyFloat(row.credit);
+    if (!date || amount === 0) {
+      continue;
+    }
+    const { description, bankReference } = await describeBankAle(fyo, row);
+    lines.push({
+      date,
+      description,
+      amount,
+      bankReference,
+      matchStatus: status,
+      matchedReferenceType:
+        status === 'matched' ? String(row.referenceType ?? '') : undefined,
+      matchedReferenceName:
+        status === 'matched' ? String(row.referenceName ?? '') : undefined,
+    });
+  }
+  return lines;
+}
+
+/**
+ * Manual bank-feed windows for Supreme Bank and Flo's Business Card so the
+ * hub opens with For Review / Reviewed / Excluded already populated. Online
+ * (Plaid) stays empty — connecting a live bank is not part of the demo seed.
+ */
+async function seedBankFeeds(fyo: Fyo): Promise<void> {
+  const bankId = await resolveAccountIdByLabel(fyo, 'Supreme Bank');
+  const ccId = await accountIdByAccountName(fyo, DEMO_CREDIT_CARD_NAME);
+  const now = DateTime.now();
+
+  const bankAles = await loadMatchableAles(fyo, bankId);
+  const bankReviewed = await linesFromAles(
+    fyo,
+    bankAles.slice(0, 5),
+    'matched'
+  );
+  const bankMatchable = await linesFromAles(
+    fyo,
+    bankAles.slice(5, 8),
+    'unmatched'
+  );
+  const bankSynthetic: SeedFeedLine[] = [
+    {
+      date: now.minus({ days: 2 }).toISODate()!,
+      description: "SQ *DAILY BATCH FLO'S CLOTHES",
+      amount: 412.55,
+      bankReference: 'SQ-88421',
+      matchStatus: 'unmatched',
+    },
+    {
+      date: now.minus({ days: 4 }).toISODate()!,
+      description: 'ATM 400 CONGRESS AVE AUSTIN TX',
+      amount: -80,
+      bankReference: 'ATM-400',
+      matchStatus: 'unmatched',
+    },
+    {
+      date: now.minus({ days: 6 }).toISODate()!,
+      description: 'SUPREME BANK MONTHLY FEE',
+      amount: -12,
+      bankReference: 'FEE-SEP',
+      matchStatus: 'unmatched',
+    },
+    {
+      date: now.minus({ days: 8 }).toISODate()!,
+      description: 'AUSTIN ENERGY AUTOPAY',
+      amount: -87.32,
+      bankReference: 'AE-8821',
+      matchStatus: 'unmatched',
+    },
+    {
+      date: now.minus({ days: 3 }).toISODate()!,
+      description: 'VENMO *PERSONAL DINNER',
+      amount: -34.5,
+      bankReference: 'VENMO-19',
+      matchStatus: 'ignored',
+      ignoreReason: 'Personal',
+    },
+    {
+      date: now.minus({ days: 5 }).toISODate()!,
+      description: 'STARBUCKS STORE 11847',
+      amount: -6.75,
+      bankReference: 'SBUX-11847',
+      matchStatus: 'ignored',
+      ignoreReason: 'Personal',
+    },
+    {
+      date: now.minus({ days: 4 }).toISODate()!,
+      description: 'ATM 400 CONGRESS AVE AUSTIN TX',
+      amount: -80,
+      bankReference: 'ATM-400-DUP',
+      matchStatus: 'ignored',
+      ignoreReason: 'Duplicate',
+      possibleDuplicate: true,
+    },
+  ];
+  await seedFeedStatement(fyo, {
+    bankAccount: bankId,
+    filename: 'demo-supreme-bank.csv',
+    lines: [...bankReviewed, ...bankMatchable, ...bankSynthetic],
+  });
+
+  if (!ccId) {
+    return;
+  }
+  const ccAles = await loadMatchableAles(fyo, ccId);
+  const ccReviewed = await linesFromAles(fyo, ccAles.slice(0, 2), 'matched');
+  const ccMatchable = await linesFromAles(fyo, ccAles.slice(2, 4), 'unmatched');
+  const ccSynthetic: SeedFeedLine[] = [
+    {
+      date: now.minus({ days: 1 }).toISODate()!,
+      description: 'NETFLIX.COM',
+      amount: -15.99,
+      bankReference: 'NFX-SEP',
+      matchStatus: 'unmatched',
+    },
+    {
+      date: now.minus({ days: 3 }).toISODate()!,
+      description: 'SHELL OIL 5742 AUSTIN TX',
+      amount: -54.2,
+      bankReference: 'SHELL-5742',
+      matchStatus: 'unmatched',
+    },
+    {
+      date: now.minus({ days: 7 }).toISODate()!,
+      description: 'TARGET T-2148 AUSTIN TX',
+      amount: -41.18,
+      bankReference: 'TGT-2148',
+      matchStatus: 'ignored',
+      ignoreReason: 'Personal',
+    },
+  ];
+  await seedFeedStatement(fyo, {
+    bankAccount: ccId,
+    filename: 'demo-flos-card.csv',
+    lines: [...ccReviewed, ...ccMatchable, ...ccSynthetic],
+  });
+}
+
 export async function seedDemoExtras(
   fyo: Fyo,
   ids: DemoIdMaps,
@@ -467,4 +825,7 @@ export async function seedDemoExtras(
 
   notifier?.(t`Seeding memorized transactions`, -1);
   await seedMemorizedTemplates(fyo, ids);
+
+  notifier?.(t`Seeding bank feeds`, -1);
+  await seedBankFeeds(fyo);
 }

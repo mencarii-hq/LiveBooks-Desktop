@@ -325,6 +325,13 @@ const ipc = {
       )) as SourceBookOpResult;
     },
 
+    async attachDemoArchive(payload: { booksDbPath: string }) {
+      return (await ipcRenderer.invoke(
+        IPC_ACTIONS.SOURCEBOOKS_ATTACH_DEMO,
+        payload
+      )) as SourceBookOpResult;
+    },
+
     async detach(booksDbPath: string) {
       return (await ipcRenderer.invoke(
         IPC_ACTIONS.SOURCEBOOKS_DETACH,

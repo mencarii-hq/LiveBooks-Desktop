@@ -1,7 +1,6 @@
 import test from 'tape';
 import {
   getLivebooksCloudOrigin,
-  livebooksCloudFeedbackUrl,
   livebooksCloudQbdExportUrl,
   livebooksCloudMfaStepUpUrl,
   livebooksCloudAccountSecurityUrl,
@@ -30,7 +29,6 @@ test('livebooksCloudUrls default origin and Rails 8 auth paths', (t) => {
     livebooksCloudMfaStepUpUrl(),
     `${DEFAULT_ORIGIN}/account/security/step_up`
   );
-  t.equal(livebooksCloudFeedbackUrl(), `${DEFAULT_ORIGIN}/feedback`);
   t.equal(livebooksCloudQbdExportUrl(), `${DEFAULT_ORIGIN}/qbd_exports`);
 
   t.notOk(

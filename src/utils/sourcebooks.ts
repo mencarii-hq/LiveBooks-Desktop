@@ -111,6 +111,15 @@ export async function attachLocalSourceBookZip(
   return result;
 }
 
+/** Seed the demo QBD Archive sidecar next to a newly created company file. */
+export async function attachDemoSourceBook(
+  booksDbPath: string
+): Promise<SourceBookOpResult> {
+  const result = await ipc.sourcebooks.attachDemoArchive({ booksDbPath });
+  await refreshSourceBookStatus();
+  return result;
+}
+
 export async function detachSourceBook(): Promise<SourceBookOpResult> {
   const result = await ipc.sourcebooks.detach(getBooksDbPath());
   await refreshSourceBookStatus();

@@ -8,6 +8,7 @@ import type {
   SourceBookProgress,
   SourceBookSearchRequest,
 } from 'utils/sourcebooks/types';
+import { attachDemoQbdArchive } from 'backend/sourcebooks/demoArchive';
 import { sourceBookStore } from 'backend/sourcebooks/store';
 import type { Main } from '../main';
 import {
@@ -119,6 +120,19 @@ export default function registerSourceBookIpcHandlers(main: Main) {
           meta: { origin: 'local' },
           onProgress: sendProgress,
         });
+      });
+    }
+  );
+
+  ipcMain.handle(
+    IPC_ACTIONS.SOURCEBOOKS_ATTACH_DEMO,
+    async (
+      _,
+      payload: { booksDbPath: string }
+    ): Promise<SourceBookOpResult> => {
+      const booksDbPath = payload?.booksDbPath;
+      return await asOpResult(booksDbPath, async () => {
+        await attachDemoQbdArchive(booksDbPath, sendProgress);
       });
     }
   );
