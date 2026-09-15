@@ -78,7 +78,7 @@ Download the latest build for your platform from the **[LiveBooks Desktop releas
 
 ### Prerequisites
 
-- **Node.js** `v20.18.1` (recommended via [nvm](https://github.com/nvm-sh/nvm#installing-and-updating))
+- **Node.js** `v22.14.0` or newer (required by `electron-builder` 26.16+; use [nvm](https://github.com/nvm-sh/nvm#installing-and-updating))
 - **[Yarn classic](https://classic.yarnpkg.com/lang/en/docs/install/#mac-stable)** (v1)
 
 ### Clone and run

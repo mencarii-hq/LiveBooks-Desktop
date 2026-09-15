@@ -14,7 +14,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v4
         with:
-          node-version: '20.18.1'
+          node-version: '22.14.0'
 
       # node-gyp (better-sqlite3 / electron-rebuild) still imports distutils,
       # which was removed in Python 3.12+. Pin 3.11 so rebuild works on macos-latest.
